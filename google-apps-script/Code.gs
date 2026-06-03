@@ -165,6 +165,11 @@ function createRecordHandler(payload) {
     return errorResponse('MISSING_PARAMS', 'type, record, and record.id required', 400);
   }
 
+  record.id = String(record.id);
+  if (record.fileNumber !== undefined && record.fileNumber !== null) {
+    record.fileNumber = String(record.fileNumber);
+  }
+
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES[type]);
   if (!sheet) {
     return errorResponse('SHEET_NOT_FOUND', `Sheet ${type} not found`, 404);
@@ -215,6 +220,11 @@ function updateRecordHandler(payload) {
     return errorResponse('MISSING_PARAMS', 'type, record, and record.id required', 400);
   }
 
+  record.id = String(record.id);
+  if (record.fileNumber !== undefined && record.fileNumber !== null) {
+    record.fileNumber = String(record.fileNumber);
+  }
+
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES[type]);
   if (!sheet) {
     return errorResponse('SHEET_NOT_FOUND', `Sheet ${type} not found`, 404);
@@ -260,7 +270,7 @@ function updateRecordHandler(payload) {
  */
 function deleteRecordHandler(payload) {
   const type = payload.type;
-  const id = payload.id;
+  const id = payload.id !== undefined && payload.id !== null ? String(payload.id) : '';
   const displayName = payload.displayName || 'Unknown';
 
   if (!type || !id) {
@@ -366,6 +376,11 @@ function syncBatchHandler(payload) {
     if (!record.id) {
       skipped++;
       continue;
+    }
+
+    record.id = String(record.id);
+    if (record.fileNumber !== undefined && record.fileNumber !== null) {
+      record.fileNumber = String(record.fileNumber);
     }
 
     const existingRow = findRowByIdInSheet(sheet, COLUMN_MAP[type], record.id);
@@ -675,9 +690,10 @@ function getSheetData(type) {
 function findRowByIdInSheet(sheet, colMap, id) {
   const data = sheet.getRange('A1:' + String.fromCharCode(65 + sheet.getLastColumn() - 1) + sheet.getLastRow()).getValues();
   const idColIndex = colMap.id;
+  const targetId = String(id);
 
   for (let i = 1; i < data.length; i++) {
-    if (data[i][idColIndex] === id) {
+    if (String(data[i][idColIndex]) === targetId) {
       return i + 1; // Return 1-based row number
     }
   }
@@ -694,6 +710,10 @@ function recordToRow(type, record) {
 
   for (const [field, colIndex] of Object.entries(colMap)) {
     let value = record[field];
+
+    if ((field === 'id' || field === 'fileNumber') && value !== undefined && value !== null) {
+      value = String(value);
+    }
 
     // Special handling for tasks (JSON string for tumorboard)
     if (field === 'tasks' && Array.isArray(value)) {
@@ -728,6 +748,10 @@ function rowToRecord(type, row) {
     // Parse numeric fields
     if ((field === 'weight' || field === 'age') && value) {
       value = parseFloat(value) || value;
+    }
+
+    if ((field === 'id' || field === 'fileNumber') && value !== undefined && value !== null) {
+      value = String(value);
     }
 
     record[field] = value;

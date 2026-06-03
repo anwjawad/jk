@@ -31,7 +31,7 @@ function _setSyncState(id, state) {
 // ── Core HTTP ────────────────────────────────────────────────────────────────
 
 async function apiRequest(action, payload) {
-    const body = JSON.stringify({ action, key: SYNC_API_KEY, ...payload });
+    const body = JSON.stringify({ action, key: SYNC_API_KEY, ...normalizeSyncPayload(payload) });
     const resp = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
@@ -57,20 +57,51 @@ async function loadFromGoogleSheets() {
 }
 
 async function saveRecordToGoogleSheets(type, record) {
-    return apiRequest('createRecord', { type, record });
+    return apiRequest('createRecord', { type, record: normalizeRecordForSync(record) });
 }
 
 async function updateRecordInGoogleSheets(type, record) {
-    return apiRequest('updateRecord', { type, record });
+    return apiRequest('updateRecord', { type, record: normalizeRecordForSync(record) });
 }
 
 async function deleteRecordFromGoogleSheets(type, id) {
-    return apiRequest('deleteRecord', { type, id });
+    return apiRequest('deleteRecord', { type, id: normalizeIdForSync(id) });
 }
 
 async function _bulkCreateToGoogleSheets(type, records) {
-    const operations = records.map(r => ({ op: 'create', record: r }));
+    const operations = records.map(r => ({ op: 'create', record: normalizeRecordForSync(r) }));
     return apiRequest('syncBatch', { type, operations });
+}
+
+function normalizeRecordForSync(record) {
+    if (!record || typeof record !== 'object') return record;
+    return {
+        ...record,
+        id: normalizeIdForSync(record.id),
+        fileNumber: record.fileNumber !== undefined && record.fileNumber !== null ? String(record.fileNumber) : record.fileNumber
+    };
+}
+
+function normalizeIdForSync(id) {
+    if (id === undefined || id === null) return id;
+    const textId = String(id);
+    return /^\d+$/.test(textId) ? Number(textId) : textId;
+}
+
+function normalizeSyncPayload(payload) {
+    if (!payload || typeof payload !== 'object') return payload;
+    if (payload.record) return { ...payload, record: normalizeRecordForSync(payload.record) };
+    if (payload.id !== undefined && payload.id !== null) return { ...payload, id: normalizeIdForSync(payload.id) };
+    if (Array.isArray(payload.operations)) {
+        return {
+            ...payload,
+            operations: payload.operations.map(op => ({
+                ...op,
+                record: normalizeRecordForSync(op.record)
+            }))
+        };
+    }
+    return payload;
 }
 
 async function _clearTypeInGoogleSheets(type) {

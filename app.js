@@ -420,6 +420,10 @@ function formatDateDisplay(dateString) {
     return `${dd}/${mm}/${yyyy}`;
 }
 
+function idsMatch(left, right) {
+    return String(left) === String(right);
+}
+
 // PORT CATH LOGIC
 function addPortCathPatient(event) {
     event.preventDefault();
@@ -825,7 +829,7 @@ function renderFollowUpTable() {
 
 function saveFollowUpResult(id) {
     const inputVal = document.getElementById(`res-input-${id}`).value.trim();
-    const idx = followUpList.findIndex(p => p.id === id);
+    const idx = followUpList.findIndex(p => idsMatch(p.id, id));
     if (idx !== -1) {
         followUpList[idx].taskResult = inputVal;
         syncAfterChange('update', 'followup', followUpList[idx]);
@@ -892,19 +896,19 @@ function deletePatient(type, id) {
     let patient, title, details;
 
     if (type === 'portcath') {
-        patient = portCathList.find(p => p.id === id);
+        patient = portCathList.find(p => idsMatch(p.id, id));
         title = 'Delete Port Cath Patient?';
         details = patient ? `<strong>${patient.name}</strong> (${patient.fileNumber}) on ${formatDateDisplay(patient.date)}` : 'Patient';
     } else if (type === 'admissions') {
-        patient = admissionsList.find(p => p.id === id);
+        patient = admissionsList.find(p => idsMatch(p.id, id));
         title = 'Delete Admission?';
         details = patient ? `<strong>${patient.name}</strong> (${patient.fileNumber}) on ${formatDateDisplay(patient.date)}` : 'Patient';
     } else if (type === 'followup') {
-        patient = followUpList.find(p => p.id === id);
+        patient = followUpList.find(p => idsMatch(p.id, id));
         title = 'Delete Follow-up?';
         details = patient ? `<strong>${patient.name}</strong> (${patient.phone}) on ${formatDateDisplay(patient.date)}` : 'Patient';
     } else if (type === 'tumorboard') {
-        patient = tumorBoardList.find(p => p.id === id);
+        patient = tumorBoardList.find(p => idsMatch(p.id, id));
         title = 'Delete Tumor Board Patient?';
         details = patient ? `<strong>${patient.name}</strong> (Age ${patient.age})` : 'Patient';
     }
@@ -917,16 +921,16 @@ function deletePatient(type, id) {
         confirmLabel: 'Delete',
         onConfirm: () => {
             if (type === 'portcath') {
-                portCathList = portCathList.filter(p => p.id !== id);
+                portCathList = portCathList.filter(p => !idsMatch(p.id, id));
                 renderPortCathTable();
             } else if (type === 'admissions') {
-                admissionsList = admissionsList.filter(p => p.id !== id);
+                admissionsList = admissionsList.filter(p => !idsMatch(p.id, id));
                 renderAdmissionsTable();
             } else if (type === 'followup') {
-                followUpList = followUpList.filter(p => p.id !== id);
+                followUpList = followUpList.filter(p => !idsMatch(p.id, id));
                 renderFollowUpTable();
             } else if (type === 'tumorboard') {
-                tumorBoardList = tumorBoardList.filter(p => p.id !== id);
+                tumorBoardList = tumorBoardList.filter(p => !idsMatch(p.id, id));
                 renderTumorBoardTable();
             }
             syncAfterChange('delete', type, id);
@@ -948,7 +952,7 @@ function openEditPatient(type, id) {
     modal.classList.add('active');
 
     if (type === 'portcath') {
-        const patient = portCathList.find(p => p.id === id);
+        const patient = portCathList.find(p => idsMatch(p.id, id));
         document.getElementById('modal-edit-title').innerText = "Edit Port Cath Patient";
         body.innerHTML = `
             <div class="form-group">
@@ -975,7 +979,7 @@ function openEditPatient(type, id) {
             </div>
         `;
     } else if (type === 'admissions') {
-        const patient = admissionsList.find(p => p.id === id);
+        const patient = admissionsList.find(p => idsMatch(p.id, id));
         document.getElementById('modal-edit-title').innerText = "Edit Admission Details";
         body.innerHTML = `
             <div class="form-group double">
@@ -1062,7 +1066,7 @@ function openEditPatient(type, id) {
             </div>
         `;
     } else if (type === 'followup') {
-        const patient = followUpList.find(p => p.id === id);
+        const patient = followUpList.find(p => idsMatch(p.id, id));
         document.getElementById('modal-edit-title').innerText = "Edit Follow-up Patient";
         body.innerHTML = `
             <div class="form-group">
@@ -1119,7 +1123,7 @@ function saveEditedPatient() {
             return;
         }
         
-        const idx = portCathList.findIndex(p => p.id === currentEditId);
+        const idx = portCathList.findIndex(p => idsMatch(p.id, currentEditId));
         if (idx !== -1) {
             portCathList[idx].name = name;
             portCathList[idx].fileNumber = fileNumber;
@@ -1141,7 +1145,7 @@ function saveEditedPatient() {
             return;
         }
 
-        const idx = admissionsList.findIndex(p => p.id === currentEditId);
+        const idx = admissionsList.findIndex(p => idsMatch(p.id, currentEditId));
         if (idx !== -1) {
             admissionsList[idx].name = name;
             admissionsList[idx].fileNumber = fileNumber;
@@ -1169,7 +1173,7 @@ function saveEditedPatient() {
             return;
         }
 
-        const idx = followUpList.findIndex(p => p.id === currentEditId);
+        const idx = followUpList.findIndex(p => idsMatch(p.id, currentEditId));
         if (idx !== -1) {
             followUpList[idx].name = name;
             followUpList[idx].fileNumber = fileNumber;
@@ -1185,7 +1189,7 @@ function saveEditedPatient() {
     const _editList = currentEditType === 'portcath' ? portCathList
                     : currentEditType === 'admissions' ? admissionsList
                     : followUpList;
-    const _editedRecord = _editList.find(p => p.id === currentEditId);
+    const _editedRecord = _editList.find(p => idsMatch(p.id, currentEditId));
     syncAfterChange('update', currentEditType, _editedRecord);
     renderDashboard();
     renderCalendar();
@@ -3571,7 +3575,7 @@ let currentProfilePatientId = null;
 
 function openPatientProfile(patientId) {
     currentProfilePatientId = patientId;
-    const patient = tumorBoardList.find(p => p.id === patientId);
+    const patient = tumorBoardList.find(p => idsMatch(p.id, patientId));
     if (!patient) return;
 
     document.getElementById('prof-name').value = patient.name;
@@ -3599,7 +3603,7 @@ function saveProfileDemographics(event) {
     if (event) event.preventDefault();
     if (!currentProfilePatientId) return;
 
-    const patientIdx = tumorBoardList.findIndex(p => p.id === currentProfilePatientId);
+    const patientIdx = tumorBoardList.findIndex(p => idsMatch(p.id, currentProfilePatientId));
     if (patientIdx === -1) return;
 
     const name = document.getElementById('prof-name').value.trim();
@@ -3662,7 +3666,7 @@ function toggleProfileTaskFields() {
 function addProfileTask() {
     if (!currentProfilePatientId) return;
 
-    const patient = tumorBoardList.find(p => p.id === currentProfilePatientId);
+    const patient = tumorBoardList.find(p => idsMatch(p.id, currentProfilePatientId));
     if (!patient) return;
 
     const typeSelect = document.getElementById('prof-add-task-type');
@@ -3721,11 +3725,11 @@ function addProfileTask() {
 
 function deleteProfileTask(taskId) {
     if (!currentProfilePatientId) return;
-    const patient = tumorBoardList.find(p => p.id === currentProfilePatientId);
+    const patient = tumorBoardList.find(p => idsMatch(p.id, currentProfilePatientId));
     if (!patient) return;
 
     if (confirm("Are you sure you want to delete this task?")) {
-        patient.tasks = patient.tasks.filter(t => t.id !== taskId);
+        patient.tasks = patient.tasks.filter(t => !idsMatch(t.id, taskId));
         syncAfterChange('update', 'tumorboard', patient);
         renderProfileTasks(patient);
         renderTumorBoardTable();
@@ -3734,10 +3738,10 @@ function deleteProfileTask(taskId) {
 
 function toggleProfileTaskStatus(taskId) {
     if (!currentProfilePatientId) return;
-    const patient = tumorBoardList.find(p => p.id === currentProfilePatientId);
+    const patient = tumorBoardList.find(p => idsMatch(p.id, currentProfilePatientId));
     if (!patient) return;
 
-    const task = patient.tasks.find(t => t.id === taskId);
+    const task = patient.tasks.find(t => idsMatch(t.id, taskId));
     if (task) {
         task.status = task.status === 'completed' ? 'pending' : 'completed';
         syncAfterChange('update', 'tumorboard', patient);
@@ -3791,7 +3795,7 @@ function renderProfileTasks(patient) {
 
 function openPrintProfileSettingsModal() {
     if (!currentProfilePatientId) return;
-    const patient = tumorBoardList.find(p => p.id === currentProfilePatientId);
+    const patient = tumorBoardList.find(p => idsMatch(p.id, currentProfilePatientId));
     if (!patient) return;
 
     const container = document.getElementById('print-profile-tasks-container');
@@ -3864,7 +3868,7 @@ function submitPrintPatientProfile(action = 'print') {
 }
 
 function generateAndPrintPatientProfile(patientId, selectedTaskIds, preparerName, action = 'print') {
-    const patient = tumorBoardList.find(p => p.id === patientId);
+    const patient = tumorBoardList.find(p => idsMatch(p.id, patientId));
     if (!patient) return;
 
     const printContainer = document.getElementById('print-container');
