@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clinical Scheduler & Patient Admissions System</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f766e'/%3E%3Cpath d='M30 16h8v12h12v8H38v12h-8V36H18v-8h12z' fill='white'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="style.css">
     <!-- SheetJS for Smart Excel Importing -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -21,10 +20,7 @@
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
             </svg>
-            <div>
-                <h1>MedSched Panel</h1>
-                <span>AVH / LWF Coordination</span>
-            </div>
+            <h1>MedSched Panel</h1>
         </div>
         <ul class="sidebar-menu">
             <li id="menu-dashboard" class="active">
@@ -83,8 +79,8 @@
             </li>
         </ul>
         <div class="sidebar-footer">
-            <span class="app-version">v1.0.0</span>
-            <div id="sync-status-indicator" class="sync-status-pill" title="Google Sheets sync status">Offline</div>
+            <span style="font-size: 0.8rem; color: #64748b;">v1.0.0</span>
+            <div id="sync-status-indicator" style="font-size:0.72rem;font-weight:600;padding:2px 0;cursor:default;" title="Google Sheets sync status">⊝ Offline</div>
             <button class="theme-toggle-btn" onclick="toggleDarkMode()" title="Toggle Dark/Light Mode">
                 <svg viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.46 5.05L5.75 4.343a1 1 0 10-1.414 1.414l.707.707zm1.414 8.486a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 011.414-1.414l.707.707zM6 11a1 1 0 100-2H5a1 1 0 100 2h1z" clip-rule="evenodd" />
@@ -990,8 +986,6 @@
     <button class="fab no-print" id="global-fab" onclick="openAddModalForCurrentTab()" title="Add New Record">
         <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
     </button>
-
-    <div id="toast-container" class="toast-container no-print" aria-live="polite" aria-atomic="true"></div>
 
     <!-- HIDDEN CONTAINER FOR PRINTING (window.print() targets this) -->
     <div id="print-container">

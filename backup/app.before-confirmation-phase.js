@@ -19,54 +19,6 @@ let calModuleFilter = 'all';
 
 // Confirm/Modal State (Phase 3 & 6)
 let _pendingPrintConfig = null;
-let _nativeAlert = window.alert.bind(window);
-
-// Phase 7: non-blocking toast notifications for the modern UI layer.
-function showToast(message, type = 'info', duration = 3600) {
-    const container = document.getElementById('toast-container');
-    if (!container) {
-        _nativeAlert(message);
-        return;
-    }
-
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
-    toast.textContent = message;
-    container.appendChild(toast);
-
-    window.setTimeout(() => {
-        toast.classList.add('removing');
-        toast.addEventListener('animationend', () => toast.remove(), { once: true });
-    }, duration);
-}
-
-window.alert = function modernAlert(message) {
-    showToast(String(message), 'info');
-};
-
-function setModalAccessibility(modalId, isOpen) {
-    const modal = document.getElementById(modalId);
-    if (!modal) return;
-    if (!isOpen && modal.contains(document.activeElement)) {
-        document.activeElement.blur();
-    }
-    if (isOpen) {
-        modal.removeAttribute('aria-hidden');
-        modal.setAttribute('role', 'dialog');
-        modal.setAttribute('aria-modal', 'true');
-    } else {
-        modal.setAttribute('aria-hidden', 'true');
-        modal.removeAttribute('aria-modal');
-    }
-}
-
-function showCalendarSkeleton() {
-    const grid = document.getElementById('cal-grid');
-    if (!grid) return;
-    grid.classList.add('cal-loading');
-    grid.innerHTML = Array.from({ length: 35 }, () => '<div class="cal-cell skeleton"></div>').join('');
-}
 
 // ── Confirm Modal Functions (Phase 3) ──────────────────────────────────────
 
@@ -76,24 +28,20 @@ function showConfirmModal({ title, body, confirmLabel = 'Delete', onConfirm }) {
     const btn = document.getElementById('confirm-modal-btn');
     btn.textContent = confirmLabel;
     btn.onclick = () => { closeConfirmModal(); onConfirm(); };
-    setModalAccessibility('modal-confirm', true);
     document.getElementById('modal-confirm').classList.add('active');
 }
 function closeConfirmModal() {
     document.getElementById('modal-confirm').classList.remove('active');
-    setModalAccessibility('modal-confirm', false);
 }
 
 function showAddConfirmModal({ title, summary, onConfirm }) {
     document.getElementById('add-confirm-title').textContent = title;
     document.getElementById('add-confirm-summary').innerHTML = summary;
     document.getElementById('add-confirm-btn').onclick = () => { closeAddConfirmModal(); onConfirm(); };
-    setModalAccessibility('modal-add-confirm', true);
     document.getElementById('modal-add-confirm').classList.add('active');
 }
 function closeAddConfirmModal() {
     document.getElementById('modal-add-confirm').classList.remove('active');
-    setModalAccessibility('modal-add-confirm', false);
 }
 
 // ── Export / Print Modal Functions (Phase 6) ───────────────────────────────
@@ -101,12 +49,10 @@ function closeAddConfirmModal() {
 function openPreparedByModal(config) {
     _pendingPrintConfig = config;
     document.getElementById('prepared-by-input').value = '';
-    setModalAccessibility('modal-prepared-by', true);
     document.getElementById('modal-prepared-by').classList.add('active');
 }
 function closePreparedByModal() {
     document.getElementById('modal-prepared-by').classList.remove('active');
-    setModalAccessibility('modal-prepared-by', false);
 }
 function submitReportExport(action) {
     const preparedBy = document.getElementById('prepared-by-input').value.trim() || 'MedSched Coordinator';
@@ -120,60 +66,6 @@ function submitReportExport(action) {
     } else if (cfg.scope === 'day') {
         printDayAllModules(cfg.dateStr, preparedBy, action);
     }
-}
-
-// ── Phase 3: Summary Builders for Add/Edit Confirmation ────────────────────
-
-function buildPortCathSummary(patient) {
-    return `
-        <div style="display:grid; grid-template-columns:140px 1fr; gap:8px; font-size:0.9rem;">
-            <strong>Name:</strong> <span>${patient.name}</span>
-            <strong>File #:</strong> <span>${patient.fileNumber}</span>
-            <strong>Date:</strong> <span>${formatDateDisplay(patient.date)}</span>
-            <strong>Day:</strong> <span>${patient.day}</span>
-            <strong>Weight:</strong> <span>${patient.weight} kg</span>
-            <strong>Notes:</strong> <span style="word-break:break-word; max-height:60px; overflow:auto;">${patient.notes || '—'}</span>
-        </div>
-    `;
-}
-
-function buildAdmissionsSummary(patient) {
-    return `
-        <div style="display:grid; grid-template-columns:140px 1fr; gap:8px; font-size:0.9rem;">
-            <strong>Name:</strong> <span>${patient.name}</span>
-            <strong>File #:</strong> <span>${patient.fileNumber}</span>
-            <strong>Age:</strong> <span>${patient.age}</span>
-            <strong>Triage:</strong> <span>${patient.triageScore}</span>
-            <strong>Physician:</strong> <span>${patient.primaryPhysician}</span>
-            <strong>Department:</strong> <span>${patient.admissionDepartment}</span>
-            <strong>Date:</strong> <span>${formatDateDisplay(patient.date)}</span>
-            <strong>Summary:</strong> <span style="word-break:break-word;">${patient.summary || '—'}</span>
-        </div>
-    `;
-}
-
-function buildFollowUpSummary(patient) {
-    return `
-        <div style="display:grid; grid-template-columns:140px 1fr; gap:8px; font-size:0.9rem;">
-            <strong>Name:</strong> <span>${patient.name}</span>
-            <strong>Phone:</strong> <span>${patient.phone}</span>
-            <strong>File #:</strong> <span>${patient.fileNumber}</span>
-            <strong>Date:</strong> <span>${formatDateDisplay(patient.date)}</span>
-            <strong>Task:</strong> <span style="word-break:break-word; max-height:60px; overflow:auto;">${patient.task}</span>
-        </div>
-    `;
-}
-
-function buildTumorBoardSummary(patient) {
-    return `
-        <div style="display:grid; grid-template-columns:140px 1fr; gap:8px; font-size:0.9rem;">
-            <strong>Name:</strong> <span>${patient.name}</span>
-            <strong>File #:</strong> <span>${patient.fileNumber || '—'}</span>
-            <strong>Age:</strong> <span>${patient.age}</span>
-            <strong>Physician:</strong> <span>${patient.physician}</span>
-            <strong>Diagnosis:</strong> <span style="word-break:break-word; max-height:80px; overflow:auto;">${patient.diagnosis || patient.tumorDiagnosis || '—'}</span>
-        </div>
-    `;
 }
 
 // Load lists on init
@@ -190,8 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
     calYear = new Date().getFullYear();
     calMonth = new Date().getMonth();
     renderCalendar();
-    showCalendarSkeleton();
-    window.setTimeout(() => renderCalendar(), 420);
     
     // Set default dates to today's date in input fields
     const today = new Date().toISOString().split('T')[0];
@@ -404,10 +294,7 @@ function getDayName(dateString) {
 function updateDashboardDate() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const today = new Date();
-    const dateEl = document.getElementById('dashboard-date');
-    if (dateEl) {
-        dateEl.innerText = "Today is " + today.toLocaleDateString('en-US', options);
-    }
+    document.getElementById('dashboard-date').innerText = "Today is " + today.toLocaleDateString('en-US', options);
 }
 
 function formatDateDisplay(dateString) {
@@ -439,25 +326,19 @@ function addPortCathPatient(event) {
         notes
     };
 
-    showAddConfirmModal({
-        title: 'Confirm Port Cath Patient',
-        summary: buildPortCathSummary(patient),
-        onConfirm: () => {
-            portCathList.push(patient);
-            syncAfterChange('create', 'portcath', patient);
-            updateDateDropdown('portcath');
-            renderPortCathTable();
-            renderDashboard();
-            renderCalendar();
+    portCathList.push(patient);
+    syncAfterChange('create', 'portcath', patient);
+    updateDateDropdown('portcath');
+    renderPortCathTable();
+    renderDashboard();
+    renderCalendar();
 
-            // Reset Form
-            document.getElementById('form-portcath').reset();
-            document.getElementById('pc-date').value = new Date().toISOString().split('T')[0];
+    // Reset Form
+    document.getElementById('form-portcath').reset();
+    document.getElementById('pc-date').value = new Date().toISOString().split('T')[0];
 
-            // Close the Modal
-            closeAddModal('portcath');
-        }
-    });
+    // Close the Modal
+    closeAddModal('portcath');
 }
 
 function renderPortCathTable() {
@@ -492,7 +373,6 @@ function renderPortCathTable() {
 
     sortedList.forEach(patient => {
         const tr = document.createElement('tr');
-        tr.setAttribute('data-sync-id', patient.id);
         tr.addEventListener('click', (e) => {
             if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('textarea') || e.target.closest('.no-print')) {
                 return;
@@ -510,7 +390,6 @@ function renderPortCathTable() {
             </td>
             <td class="no-print">
                 <div class="table-actions">
-                    <span class="sync-row-badge" title="Synced">✓</span>
                     <button class="action-btn edit" onclick="openEditPatient('portcath', '${patient.id}')" title="Edit Patient">
                         <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
@@ -579,30 +458,24 @@ function addAdmissionPatient(event) {
         notes
     };
 
-    showAddConfirmModal({
-        title: 'Confirm Admission',
-        summary: buildAdmissionsSummary(patient),
-        onConfirm: () => {
-            admissionsList.push(patient);
-            syncAfterChange('create', 'admissions', patient);
-            updateDateDropdown('admissions');
-            renderAdmissionsTable();
-            renderDashboard();
-            renderCalendar();
+    admissionsList.push(patient);
+    syncAfterChange('create', 'admissions', patient);
+    updateDateDropdown('admissions');
+    renderAdmissionsTable();
+    renderDashboard();
+    renderCalendar();
 
-            // Reset Form
-            document.getElementById('form-admissions').reset();
-            document.getElementById('adm-date').value = new Date().toISOString().split('T')[0];
-            document.getElementById('adm-triage').value = "3";
-            document.getElementById('adm-referral').value = "Home";
-            document.getElementById('adm-transport').value = "Private Car";
-            document.getElementById('adm-performance').value = "Walking";
-            document.getElementById('adm-department').value = "Treatment room";
+    // Reset Form
+    document.getElementById('form-admissions').reset();
+    document.getElementById('adm-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('adm-triage').value = "3";
+    document.getElementById('adm-referral').value = "Home";
+    document.getElementById('adm-transport').value = "Private Car";
+    document.getElementById('adm-performance').value = "Walking";
+    document.getElementById('adm-department').value = "Treatment room";
 
-            // Close the Modal
-            closeAddModal('admissions');
-        }
-    });
+    // Close the Modal
+    closeAddModal('admissions');
 }
 
 function getTriageBadge(score) {
@@ -648,7 +521,6 @@ function renderAdmissionsTable() {
 
     sortedList.forEach(patient => {
         const tr = document.createElement('tr');
-        tr.setAttribute('data-sync-id', patient.id);
         tr.addEventListener('click', (e) => {
             if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('textarea') || e.target.closest('.no-print')) {
                 return;
@@ -677,7 +549,6 @@ function renderAdmissionsTable() {
             </td>
             <td class="no-print">
                 <div class="table-actions">
-                    <span class="sync-row-badge" title="Synced">✓</span>
                     <button class="action-btn edit" onclick="openEditPatient('admissions', '${patient.id}')" title="Edit Record">
                         <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
@@ -734,25 +605,19 @@ function addFollowUpPatient(event) {
         taskResult: ''
     };
 
-    showAddConfirmModal({
-        title: 'Confirm Follow-up',
-        summary: buildFollowUpSummary(patient),
-        onConfirm: () => {
-            followUpList.push(patient);
-            syncAfterChange('create', 'followup', patient);
-            updateDateDropdown('followup');
-            renderFollowUpTable();
-            renderDashboard();
-            renderCalendar();
+    followUpList.push(patient);
+    syncAfterChange('create', 'followup', patient);
+    updateDateDropdown('followup');
+    renderFollowUpTable();
+    renderDashboard();
+    renderCalendar();
 
-            // Reset Form
-            document.getElementById('form-followup').reset();
-            document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    // Reset Form
+    document.getElementById('form-followup').reset();
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
 
-            // Close the Modal
-            closeAddModal('followup');
-        }
-    });
+    // Close the Modal
+    closeAddModal('followup');
 }
 
 function renderFollowUpTable() {
@@ -786,7 +651,6 @@ function renderFollowUpTable() {
 
     sortedList.forEach(patient => {
         const tr = document.createElement('tr');
-        tr.setAttribute('data-sync-id', patient.id);
         tr.addEventListener('click', (e) => {
             if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('textarea') || e.target.closest('.no-print')) {
                 return;
@@ -809,7 +673,6 @@ function renderFollowUpTable() {
             </td>
             <td class="no-print">
                 <div class="table-actions">
-                    <span class="sync-row-badge" title="Synced">✓</span>
                     <button class="action-btn edit" onclick="openEditPatient('followup', '${patient.id}')" title="Edit Patient">
                         <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
@@ -889,31 +752,9 @@ function copyFollowUpList() {
 
 // DELETE RECORD LOGIC
 function deletePatient(type, id) {
-    let patient, title, details;
-
-    if (type === 'portcath') {
-        patient = portCathList.find(p => p.id === id);
-        title = 'Delete Port Cath Patient?';
-        details = patient ? `<strong>${patient.name}</strong> (${patient.fileNumber}) on ${formatDateDisplay(patient.date)}` : 'Patient';
-    } else if (type === 'admissions') {
-        patient = admissionsList.find(p => p.id === id);
-        title = 'Delete Admission?';
-        details = patient ? `<strong>${patient.name}</strong> (${patient.fileNumber}) on ${formatDateDisplay(patient.date)}` : 'Patient';
-    } else if (type === 'followup') {
-        patient = followUpList.find(p => p.id === id);
-        title = 'Delete Follow-up?';
-        details = patient ? `<strong>${patient.name}</strong> (${patient.phone}) on ${formatDateDisplay(patient.date)}` : 'Patient';
-    } else if (type === 'tumorboard') {
-        patient = tumorBoardList.find(p => p.id === id);
-        title = 'Delete Tumor Board Patient?';
-        details = patient ? `<strong>${patient.name}</strong> (Age ${patient.age})` : 'Patient';
-    }
-
-    const body = `Delete ${details}?<br><strong style="color:var(--danger);">This action cannot be undone.</strong>`;
-
     showConfirmModal({
-        title,
-        body,
+        title: 'Delete Patient Record?',
+        body: 'Are you sure? <strong>This action cannot be undone.</strong>',
         confirmLabel: 'Delete',
         onConfirm: () => {
             if (type === 'portcath') {
@@ -925,9 +766,6 @@ function deletePatient(type, id) {
             } else if (type === 'followup') {
                 followUpList = followUpList.filter(p => p.id !== id);
                 renderFollowUpTable();
-            } else if (type === 'tumorboard') {
-                tumorBoardList = tumorBoardList.filter(p => p.id !== id);
-                renderTumorBoardTable();
             }
             syncAfterChange('delete', type, id);
             renderDashboard();
@@ -1110,8 +948,6 @@ function saveEditedPatient() {
         return;
     }
 
-    let editedPatient = null;
-
     if (currentEditType === 'portcath') {
         const weight = parseFloat(document.getElementById('edit-weight').value);
         if (isNaN(weight)) {
@@ -1195,73 +1031,63 @@ function saveEditedPatient() {
 
 // DASHBOARD RENDERER
 function renderDashboard() {
-    // 1. Counters (with null checks for calendar-based dashboard)
-    const portCathWidget = document.getElementById('count-widget-portcath');
-    if (portCathWidget) portCathWidget.innerText = portCathList.length;
-
-    const admissionsWidget = document.getElementById('count-widget-admissions');
-    if (admissionsWidget) admissionsWidget.innerText = admissionsList.length;
-
-    const followupWidget = document.getElementById('count-widget-followup');
-    if (followupWidget) followupWidget.innerText = followUpList.length;
+    // 1. Counters
+    document.getElementById('count-widget-portcath').innerText = portCathList.length;
+    document.getElementById('count-widget-admissions').innerText = admissionsList.length;
+    document.getElementById('count-widget-followup').innerText = followUpList.length;
 
     // Calculate today's patients
     const todayStr = new Date().toISOString().split('T')[0];
     const todayPortCath = portCathList.filter(p => p.date === todayStr).length;
     const todayAdmissions = admissionsList.filter(a => a.date === todayStr).length;
-    const todayWidget = document.getElementById('count-widget-today');
-    if (todayWidget) todayWidget.innerText = todayPortCath + todayAdmissions;
+    document.getElementById('count-widget-today').innerText = todayPortCath + todayAdmissions;
 
     // 2. Render Port Cath Dashboard list (first 5 elements sorted by date ascending)
     const pcDTableBody = document.querySelector('#dashboard-portcath-table tbody');
-    if (pcDTableBody) {
-        pcDTableBody.innerHTML = '';
+    pcDTableBody.innerHTML = '';
+    
+    const upcomingPortCath = [...portCathList]
+        .filter(p => new Date(p.date) >= new Date(new Date().setHours(0,0,0,0)))
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .slice(0, 5);
 
-        const upcomingPortCath = [...portCathList]
-            .filter(p => new Date(p.date) >= new Date(new Date().setHours(0,0,0,0)))
-            .sort((a, b) => new Date(a.date) - new Date(b.date))
-            .slice(0, 5);
-
-        if (upcomingPortCath.length === 0) {
-            pcDTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-light); padding: 24px;">No upcoming schedules</td></tr>`;
-        } else {
-            upcomingPortCath.forEach(patient => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="font-weight:600;">${patient.name}</td>
-                    <td><code>${patient.fileNumber}</code></td>
-                    <td>${formatDateDisplay(patient.date)}</td>
-                    <td>${patient.weight} kg</td>
-                `;
-                pcDTableBody.appendChild(tr);
-            });
-        }
+    if (upcomingPortCath.length === 0) {
+        pcDTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-light); padding: 24px;">No upcoming schedules</td></tr>`;
+    } else {
+        upcomingPortCath.forEach(patient => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight:600;">${patient.name}</td>
+                <td><code>${patient.fileNumber}</code></td>
+                <td>${formatDateDisplay(patient.date)}</td>
+                <td>${patient.weight} kg</td>
+            `;
+            pcDTableBody.appendChild(tr);
+        });
     }
 
     // 3. Render Admissions Dashboard list
     const admDTableBody = document.querySelector('#dashboard-admissions-table tbody');
-    if (admDTableBody) {
-        admDTableBody.innerHTML = '';
+    admDTableBody.innerHTML = '';
 
-        const upcomingAdmissions = [...admissionsList]
-            .filter(a => new Date(a.date) >= new Date(new Date().setHours(0,0,0,0)))
-            .sort((a, b) => new Date(a.date) - new Date(b.date))
-            .slice(0, 5);
+    const upcomingAdmissions = [...admissionsList]
+        .filter(a => new Date(a.date) >= new Date(new Date().setHours(0,0,0,0)))
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .slice(0, 5);
 
-        if (upcomingAdmissions.length === 0) {
-            admDTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-light); padding: 24px;">No upcoming admissions</td></tr>`;
-        } else {
-            upcomingAdmissions.forEach(patient => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="font-weight:600;">${patient.name}</td>
-                    <td><code>${patient.fileNumber}</code></td>
-                    <td><span class="badge badge-neutral">${patient.admissionDepartment}</span></td>
-                    <td>${getTriageBadge(patient.triageScore)}</td>
-                `;
-                admDTableBody.appendChild(tr);
-            });
-        }
+    if (upcomingAdmissions.length === 0) {
+        admDTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-light); padding: 24px;">No upcoming admissions</td></tr>`;
+    } else {
+        upcomingAdmissions.forEach(patient => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight:600;">${patient.name}</td>
+                <td><code>${patient.fileNumber}</code></td>
+                <td><span class="badge badge-neutral">${patient.admissionDepartment}</span></td>
+                <td>${getTriageBadge(patient.triageScore)}</td>
+            `;
+            admDTableBody.appendChild(tr);
+        });
     }
 }
 
@@ -1273,7 +1099,6 @@ function renderCalendar() {
 
     const calCard = document.getElementById('cal-grid');
     if (!calCard) return;
-    calCard.classList.remove('cal-loading');
 
     const year = calYear;
     const month = calMonth;
@@ -1544,8 +1369,6 @@ function printDayAllModules(dateStr, preparedBy, action) {
         document.body.className = '';
     } else if (action === 'pdf') {
         exportElementToPdf(printContainer, `MedSched_Day_${dateStr}.pdf`);
-    } else if (action === 'word') {
-        exportElementToWord(printContainer, `MedSched_Day_${dateStr}.doc`, preparedBy);
     }
 }
 
@@ -2281,13 +2104,13 @@ function exportElementToPdf(element, filename, type) {
         html2canvas:  { scale: 2.5, useCORS: true, logging: false },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: isLandscape ? 'landscape' : 'portrait' }
     };
-
+    
     const originalDisplay = element.style.display;
     element.style.display = 'block';
-
+    
     document.body.classList.add(isLandscape ? 'print-landscape-mode' : 'print-portrait-mode');
     element.classList.add(isLandscape ? 'print-landscape-report' : 'print-portrait-report');
-
+    
     html2pdf().set(opt).from(element).save().then(() => {
         element.style.display = originalDisplay;
         document.body.className = localStorage.getItem('medsched_dark_mode') === 'true' ? 'dark-mode' : '';
@@ -2298,232 +2121,6 @@ function exportElementToPdf(element, filename, type) {
         document.body.className = localStorage.getItem('medsched_dark_mode') === 'true' ? 'dark-mode' : '';
         element.className = '';
     });
-}
-
-function exportElementToWord(element, filename, preparedBy) {
-    try {
-        // Clone the element to avoid modifying the original
-        const clonedElement = element.cloneNode(true);
-
-        // Remove dark mode and print mode classes
-        clonedElement.className = '';
-
-        // Collect all stylesheets from the document
-        const stylesheets = [];
-        document.querySelectorAll('style, link[rel="stylesheet"]').forEach(sheet => {
-            if (sheet.tagName === 'STYLE') {
-                stylesheets.push(sheet.textContent);
-            } else if (sheet.tagName === 'LINK' && sheet.href) {
-                try {
-                    // For external stylesheets, we'd need to fetch them
-                    // For now, we'll rely on inline styles
-                } catch (e) {
-                    console.log('Could not load external stylesheet');
-                }
-            }
-        });
-
-        // Build the Word document HTML with Office-compatible structure
-        const wordHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <style>
-        ${stylesheets.join('\n')}
-
-        /* Word-specific overrides */
-        body {
-            font-family: Calibri, Arial, sans-serif;
-            font-size: 11pt;
-            margin: 0.5in;
-            color: #0f172a;
-        }
-
-        .print-portrait-report,
-        .print-landscape-report {
-            width: 100%;
-            margin: 0;
-            padding: 0;
-        }
-
-        .print-page-section {
-            page-break-after: always;
-            padding: 0;
-            margin: 0 0 1in 0;
-        }
-
-        .print-page-section:last-child {
-            page-break-after: avoid;
-        }
-
-        .print-report-header {
-            display: flex !important;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #0f172a;
-            padding-bottom: 10pt;
-            margin-bottom: 20pt;
-        }
-
-        .print-report-header img {
-            height: 55pt;
-            object-fit: contain;
-        }
-
-        .print-report-header h2 {
-            font-size: 18pt;
-            font-weight: bold;
-            color: #0f172a;
-            margin: 0;
-            text-transform: uppercase;
-            letter-spacing: 0.5pt;
-        }
-
-        .print-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10pt 0;
-            font-size: 10pt;
-        }
-
-        .print-table th {
-            background-color: #f1f5f9;
-            border: 1pt solid #cbd5e1;
-            padding: 8pt;
-            text-align: left;
-            font-weight: bold;
-            color: #0f172a;
-        }
-
-        .print-table td {
-            border: 1pt solid #e2e8f0;
-            padding: 8pt;
-            vertical-align: top;
-        }
-
-        .print-summary {
-            display: flex;
-            gap: 20pt;
-            margin: 10pt 0 20pt 0;
-            padding: 10pt;
-            background-color: #f8fafc;
-            border-radius: 4pt;
-        }
-
-        .print-summary-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .print-summary-item .label {
-            font-size: 9pt;
-            color: #64748b;
-            font-weight: 600;
-        }
-
-        .print-summary-item .val {
-            font-size: 20pt;
-            font-weight: bold;
-            color: #0d9488;
-            margin-top: 4pt;
-        }
-
-        .print-footer-signature {
-            display: flex;
-            justify-content: flex-start;
-            margin-top: 40pt;
-            gap: 60pt;
-        }
-
-        .signature-box {
-            text-align: center;
-        }
-
-        .signature-box div:first-child {
-            font-size: 11pt;
-            font-weight: bold;
-            color: #0f172a;
-            margin-bottom: 2pt;
-            min-height: 20pt;
-            line-height: 20pt;
-        }
-
-        .signature-line {
-            margin-top: 5pt;
-            margin-bottom: 5pt;
-            border-bottom: 1pt solid #000;
-            width: 150pt;
-        }
-
-        .signature-title {
-            font-weight: 600;
-            color: #475569;
-            font-size: 9pt;
-        }
-
-        .print-page-break {
-            page-break-after: always;
-        }
-
-        code {
-            background-color: #f1f5f9;
-            padding: 2pt 4pt;
-            border-radius: 2pt;
-            font-family: 'Courier New', monospace;
-            font-size: 9pt;
-        }
-
-        h2 {
-            margin: 10pt 0 5pt 0;
-        }
-
-        h3 {
-            margin: 10pt 0 5pt 0;
-            color: #0f172a;
-            font-size: 12pt;
-        }
-
-        /* Hide elements that should not be in print */
-        .no-print {
-            display: none !important;
-        }
-    </style>
-</head>
-<body>
-    ${clonedElement.innerHTML}
-</body>
-</html>
-        `.trim();
-
-        // Create a Blob from the HTML content
-        const blob = new Blob([wordHtml], {
-            type: 'application/msword;charset=utf-8'
-        });
-
-        // Create a temporary download link
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.href = url;
-        link.download = filename;
-
-        // Trigger download
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up the object URL
-        setTimeout(() => URL.revokeObjectURL(url), 100);
-
-        // Reset document state
-        document.body.className = localStorage.getItem('medsched_dark_mode') === 'true' ? 'dark-mode' : '';
-
-    } catch (err) {
-        console.error("Word export error:", err);
-        alert("Error exporting to Word. Please try again.");
-    }
 }
 
 // PRINT MODAL CONTROLLERS
@@ -2925,10 +2522,6 @@ function generateAndPrintReport(type, dates, mode, preparerName, action = 'print
         const dateStr = dates.length === 1 ? dates[0] : 'multiple_dates';
         const filename = `${type}_report_${dateStr}.pdf`;
         exportElementToPdf(printContainer, filename, type);
-    } else if (action === 'word') {
-        const dateStr = dates.length === 1 ? dates[0] : 'multiple_dates';
-        const filename = `${type}_report_${dateStr}.doc`;
-        exportElementToWord(printContainer, filename, preparerName);
     }
 }
 
@@ -2960,20 +2553,14 @@ function addTumorBoardPatient(event) {
         tasks: []
     };
 
-    showAddConfirmModal({
-        title: 'Confirm Tumor Board Patient',
-        summary: buildTumorBoardSummary(patient),
-        onConfirm: () => {
-            tumorBoardList.push(patient);
-            syncAfterChange('create', 'tumorboard', patient);
-            renderTumorBoardTable();
-            renderDashboard();
-            renderCalendar();
+    tumorBoardList.push(patient);
+    syncAfterChange('create', 'tumorboard', patient);
+    renderTumorBoardTable();
+    renderDashboard();
+    renderCalendar();
 
-            document.getElementById('form-tumorboard').reset();
-            closeAddModal('tumorboard');
-        }
-    });
+    document.getElementById('form-tumorboard').reset();
+    closeAddModal('tumorboard');
 }
 
 function renderTumorBoardTable() {
@@ -3015,9 +2602,8 @@ function renderTumorBoardTable() {
 
     filteredList.forEach(patient => {
         const tr = document.createElement('tr');
-        tr.setAttribute('data-sync-id', patient.id);
         tr.style.cursor = 'pointer';
-
+        
         tr.addEventListener('click', (e) => {
             if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) {
                 return;
@@ -3028,7 +2614,7 @@ function renderTumorBoardTable() {
         const totalTasks = patient.tasks.length;
         const completedTasks = patient.tasks.filter(t => t.status === 'completed').length;
         const pendingTasks = totalTasks - completedTasks;
-
+        
         let statusBadgeHtml = '';
         if (totalTasks === 0) {
             statusBadgeHtml = `<span class="badge badge-neutral">No tasks</span>`;
@@ -3052,11 +2638,10 @@ function renderTumorBoardTable() {
             <td>${statusBadgeHtml}</td>
             <td class="no-print">
                 <div class="table-actions">
-                    <span class="sync-row-badge" title="Synced">✓</span>
                     <button class="action-btn edit" onclick="openPatientProfile('${patient.id}')" title="View/Edit Profile">
                         <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
-                    <button class="action-btn delete" onclick="deletePatient('tumorboard', '${patient.id}')" title="Delete Patient">
+                    <button class="action-btn delete" onclick="deleteTumorBoardPatient('${patient.id}')" title="Delete Patient">
                         <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                     </button>
                 </div>
@@ -3071,7 +2656,12 @@ function filterTumorBoardTable() {
 }
 
 function deleteTumorBoardPatient(id) {
-    deletePatient('tumorboard', id);
+    if (confirm("Are you sure you want to delete this oncology patient and all their follow-up tasks?")) {
+        tumorBoardList = tumorBoardList.filter(p => p.id !== id);
+        syncAfterChange('delete', 'tumorboard', id);
+        renderTumorBoardTable();
+        renderDashboard();
+    }
 }
 
 function openImportWordModal() {
@@ -3982,9 +3572,5 @@ function generateAndPrintPatientProfile(patientId, selectedTaskIds, preparerName
         const cleanName = patient.name.replace(/\s+/g, '_').toLowerCase();
         const filename = `patient_profile_${cleanName}.pdf`;
         exportElementToPdf(printContainer, filename, 'tumorboard');
-    } else if (action === 'word') {
-        const cleanName = patient.name.replace(/\s+/g, '_').toLowerCase();
-        const filename = `patient_profile_${cleanName}.doc`;
-        exportElementToWord(printContainer, filename, preparerName);
     }
 }
