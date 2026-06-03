@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Mammoth.js for Word Document Parsing -->
     <script src="mammoth.browser.min.js"></script>
+    <!-- html2pdf.js for exporting reports as PDF files -->
+    <script src="html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -586,11 +588,15 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button class="btn btn-secondary" onclick="closePrintModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="submitPrintReport()">
-                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                <button class="btn btn-primary" onclick="submitPrintReport('print')">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px; height:16px;"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
                     <span>Print</span>
+                </button>
+                <button class="btn btn-primary" onclick="submitPrintReport('pdf')" style="background-color: var(--primary-light); color: var(--primary); border-color: var(--primary);">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px; height:16px; stroke-width: 2.5;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    <span>Export PDF</span>
                 </button>
             </div>
         </div>
@@ -1019,11 +1025,15 @@
                     <!-- Checkboxes populated dynamically -->
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button class="btn btn-secondary" onclick="closePrintProfileSettingsModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="submitPrintPatientProfile()">
-                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                <button class="btn btn-primary" onclick="submitPrintPatientProfile('print')">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px; height:16px;"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
                     <span>Print Profile</span>
+                </button>
+                <button class="btn btn-primary" onclick="submitPrintPatientProfile('pdf')" style="background-color: var(--primary-light); color: var(--primary); border-color: var(--primary);">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px; height:16px; stroke-width: 2.5;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    <span>Export PDF</span>
                 </button>
             </div>
         </div>

@@ -866,6 +866,10 @@ body.dark-mode .app-table tbody tr:hover {
 
 /* PRINT CSS DEFINITIONS */
 @media print {
+    @page {
+        size: auto;
+        margin: 12mm 15mm;
+    }
     /* Hide all screen elements */
     body, html {
         background: #ffffff !important;

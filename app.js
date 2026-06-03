@@ -1,3 +1,4 @@
+const LOGO_BASE64 = 'data:image/png;base64,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';
 // App State
 let portCathList = [];
 let admissionsList = [];
@@ -1211,7 +1212,7 @@ function renderFilesDatesConfig() {
         
         div.innerHTML = `
             <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); word-break: break-all;">
-                📄 ${fileObj.name} (${fileObj.rows.length} rows)
+                ðŸ“„ ${fileObj.name} (${fileObj.rows.length} rows)
             </span>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <label class="form-label" style="margin: 0; font-size: 0.8rem; font-weight: 500;">Target Date:</label>
@@ -1720,6 +1721,33 @@ function submitSmartImport() {
     resetImportTab();
 }
 
+function exportElementToPdf(element, filename, type) {
+    const isLandscape = (type === 'admissions');
+    const opt = {
+        margin:       [10, 10, 10, 10],
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2.5, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: isLandscape ? 'landscape' : 'portrait' }
+    };
+    
+    const originalDisplay = element.style.display;
+    element.style.display = 'block';
+    
+    document.body.classList.add(isLandscape ? 'print-landscape-mode' : 'print-portrait-mode');
+    element.classList.add(isLandscape ? 'print-landscape-report' : 'print-portrait-report');
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+        element.style.display = originalDisplay;
+        document.body.className = localStorage.getItem('medsched_dark_mode') === 'true' ? 'dark-mode' : '';
+        element.className = '';
+    }).catch(err => {
+        console.error("PDF export error:", err);
+        element.style.display = originalDisplay;
+        document.body.className = localStorage.getItem('medsched_dark_mode') === 'true' ? 'dark-mode' : '';
+        element.className = '';
+    });
+}
 
 // PRINT MODAL CONTROLLERS
 let currentPrintType = null;
@@ -1814,7 +1842,7 @@ function closePrintModal() {
     currentPrintType = null;
 }
 
-function submitPrintReport() {
+function submitPrintReport(action = 'print') {
     if (!currentPrintType) return;
     
     const type = currentPrintType;
@@ -1858,11 +1886,17 @@ function submitPrintReport() {
     }
 
     closePrintModal();
-    generateAndPrintReport(type, datesToPrint, modeVal);
+    let preparerName = '';
+    if (type === 'portcath') {
+        preparerName = prompt("Prepared By (Enter your name):") || '';
+    } else {
+        preparerName = prompt("Prepared By / Coordinator Name:") || '';
+    }
+    generateAndPrintReport(type, datesToPrint, modeVal, preparerName, action);
 }
 
 // PROFESSIONAL PRINT AND PDF EXPORT GENERATOR
-function generateAndPrintReport(type, dates, mode) {
+function generateAndPrintReport(type, dates, mode, preparerName, action = 'print') {
     const printContainer = document.getElementById('print-container');
     printContainer.innerHTML = '';
 
@@ -1908,18 +1942,19 @@ function generateAndPrintReport(type, dates, mode) {
 
             fullHtml += `
                 <div class="print-page-section">
-                    <div class="print-report-header" style="align-items: center;">
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <img src="logo.png" alt="Augusta Victoria Hospital Logo" style="height: 50px; object-fit: contain;">
-                            <div class="hospital-info">
-                                <h2>Port Cath Placements Schedule</h2>
-                                <p>Clinical Operations Department</p>
-                            </div>
+                    <div class="print-report-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 20px;">
+                        <!-- Left: Logo -->
+                        <div style="flex: 1; display: flex; justify-content: flex-start;">
+                            <img src="${LOGO_BASE64}" alt="Augusta Victoria Hospital Logo" style="height: 55px; object-fit: contain;">
                         </div>
-                        <div class="report-meta">
-                            <h3>Patient Records</h3>
-                            <p>Procedure Date: ${formatDateDisplay(date)} (${getDayName(date)})</p>
-                            <p>Printed: ${formattedPrintDate}</p>
+                        <!-- Center: Title -->
+                        <div style="flex: 2; text-align: center;">
+                            <h2 style="font-size: 18pt; font-weight: 800; color: #0f172a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Port Cath Insertion List</h2>
+                        </div>
+                        <!-- Right: Date and Day -->
+                        <div style="flex: 1; text-align: right; font-size: 10.5pt; color: #1e293b; font-weight: 600;">
+                            <p style="margin: 0; font-size: 12pt; color: #0f172a; font-weight: 700;">${formatDateDisplay(date)}</p>
+                            <p style="margin: 2px 0 0 0; color: #475569; font-size: 10pt; text-transform: uppercase;">${getDayName(date)}</p>
                         </div>
                     </div>
 
@@ -1927,10 +1962,6 @@ function generateAndPrintReport(type, dates, mode) {
                         <div class="print-summary-item">
                             <span class="label">Total Schedules</span>
                             <span class="val">${sortedPatients.length}</span>
-                        </div>
-                        <div class="print-summary-item">
-                            <span class="label">Layout Style</span>
-                            <span class="val">Portrait (طولي)</span>
                         </div>
                     </div>
 
@@ -1950,14 +1981,13 @@ function generateAndPrintReport(type, dates, mode) {
                         </tbody>
                     </table>
 
-                    <div class="print-footer-signature">
+                    <div class="print-footer-signature" style="justify-content: flex-start; margin-top: 50px;">
                         <div class="signature-box">
-                            <div class="signature-line"></div>
-                            <span class="signature-title">Prepared By (Signature)</span>
-                        </div>
-                        <div class="signature-box">
-                            <div class="signature-line"></div>
-                            <span class="signature-title">Charge Nurse Approval</span>
+                            <div style="font-size: 11pt; font-weight: 700; color: #0f172a; margin-bottom: 2px; height: 20px; line-height: 20px; text-align: center;">
+                                ${preparerName || '&nbsp;'}
+                            </div>
+                            <div class="signature-line" style="margin-top: 5px; margin-bottom: 5px;"></div>
+                            <span class="signature-title" style="font-weight: 600; color: #475569;">Prepared By</span>
                         </div>
                     </div>
                 </div>
@@ -1995,18 +2025,19 @@ function generateAndPrintReport(type, dates, mode) {
 
             fullHtml += `
                 <div class="print-page-section">
-                    <div class="print-report-header" style="align-items: center;">
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <img src="logo.png" alt="Augusta Victoria Hospital Logo" style="height: 50px; object-fit: contain;">
-                            <div class="hospital-info">
-                                <h2>Daily Planned Admissions – Patient Information</h2>
-                                <p>Augusta Victoria Hospital</p>
-                            </div>
+                    <div class="print-report-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 20px;">
+                        <!-- Left: Logo -->
+                        <div style="flex: 1; display: flex; justify-content: flex-start;">
+                            <img src="${LOGO_BASE64}" alt="Augusta Victoria Hospital Logo" style="height: 55px; object-fit: contain;">
                         </div>
-                        <div class="report-meta">
-                            <h3>Patient Records</h3>
-                            <p>Admission Date: ${formatDateDisplay(date)} (${getDayName(date)})</p>
-                            <p>Printed: ${formattedPrintDate}</p>
+                        <!-- Center: Title -->
+                        <div style="flex: 2; text-align: center;">
+                            <h2 style="font-size: 18pt; font-weight: 800; color: #0f172a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Daily Planned Admissions</h2>
+                        </div>
+                        <!-- Right: Date and Day -->
+                        <div style="flex: 1; text-align: right; font-size: 10.5pt; color: #1e293b; font-weight: 600;">
+                            <p style="margin: 0; font-size: 12pt; color: #0f172a; font-weight: 700;">${formatDateDisplay(date)}</p>
+                            <p style="margin: 2px 0 0 0; color: #475569; font-size: 10pt; text-transform: uppercase;">${getDayName(date)}</p>
                         </div>
                     </div>
 
@@ -2051,18 +2082,19 @@ function generateAndPrintReport(type, dates, mode) {
 
             fullHtml += `
                 <div class="print-page-section">
-                    <div class="print-report-header" style="align-items: center;">
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <img src="logo.png" alt="Augusta Victoria Hospital Logo" style="height: 50px; object-fit: contain;">
-                            <div class="hospital-info">
-                                <h2>WhatsApp & Call Follow-up – Patient Information</h2>
-                                <p>Augusta Victoria Hospital</p>
-                            </div>
+                    <div class="print-report-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 20px;">
+                        <!-- Left: Logo -->
+                        <div style="flex: 1; display: flex; justify-content: flex-start;">
+                            <img src="${LOGO_BASE64}" alt="Augusta Victoria Hospital Logo" style="height: 55px; object-fit: contain;">
                         </div>
-                        <div class="report-meta">
-                            <h3>Patient Records</h3>
-                            <p>Follow-up Date: ${formatDateDisplay(date)}</p>
-                            <p>Printed: ${formattedPrintDate}</p>
+                        <!-- Center: Title -->
+                        <div style="flex: 2; text-align: center;">
+                            <h2 style="font-size: 18pt; font-weight: 800; color: #0f172a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">WhatsApp & Call Follow-up</h2>
+                        </div>
+                        <!-- Right: Date and Day -->
+                        <div style="flex: 1; text-align: right; font-size: 10.5pt; color: #1e293b; font-weight: 600;">
+                            <p style="margin: 0; font-size: 12pt; color: #0f172a; font-weight: 700;">${formatDateDisplay(date)}</p>
+                            <p style="margin: 2px 0 0 0; color: #475569; font-size: 10pt; text-transform: uppercase;">${getDayName(date)}</p>
                         </div>
                     </div>
 
@@ -2107,6 +2139,18 @@ function generateAndPrintReport(type, dates, mode) {
         document.body.className = 'print-landscape-mode';
     }
 
+    if (action === 'print') {
+        setTimeout(() => {
+            window.print();
+            setTimeout(() => {
+                document.body.className = localStorage.getItem('medsched_dark_mode') === 'true' ? 'dark-mode' : '';
+            }, 100);
+        }, 250);
+    } else if (action === 'pdf') {
+        const dateStr = dates.length === 1 ? dates[0] : 'multiple_dates';
+        const filename = `${type}_report_${dateStr}.pdf`;
+        exportElementToPdf(printContainer, filename, type);
+    }
 }
 
 // ==========================================
@@ -2846,23 +2890,23 @@ function addProfileTask() {
     let details = '';
 
     if (type === 'referral_followup') {
-        title = 'متابعة تحويلة';
+        title = 'Ù…ØªØ§Ø¨Ø¹Ø© ØªØ­ÙˆÙŠÙ„Ø©';
     } else if (type === 'referral_submit') {
-        title = 'تقديم تحويلة';
+        title = 'ØªÙ‚Ø¯ÙŠÙ… ØªØ­ÙˆÙŠÙ„Ø©';
     } else if (type === 'permit_submit') {
-        title = 'تقديم تصريح';
+        title = 'ØªÙ‚Ø¯ÙŠÙ… ØªØµØ±ÙŠØ­';
     } else if (type === 'clinic_booking') {
         const clinicType = document.getElementById('prof-task-clinic-type').value.trim() || 'General';
         const clinicDate = document.getElementById('prof-task-clinic-date').value;
         
-        title = `حجز عيادة - ${clinicType}`;
+        title = `Ø­Ø¬Ø² Ø¹ÙŠØ§Ø¯Ø© - ${clinicType}`;
         details = clinicDate ? `Scheduled: ${formatDateDisplay(clinicDate)}` : 'No date scheduled';
     } else if (type === 'imaging_request') {
-        title = 'طلب صور طبية';
+        title = 'Ø·Ù„Ø¨ ØµÙˆØ± Ø·Ø¨ÙŠØ©';
     } else if (type === 'lab_request') {
-        title = 'طلب فحوصات طبية';
+        title = 'Ø·Ù„Ø¨ ÙØ­ÙˆØµØ§Øª Ø·Ø¨ÙŠØ©';
     } else if (type === 'other') {
-        const otherTitle = document.getElementById('prof-task-other-title').value.trim() || 'متابعة أخرى';
+        const otherTitle = document.getElementById('prof-task-other-title').value.trim() || 'Ù…ØªØ§Ø¨Ø¹Ø© Ø£Ø®Ø±Ù‰';
         title = otherTitle;
     }
 
@@ -3013,7 +3057,7 @@ function toggleSelectAllPrintProfile(checked) {
     });
 }
 
-function submitPrintPatientProfile() {
+function submitPrintPatientProfile(action = 'print') {
     if (!currentProfilePatientId) return;
 
     const checkedBoxes = document.querySelectorAll('.print-profile-task-checkbox:checked');
@@ -3024,13 +3068,16 @@ function submitPrintPatientProfile() {
         return;
     }
 
+    const patientId = currentProfilePatientId;
     closePrintProfileSettingsModal();
     closePatientProfileModal();
     
-    generateAndPrintPatientProfile(currentProfilePatientId, selectedTaskIds);
+    const preparerName = prompt("Prepared By (Coordinator Name):") || '';
+    
+    generateAndPrintPatientProfile(patientId, selectedTaskIds, preparerName, action);
 }
 
-function generateAndPrintPatientProfile(patientId, selectedTaskIds) {
+function generateAndPrintPatientProfile(patientId, selectedTaskIds, preparerName, action = 'print') {
     const patient = tumorBoardList.find(p => p.id === patientId);
     if (!patient) return;
 
@@ -3067,7 +3114,7 @@ function generateAndPrintPatientProfile(patientId, selectedTaskIds) {
         <div class="print-page-section print-profile-report">
             <div class="print-report-header" style="align-items: center; border-bottom: 2px solid #0d9488; margin-bottom: 20px; padding-bottom: 15px;">
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <img src="logo.png" alt="Augusta Victoria Hospital Logo" style="height: 60px; object-fit: contain;">
+                    <img src="${LOGO_BASE64}" alt="Augusta Victoria Hospital Logo" style="height: 60px; object-fit: contain;">
                     <div class="hospital-info">
                         <h2 style="color: #0f172a; margin: 0; font-size: 18pt; font-weight: 800;">Augusta Victoria Hospital</h2>
                         <p style="color: #0d9488; font-weight: 700; margin: 2px 0 0 0; font-size: 10pt; text-transform: uppercase;">Tumor Board Patient Follow-up Report</p>
@@ -3122,14 +3169,13 @@ function generateAndPrintPatientProfile(patientId, selectedTaskIds) {
                 </tbody>
             </table>
 
-            <div class="print-footer-signature" style="margin-top: 50px;">
+            <div class="print-footer-signature" style="margin-top: 50px; justify-content: flex-start;">
                 <div class="signature-box">
-                    <div class="signature-line"></div>
-                    <span class="signature-title">Coordinator Signature</span>
-                </div>
-                <div class="signature-box">
-                    <div class="signature-line"></div>
-                    <span class="signature-title">Clinical Oncology Dept</span>
+                    <div style="font-size: 11pt; font-weight: 700; color: #0f172a; margin-bottom: 2px; height: 20px; line-height: 20px; text-align: center;">
+                        ${preparerName || '&nbsp;'}
+                    </div>
+                    <div class="signature-line" style="margin-top: 5px; margin-bottom: 5px;"></div>
+                    <span class="signature-title" style="font-weight: 600; color: #475569;">Prepared By (Coordinator)</span>
                 </div>
             </div>
         </div>
@@ -3139,10 +3185,16 @@ function generateAndPrintPatientProfile(patientId, selectedTaskIds) {
     printContainer.className = 'print-portrait-report';
     document.body.className = 'print-portrait-mode';
 
-    setTimeout(() => {
-        window.print();
+    if (action === 'print') {
         setTimeout(() => {
-            document.body.className = localStorage.getItem('medsched_dark_mode') === 'true' ? 'dark-mode' : '';
-        }, 100);
-    }, 250);
+            window.print();
+            setTimeout(() => {
+                document.body.className = localStorage.getItem('medsched_dark_mode') === 'true' ? 'dark-mode' : '';
+            }, 100);
+        }, 250);
+    } else if (action === 'pdf') {
+        const cleanName = patient.name.replace(/\s+/g, '_').toLowerCase();
+        const filename = `patient_profile_${cleanName}.pdf`;
+        exportElementToPdf(printContainer, filename, 'tumorboard');
+    }
 }
