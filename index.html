@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -178,6 +178,7 @@
                     <div class="list-title">
                         <span>Scheduled Patients</span>
                         <span class="list-counter" id="counter-portcath">0</span>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleAllPortCathCards()" id="expand-all-portcath-btn">Expand All</button>
                     </div>
                     <div class="list-actions">
                         <div class="date-filter-wrap" id="portcath-date-filter-wrap">
@@ -193,18 +194,7 @@
                     </div>
                 </div>
                 <div class="table-responsive">
-                    <table class="app-table" id="table-portcath">
-                        <thead>
-                            <tr>
-                                <th>Patient Name</th>
-                                <th>File Number</th>
-                                <th>Date</th>
-                                <th>Day</th>
-                                <th>Weight (kg)</th>
-                                <th>Notes</th>
-                                <th class="no-print" style="width: 100px;">Actions</th>
-                            </tr>
-                        </thead>
+                    <table class="app-table portcath-table" id="table-portcath">
                         <tbody>
                             <!-- Managed dynamically -->
                         </tbody>
@@ -235,11 +225,13 @@
                     <div class="list-title">
                         <span>Planned Admissions List</span>
                         <span class="list-counter" id="counter-admissions">0</span>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleAllAdmissionCards()" id="expand-all-btn">Expand All</button>
                     </div>
                     <div class="list-actions">
-                        <select id="filter-date-admissions" class="form-control" style="width: 140px; display: inline-block; padding: 6px 12px; font-size: 0.85rem;" onchange="renderAdmissionsTable()">
-                            <option value="all">All Dates</option>
-                        </select>
+                        <div class="date-filter-wrap" id="admissions-date-filter-wrap">
+                            <input type="date" id="filter-date-admissions" class="form-control date-filter-control" onchange="handleAdmissionsDateFilterChange()" title="Filter Admissions by date">
+                            <button class="btn btn-secondary btn-sm" onclick="clearAdmissionsDateFilter()" title="Show all Admission dates">Clear</button>
+                        </div>
                         <div class="search-input-wrapper">
                             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                             <input type="text" id="search-admissions" class="search-control" placeholder="Search admissions..." oninput="filterAdmissionsTable()">
@@ -249,17 +241,6 @@
                 </div>
                 <div class="table-responsive">
                     <table class="app-table admissions-table" id="table-admissions">
-                        <thead>
-                            <tr>
-                                <th>Patient</th>
-                                <th>File / Age</th>
-                                <th>Date / Dept</th>
-                                <th>Triage</th>
-                                <th>Physician</th>
-                                <th>Clinical Snapshot</th>
-                                <th class="no-print" style="width: 104px;">Actions</th>
-                            </tr>
-                        </thead>
                         <tbody>
                             <!-- Managed dynamically -->
                         </tbody>
@@ -349,6 +330,7 @@
                     <div class="list-title">
                         <span>Oncology Patients List</span>
                         <span class="list-counter" id="counter-tumorboard">0</span>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleAllTumorBoardCards()" id="expand-all-tumorboard-btn">Expand All</button>
                     </div>
                     <div class="list-actions">
                         <div class="search-input-wrapper">
@@ -359,19 +341,7 @@
                     </div>
                 </div>
                 <div class="table-responsive">
-                    <table class="app-table" id="table-tumorboard">
-                        <thead>
-                            <tr>
-                                <th>Patient Name</th>
-                                <th>File No. (MRN)</th>
-                                <th>Age</th>
-                                <th>Physician</th>
-                                <th>Diagnosis / Brief History</th>
-                                <th>Discussion Points</th>
-                                <th>Tasks Status</th>
-                                <th class="no-print" style="width: 120px;">Actions</th>
-                            </tr>
-                        </thead>
+                    <table class="app-table tumorboard-table" id="table-tumorboard">
                         <tbody>
                             <!-- Managed dynamically -->
                         </tbody>
@@ -1071,3 +1041,4 @@
     <script src="app.js"></script>
 </body>
 </html>
+

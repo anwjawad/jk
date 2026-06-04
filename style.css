@@ -54,6 +54,8 @@
     --focus-ring: rgba(20, 184, 166, 0.26);
     --shadow-premium: 0 18px 48px -30px rgba(15, 23, 42, 0.45);
     --shadow-hover: 0 18px 34px -24px rgba(15, 23, 42, 0.35);
+    --shadow-card: 0 8px 18px rgba(15, 23, 42, 0.05);
+    --shadow-card-hover: 0 12px 24px rgba(15, 23, 42, 0.08);
 }
 
 /* Dark Mode Variables */
@@ -821,14 +823,19 @@ body.dark-mode .app-table tbody tr:hover {
     background-color: rgba(13, 148, 136, 0.04);
 }
 
-.admissions-table {
+/* ── Shared card-grid table base ───────────────────────────────────────────── */
+.admissions-table,
+.portcath-table,
+.tumorboard-table {
     display: block;
     width: 100%;
     border-collapse: separate;
     font-size: 0.78rem;
 }
 
-.admissions-table thead {
+.admissions-table thead,
+.portcath-table thead,
+.tumorboard-table thead {
     display: none;
 }
 
@@ -839,8 +846,20 @@ body.dark-mode .app-table tbody tr:hover {
     padding: 12px;
 }
 
+.portcath-table tbody,
+.tumorboard-table tbody {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    gap: 10px;
+    padding: 12px;
+}
+
 .admission-card-row,
-.admission-card-row td {
+.admission-card-row td,
+.portcath-card-row,
+.portcath-card-row td,
+.tumorboard-card-row,
+.tumorboard-card-row td {
     display: block;
     width: 100%;
     padding: 0;
@@ -854,25 +873,38 @@ body.dark-mode .app-table tbody tr:hover {
 }
 
 .admission-card {
-    min-height: 156px;
+    min-height: unset;
     height: 100%;
-    padding: 10px;
+    padding: 12px;
     border: 1px solid var(--border);
+    border-left-width: 4px;
     border-radius: 8px;
     background: linear-gradient(180deg, var(--bg-card), color-mix(in srgb, var(--bg-card) 86%, var(--surface-subtle)));
-    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+    box-shadow: var(--shadow-card);
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    gap: 7px;
-    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+    gap: 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .admission-card {
+        transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+    }
 }
 
 .admission-card:hover {
     transform: translateY(-1px);
     border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
-    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    box-shadow: var(--shadow-card-hover);
 }
+
+/* Triage urgency left-border stripe */
+.admission-card[data-triage="1"] { border-left-color: #ef4444; }
+.admission-card[data-triage="2"] { border-left-color: #f97316; }
+.admission-card[data-triage="3"] { border-left-color: #f59e0b; }
+.admission-card[data-triage="4"] { border-left-color: #10b981; }
+.admission-card[data-triage="5"] { border-left-color: #3b82f6; }
 
 .admission-card-top {
     display: flex;
@@ -899,8 +931,8 @@ body.dark-mode .app-table tbody tr:hover {
 .admission-card-title strong {
     display: block;
     color: var(--text-main);
-    font-size: 0.82rem;
-    font-weight: 850;
+    font-size: 0.94rem;
+    font-weight: 800;
     letter-spacing: 0;
 }
 
@@ -908,8 +940,8 @@ body.dark-mode .app-table tbody tr:hover {
     display: block;
     margin-top: 2px;
     color: var(--text-muted);
-    font-size: 0.69rem;
-    font-weight: 700;
+    font-size: 0.75rem;
+    font-weight: 600;
 }
 
 .admission-card-actions {
@@ -920,19 +952,25 @@ body.dark-mode .app-table tbody tr:hover {
 }
 
 .admission-card-actions .action-btn {
-    width: 26px;
-    height: 26px;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .admission-card-actions .sync-row-badge {
-    width: 22px;
-    height: 22px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .admission-card-meta {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.25fr);
-    gap: 5px;
+    gap: 8px;
     align-items: center;
 }
 
@@ -948,28 +986,28 @@ body.dark-mode .app-table tbody tr:hover {
 
 .admission-card-meta > span:not(:first-child) {
     display: block;
-    padding: 4px 6px;
+    padding: 4px 8px;
     color: var(--text-main);
-    font-size: 0.68rem;
-    font-weight: 750;
+    font-size: 0.75rem;
+    font-weight: 600;
 }
 
 .admission-card-clinical {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    gap: 8px;
 }
 
 .admission-card-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 6px;
+    gap: 8px;
 }
 
 .admission-card-clinical > div,
 .admission-card-grid > div,
 .admission-card-notes {
-    padding: 5px 6px;
+    padding: 6px 8px;
 }
 
 .admission-card-clinical span,
@@ -978,8 +1016,8 @@ body.dark-mode .app-table tbody tr:hover {
     display: block;
     margin-bottom: 2px;
     color: var(--text-muted);
-    font-size: 0.58rem;
-    font-weight: 850;
+    font-size: 0.625rem;
+    font-weight: 700;
     text-transform: uppercase;
 }
 
@@ -988,12 +1026,29 @@ body.dark-mode .app-table tbody tr:hover {
 .admission-card-notes strong {
     display: block;
     color: var(--text-main);
-    font-size: 0.68rem;
-    font-weight: 740;
+    font-size: 0.75rem;
+    font-weight: 600;
 }
 
 .admission-card-notes {
     margin-top: auto;
+}
+
+/* Progressive disclosure — detail sections hidden by default */
+.admission-card .admission-card-clinical,
+.admission-card .admission-card-grid,
+.admission-card .admission-card-notes {
+    display: none;
+}
+.admission-card.expanded .admission-card-clinical,
+.admission-card.expanded .admission-card-grid {
+    display: grid;
+}
+.admission-card.expanded .admission-card-notes {
+    display: block;
+}
+.admission-card-notes.is-empty {
+    display: none !important;
 }
 
 @media (max-width: 1500px) {
@@ -1013,6 +1068,212 @@ body.dark-mode .app-table tbody tr:hover {
         grid-template-columns: 1fr;
     }
 }
+/* ── PORT CATH CARD ─────────────────────────────────────────────────────────── */
+
+.portcath-card {
+    height: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: 8px;
+    background: linear-gradient(180deg, var(--bg-card), color-mix(in srgb, var(--bg-card) 86%, var(--surface-subtle)));
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .portcath-card {
+        transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+}
+
+.portcath-card:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+    border-left-color: var(--primary);
+    box-shadow: var(--shadow-card-hover);
+}
+
+/* ── TUMOR BOARD CARD ───────────────────────────────────────────────────────── */
+
+.tumorboard-card {
+    height: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, var(--bg-card), color-mix(in srgb, var(--bg-card) 86%, var(--surface-subtle)));
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tumorboard-card[data-status="pending"] { border-left-color: #f59e0b; }
+.tumorboard-card[data-status="done"]    { border-left-color: #10b981; }
+.tumorboard-card[data-status="none"]   { border-left-color: var(--border); }
+
+@media (prefers-reduced-motion: no-preference) {
+    .tumorboard-card {
+        transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+}
+
+.tumorboard-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-card-hover);
+}
+
+/* ── SHARED CARD TOP / TITLE / ACTIONS ─────────────────────────────────────── */
+
+.portcath-card-top,
+.tumorboard-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.portcath-card-title,
+.tumorboard-card-title {
+    min-width: 0;
+    flex: 1;
+}
+
+.portcath-card-title strong,
+.tumorboard-card-title strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-main);
+    font-size: 0.94rem;
+    font-weight: 800;
+}
+
+.portcath-card-title span,
+.tumorboard-card-title span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.portcath-card-actions,
+.tumorboard-card-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+
+.portcath-card-actions .action-btn,
+.tumorboard-card-actions .action-btn {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.portcath-card-actions .sync-row-badge,
+.tumorboard-card-actions .sync-row-badge {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── CARD META ROW ──────────────────────────────────────────────────────────── */
+
+.portcath-card-meta,
+.tumorboard-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+/* ── CARD DETAIL SECTIONS (progressive disclosure) ─────────────────────────── */
+
+.portcath-card-notes,
+.tumorboard-card-detail {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--surface-subtle) 74%, transparent);
+    padding: 6px 8px;
+}
+
+.portcath-card-notes > span,
+.tumorboard-card-detail > span {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--text-muted);
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.portcath-card-notes > strong,
+.tumorboard-card-detail > strong {
+    display: block;
+    color: var(--text-main);
+    font-size: 0.75rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Collapsed by default */
+.portcath-card .portcath-card-notes,
+.tumorboard-card .tumorboard-card-detail {
+    display: none;
+}
+
+.portcath-card.expanded .portcath-card-notes,
+.tumorboard-card.expanded .tumorboard-card-detail {
+    display: block;
+}
+
+.portcath-card-notes.is-empty,
+.tumorboard-card-detail.is-empty {
+    display: none !important;
+}
+
+/* ── RESPONSIVE BREAKPOINTS ─────────────────────────────────────────────────── */
+
+@media (max-width: 1500px) {
+    .portcath-table tbody,
+    .tumorboard-table tbody {
+        grid-template-columns: repeat(3, minmax(220px, 1fr));
+    }
+}
+
+@media (max-width: 980px) {
+    .portcath-table tbody,
+    .tumorboard-table tbody {
+        grid-template-columns: repeat(2, minmax(200px, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .portcath-table tbody,
+    .tumorboard-table tbody {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Badges */
 .badge {
     display: inline-flex;
@@ -1029,6 +1290,7 @@ body.dark-mode .app-table tbody tr:hover {
 .badge-danger { background-color: var(--danger-light); color: var(--danger); }
 .badge-info { background-color: var(--info-light); color: var(--info); }
 .badge-neutral { background-color: var(--border); color: var(--text-muted); }
+.badge-orange { background-color: #ffedd5; color: #ea580c; }
 
 /* Table Action Buttons */
 .table-actions {

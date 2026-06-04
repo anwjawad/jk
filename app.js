@@ -364,6 +364,16 @@ function clearPortCathDateFilter() {
     renderPortCathTable();
 }
 
+function handleAdmissionsDateFilterChange() {
+    renderAdmissionsTable();
+}
+
+function clearAdmissionsDateFilter() {
+    const input = document.getElementById('filter-date-admissions');
+    if (input) input.value = '';
+    renderAdmissionsTable();
+}
+
 function updatePortCathSaturdayFilterState() {
     const input = document.getElementById('filter-date-portcath');
     const wrap = document.getElementById('portcath-date-filter-wrap');
@@ -761,33 +771,42 @@ function renderPortCathTable() {
 
     sortedList.forEach(patient => {
         const tr = document.createElement('tr');
+        tr.className = 'portcath-card-row';
         tr.setAttribute('data-sync-id', patient.id);
         tr.setAttribute('data-record-id', patient.id);
         tr.addEventListener('click', (e) => {
             if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('textarea') || e.target.closest('.no-print')) {
                 return;
             }
-            openEditPatient('portcath', patient.id);
+            tr.querySelector('.portcath-card').classList.toggle('expanded');
         });
         tr.innerHTML = `
-            <td style="font-weight: 600;">${patient.name}</td>
-            <td><code>${patient.fileNumber}</code></td>
-            <td>${formatDateDisplay(patient.date)}</td>
-            <td><span class="badge badge-info">${patient.day}</span></td>
-            <td><strong>${patient.weight} kg</strong></td>
-            <td style="color: var(--text-muted); font-size: 0.85rem; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${patient.notes || ''}">
-                ${patient.notes || '<span style="color:var(--text-light)">-</span>'}
-            </td>
-            <td class="no-print">
-                <div class="table-actions">
-                    <span class="sync-row-badge" title="Synced">✓</span>
-                    <button class="action-btn edit" onclick="openEditPatient('portcath', '${patient.id}')" title="Edit Patient">
-                        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button class="action-btn delete" onclick="deletePatient('portcath', '${patient.id}')" title="Delete Patient">
-                        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    </button>
-                </div>
+            <td colspan="7">
+                <article class="portcath-card">
+                    <div class="portcath-card-top">
+                        <div class="portcath-card-title">
+                            <strong title="${patient.name}">${patient.name}</strong>
+                            <span>File ${patient.fileNumber} · ${formatDateDisplay(patient.date)}</span>
+                        </div>
+                        <div class="portcath-card-actions no-print">
+                            <span class="sync-row-badge" title="Synced">&#10003;</span>
+                            <button class="action-btn edit" onclick="openEditPatient('portcath', '${patient.id}')" title="Edit Patient">
+                                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button class="action-btn delete" onclick="deletePatient('portcath', '${patient.id}')" title="Delete Patient">
+                                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="portcath-card-meta">
+                        <span class="badge badge-info">${patient.day}</span>
+                        <span style="font-size:0.75rem;font-weight:600;color:var(--text-main);">${patient.weight} kg</span>
+                    </div>
+                    <div class="portcath-card-notes${!patient.notes ? ' is-empty' : ''}">
+                        <span>Notes</span>
+                        <strong title="${patient.notes || ''}">${patient.notes || ''}</strong>
+                    </div>
+                </article>
             </td>
         `;
         tbody.appendChild(tr);
@@ -796,21 +815,11 @@ function renderPortCathTable() {
 
 function filterPortCathTable() {
     const query = document.getElementById('search-portcath').value.toLowerCase().trim();
-    const rows = document.querySelectorAll('#table-portcath tbody tr');
-    
+    const rows = document.querySelectorAll('#table-portcath tbody tr.portcath-card-row');
+
     rows.forEach(row => {
-        // Skip if empty state row
-        if (row.querySelector('.empty-state')) return;
-        
-        const nameText = row.cells[0].innerText.toLowerCase();
-        const fileText = row.cells[1].innerText.toLowerCase();
-        const notesText = row.cells[5].innerText.toLowerCase();
-        
-        if (nameText.includes(query) || fileText.includes(query) || notesText.includes(query)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
+        const match = row.innerText.toLowerCase().includes(query);
+        row.style.display = match ? '' : 'none';
     });
 }
 
@@ -878,7 +887,7 @@ function addAdmissionPatient(event) {
 function getTriageBadge(score) {
     switch(score) {
         case '1': return `<span class="badge badge-danger">1 - Resuscitation</span>`;
-        case '2': return `<span class="badge badge-danger" style="background-color:#ffedd5; color:#ea580c;">2 - Emergent</span>`;
+        case '2': return `<span class="badge badge-orange">2 - Emergent</span>`;
         case '3': return `<span class="badge badge-warning">3 - Urgent</span>`;
         case '4': return `<span class="badge badge-success">4 - Less Urgent</span>`;
         case '5': return `<span class="badge badge-info">5 - Non-Urgent</span>`;
@@ -924,11 +933,12 @@ function renderAdmissionsTable() {
             if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('textarea') || e.target.closest('.no-print')) {
                 return;
             }
-            openEditPatient('admissions', patient.id);
+            const card = tr.querySelector('.admission-card');
+            card.classList.toggle('expanded');
         });
         tr.innerHTML = `
             <td colspan="7">
-                <article class="admission-card">
+                <article class="admission-card" data-triage="${patient.triageScore}">
                     <div class="admission-card-top">
                         <div class="admission-card-title">
                             <strong title="${patient.name || ''}">${patient.name || '-'}</strong>
@@ -962,8 +972,8 @@ function renderAdmissionsTable() {
                         <div><span>Performance</span><strong title="${patient.performanceStatus || ''}">${patient.performanceStatus || '-'}</strong></div>
                     </div>
 
-                    <div class="admission-card-notes">
-                        <span>Notes</span><strong title="${patient.notes || ''}">${patient.notes || '-'}</strong>
+                    <div class="admission-card-notes${!patient.notes ? ' is-empty' : ''}">
+                        <span>Notes</span><strong title="${patient.notes}">${patient.notes}</strong>
                     </div>
                 </article>
             </td>
@@ -975,11 +985,35 @@ function renderAdmissionsTable() {
 function filterAdmissionsTable() {
     const query = document.getElementById('search-admissions').value.toLowerCase().trim();
     const rows = document.querySelectorAll('#table-admissions tbody tr.admission-card-row');
-    
+
     rows.forEach(row => {
         const match = row.innerText.toLowerCase().includes(query);
         row.style.display = match ? '' : 'none';
     });
+}
+
+function toggleAllAdmissionCards() {
+    const cards = document.querySelectorAll('#table-admissions .admission-card');
+    const btn = document.getElementById('expand-all-btn');
+    const allExpanded = [...cards].every(c => c.classList.contains('expanded'));
+    cards.forEach(c => c.classList.toggle('expanded', !allExpanded));
+    btn.textContent = allExpanded ? 'Expand All' : 'Collapse All';
+}
+
+function toggleAllPortCathCards() {
+    const cards = document.querySelectorAll('#table-portcath .portcath-card');
+    const btn = document.getElementById('expand-all-portcath-btn');
+    const allExpanded = [...cards].every(c => c.classList.contains('expanded'));
+    cards.forEach(c => c.classList.toggle('expanded', !allExpanded));
+    btn.textContent = allExpanded ? 'Expand All' : 'Collapse All';
+}
+
+function toggleAllTumorBoardCards() {
+    const cards = document.querySelectorAll('#table-tumorboard .tumorboard-card');
+    const btn = document.getElementById('expand-all-tumorboard-btn');
+    const allExpanded = [...cards].every(c => c.classList.contains('expanded'));
+    cards.forEach(c => c.classList.toggle('expanded', !allExpanded));
+    btn.textContent = allExpanded ? 'Expand All' : 'Collapse All';
 }
 // FOLLOW-UP LOGIC
 function addFollowUpPatient(event) {
@@ -3365,15 +3399,15 @@ function renderTumorBoardTable() {
 
     filteredList.forEach(patient => {
         const tr = document.createElement('tr');
+        tr.className = 'tumorboard-card-row';
         tr.setAttribute('data-sync-id', patient.id);
         tr.setAttribute('data-record-id', patient.id);
-        tr.style.cursor = 'pointer';
 
         tr.addEventListener('click', (e) => {
             if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) {
                 return;
             }
-            openPatientProfile(patient.id);
+            tr.querySelector('.tumorboard-card').classList.toggle('expanded');
         });
 
         const totalTasks = patient.tasks.length;
@@ -3381,36 +3415,47 @@ function renderTumorBoardTable() {
         const pendingTasks = totalTasks - completedTasks;
 
         let statusBadgeHtml = '';
+        let statusKey = 'none';
         if (totalTasks === 0) {
             statusBadgeHtml = `<span class="badge badge-neutral">No tasks</span>`;
         } else if (pendingTasks === 0) {
             statusBadgeHtml = `<span class="badge badge-success">All ${totalTasks} done</span>`;
+            statusKey = 'done';
         } else {
             statusBadgeHtml = `<span class="badge badge-warning">${pendingTasks} pending</span>`;
+            statusKey = 'pending';
         }
 
         tr.innerHTML = `
-            <td style="font-weight: 600;">${patient.name}</td>
-            <td><code>${patient.fileNumber}</code></td>
-            <td>${patient.age}</td>
-            <td>${patient.physician}</td>
-            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${patient.diagnosis}">
-                ${patient.diagnosis}
-            </td>
-            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${patient.notes || ''}">
-                ${patient.notes || ''}
-            </td>
-            <td>${statusBadgeHtml}</td>
-            <td class="no-print">
-                <div class="table-actions">
-                    <span class="sync-row-badge" title="Synced">✓</span>
-                    <button class="action-btn edit" onclick="openPatientProfile('${patient.id}')" title="View/Edit Profile">
-                        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button class="action-btn delete" onclick="deletePatient('tumorboard', '${patient.id}')" title="Delete Patient">
-                        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    </button>
-                </div>
+            <td colspan="8">
+                <article class="tumorboard-card" data-status="${statusKey}">
+                    <div class="tumorboard-card-top">
+                        <div class="tumorboard-card-title">
+                            <strong title="${patient.name}">${patient.name}</strong>
+                            <span>File ${patient.fileNumber} · ${patient.age} yrs · ${patient.physician}</span>
+                        </div>
+                        <div class="tumorboard-card-actions no-print">
+                            <span class="sync-row-badge" title="Synced">&#10003;</span>
+                            <button class="action-btn edit" onclick="openPatientProfile('${patient.id}')" title="View/Edit Profile">
+                                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button class="action-btn delete" onclick="deletePatient('tumorboard', '${patient.id}')" title="Delete Patient">
+                                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tumorboard-card-meta">
+                        ${statusBadgeHtml}
+                    </div>
+                    <div class="tumorboard-card-detail${!patient.diagnosis ? ' is-empty' : ''}">
+                        <span>Diagnosis</span>
+                        <strong title="${patient.diagnosis || ''}">${patient.diagnosis || ''}</strong>
+                    </div>
+                    <div class="tumorboard-card-detail${!patient.notes ? ' is-empty' : ''}">
+                        <span>Discussion Points</span>
+                        <strong title="${patient.notes || ''}">${patient.notes || ''}</strong>
+                    </div>
+                </article>
             </td>
         `;
         tbody.appendChild(tr);
