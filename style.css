@@ -546,6 +546,41 @@ textarea.form-control {
     gap: 12px;
 }
 
+.date-filter-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.date-filter-control {
+    width: 150px;
+    display: inline-block;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.saturday-hint {
+    display: none;
+    align-items: center;
+    min-height: 26px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: var(--warning-light);
+    color: var(--warning);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.date-filter-wrap.is-saturday .date-filter-control {
+    border-color: var(--warning);
+    background: var(--warning-light);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning) 18%, transparent);
+}
+
+.date-filter-wrap.is-saturday .saturday-hint {
+    display: inline-flex;
+}
+
 .search-input-wrapper {
     position: relative;
     width: 240px;
@@ -577,6 +612,163 @@ textarea.form-control {
 .search-control:focus {
     border-color: var(--primary);
     background-color: var(--bg-card);
+}
+
+.sidebar-search {
+    padding: 14px 12px 6px;
+    width: 100%;
+    min-width: 0;
+}
+
+.sidebar-search .global-patient-search {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100%;
+}
+
+.sidebar-search .global-patient-search input {
+    width: 100%;
+    max-width: 100%;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--sidebar-border);
+    color: #ffffff;
+}
+
+.sidebar-search .global-patient-search input::placeholder {
+    color: #7f93aa;
+}
+
+.sidebar-search .global-patient-search > svg {
+    stroke: #7f93aa;
+}
+
+.sidebar-search .global-search-results {
+    top: calc(100% + 10px);
+    left: 0;
+    right: auto;
+    width: min(520px, calc(100vw - var(--sidebar-width) - 48px));
+    min-width: 420px;
+}
+
+.global-patient-search {
+    position: relative;
+    width: min(340px, 42vw);
+    min-width: 260px;
+}
+
+.global-patient-search > svg {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    width: 17px;
+    height: 17px;
+    transform: translateY(-50%);
+    stroke: var(--text-light);
+    fill: none;
+    stroke-width: 2;
+    z-index: 1;
+}
+
+.global-patient-search input {
+    width: 100%;
+    height: 42px;
+    padding: 0 14px 0 40px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-size: 0.88rem;
+    font-weight: 600;
+    outline: none;
+    transition: var(--transition);
+}
+
+.global-patient-search input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.global-search-results {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 80;
+    display: none;
+    width: min(520px, 92vw);
+    max-height: 420px;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-glass);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(18px);
+}
+
+.global-search-results.active {
+    display: block;
+    animation: fadeIn 0.18s ease-out;
+}
+
+.global-search-result {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-main);
+    cursor: pointer;
+    text-align: left;
+    transition: var(--transition-fast);
+}
+
+.global-search-result:hover,
+.global-search-result:focus-visible {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    outline: none;
+}
+
+.global-search-main,
+.global-search-location,
+.global-search-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.global-search-main strong {
+    font-size: 0.9rem;
+}
+
+.global-search-main small,
+.global-search-location small,
+.global-search-empty span {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.global-search-location {
+    align-items: flex-end;
+    color: var(--primary);
+    font-size: 0.76rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.global-search-empty {
+    padding: 18px;
+}
+
+.patient-row-focus {
+    position: relative;
+    background: var(--primary-light) !important;
+    box-shadow: inset 4px 0 0 var(--primary), 0 0 0 2px var(--focus-ring);
 }
 
 /* Tables and Patient Rows */
@@ -629,6 +821,198 @@ body.dark-mode .app-table tbody tr:hover {
     background-color: rgba(13, 148, 136, 0.04);
 }
 
+.admissions-table {
+    display: block;
+    width: 100%;
+    border-collapse: separate;
+    font-size: 0.78rem;
+}
+
+.admissions-table thead {
+    display: none;
+}
+
+.admissions-table tbody {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(245px, 1fr));
+    gap: 10px;
+    padding: 12px;
+}
+
+.admission-card-row,
+.admission-card-row td {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+}
+
+.admission-empty-row,
+.admission-empty-row td {
+    display: block;
+    grid-column: 1 / -1;
+}
+
+.admission-card {
+    min-height: 156px;
+    height: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: linear-gradient(180deg, var(--bg-card), color-mix(in srgb, var(--bg-card) 86%, var(--surface-subtle)));
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.admission-card:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.admission-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.admission-card-title {
+    min-width: 0;
+}
+
+.admission-card-title strong,
+.admission-card-title span,
+.admission-card-meta span,
+.admission-card-clinical strong,
+.admission-card-grid strong,
+.admission-card-notes strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admission-card-title strong {
+    display: block;
+    color: var(--text-main);
+    font-size: 0.82rem;
+    font-weight: 850;
+    letter-spacing: 0;
+}
+
+.admission-card-title span {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 0.69rem;
+    font-weight: 700;
+}
+
+.admission-card-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+
+.admission-card-actions .action-btn {
+    width: 26px;
+    height: 26px;
+}
+
+.admission-card-actions .sync-row-badge {
+    width: 22px;
+    height: 22px;
+}
+
+.admission-card-meta {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.25fr);
+    gap: 5px;
+    align-items: center;
+}
+
+.admission-card-meta > span:not(:first-child),
+.admission-card-grid > div,
+.admission-card-clinical > div,
+.admission-card-notes {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--surface-subtle) 74%, transparent);
+}
+
+.admission-card-meta > span:not(:first-child) {
+    display: block;
+    padding: 4px 6px;
+    color: var(--text-main);
+    font-size: 0.68rem;
+    font-weight: 750;
+}
+
+.admission-card-clinical {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.admission-card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+}
+
+.admission-card-clinical > div,
+.admission-card-grid > div,
+.admission-card-notes {
+    padding: 5px 6px;
+}
+
+.admission-card-clinical span,
+.admission-card-grid span,
+.admission-card-notes span {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--text-muted);
+    font-size: 0.58rem;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.admission-card-clinical strong,
+.admission-card-grid strong,
+.admission-card-notes strong {
+    display: block;
+    color: var(--text-main);
+    font-size: 0.68rem;
+    font-weight: 740;
+}
+
+.admission-card-notes {
+    margin-top: auto;
+}
+
+@media (max-width: 1500px) {
+    .admissions-table tbody {
+        grid-template-columns: repeat(3, minmax(250px, 1fr));
+    }
+}
+
+@media (max-width: 980px) {
+    .admissions-table tbody {
+        grid-template-columns: repeat(2, minmax(240px, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .admissions-table tbody {
+        grid-template-columns: 1fr;
+    }
+}
 /* Badges */
 .badge {
     display: inline-flex;
@@ -1324,6 +1708,10 @@ body.dark-mode .task-item.pending {
 .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center;
     font-size: 0.75rem; font-weight: 600; color: var(--text-muted); padding-bottom: 8px;
     border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.cal-weekday-saturday {
+    color: var(--warning);
+    font-weight: 800;
+}
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .cal-cell { min-height: 85px; padding: 6px; border-radius: 8px; cursor: pointer;
     border: 1px solid transparent; transition: var(--transition);
@@ -1333,6 +1721,15 @@ body.dark-mode .task-item.pending {
     border-color: var(--primary);
     transform: scale(1.02);
     filter: drop-shadow(0 2px 8px rgba(13, 148, 136, 0.15));
+}
+.cal-saturday:not(.cal-selected) {
+    border-color: color-mix(in srgb, var(--warning) 42%, var(--border));
+    background: linear-gradient(180deg, var(--bg-card), var(--warning-light));
+    box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--warning) 55%, transparent);
+}
+
+.cal-saturday:not(.cal-selected) .cal-day-num {
+    color: var(--warning);
 }
 .cal-cell:active:not(.cal-empty) { transform: scale(0.98); }
 .cal-today .cal-day-num { background: var(--primary); color: #fff; border-radius: 50%;
@@ -1354,6 +1751,7 @@ body.dark-mode .task-item.pending {
     padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
 .workspace-header h3 { font-size: 1rem; font-weight: 700; flex: 1; margin: 0; }
 .workspace-module-filters { display: flex; gap: 4px; flex-wrap: wrap; }
+.workspace-print-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .ws-filter-btn { padding: 6px 12px; border-radius: 99px; border: 1px solid var(--border);
     background: none; cursor: pointer; font-size: 0.78rem; font-weight: 500; color: var(--text-muted);
     transition: var(--transition); }
@@ -1783,6 +2181,18 @@ body.dark-mode .cal-loading .cal-cell::after {
     filter: none;
 }
 
+.cal-saturday:not(.cal-selected) {
+    border-color: color-mix(in srgb, var(--warning) 46%, var(--border));
+    background: linear-gradient(180deg, var(--bg-card), var(--warning-light));
+    box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--warning) 58%, transparent);
+}
+
+.cal-saturday:not(.cal-selected) .cal-day-num,
+.cal-weekday-saturday {
+    color: var(--warning);
+    font-weight: 800;
+}
+
 .cal-selected {
     background: linear-gradient(135deg, var(--primary), var(--brand-accent)) !important;
     box-shadow: 0 16px 34px -24px rgba(13, 148, 136, 0.8);
@@ -1957,6 +2367,23 @@ body.dark-mode .cal-loading .cal-cell::after {
         flex-wrap: wrap;
     }
 
+    .global-patient-search {
+        width: 100%;
+        min-width: 0;
+        order: -1;
+    }
+
+    .global-search-results {
+        left: 0;
+        right: auto;
+        width: 100%;
+    }
+
+    .sidebar-search .global-search-results {
+        width: 100%;
+        min-width: 0;
+    }
+
     .search-input-wrapper {
         width: 100%;
     }
@@ -1970,4 +2397,6 @@ body.dark-mode .cal-loading .cal-cell::after {
         min-height: 76px;
         padding: 7px;
     }
+
+
 }

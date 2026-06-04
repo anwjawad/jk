@@ -223,6 +223,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    document.addEventListener('click', (event) => {
+        const searchBox = document.querySelector('.global-patient-search');
+        if (searchBox && !searchBox.contains(event.target)) {
+            closeGlobalSearchResults();
+        }
+    });
     if (typeof initGoogleSheetsSync === 'function') initGoogleSheetsSync();
 });
 
@@ -307,6 +313,11 @@ function toggleDarkMode() {
 function updateDateDropdown(type) {
     const select = document.getElementById(`filter-date-${type}`);
     if (!select) return;
+
+    if (select.tagName === 'INPUT') {
+        updatePortCathSaturdayFilterState();
+        return;
+    }
     
     const selectedValue = select.value || 'all';
     
@@ -335,8 +346,85 @@ function updateDateDropdown(type) {
     }
 }
 
+function isSaturday(dateString) {
+    if (!dateString) return false;
+    const date = new Date(`${dateString}T00:00:00`);
+    return !isNaN(date) && date.getDay() === 6;
+}
+
+function handlePortCathDateFilterChange() {
+    updatePortCathSaturdayFilterState();
+    renderPortCathTable();
+}
+
+function clearPortCathDateFilter() {
+    const input = document.getElementById('filter-date-portcath');
+    if (input) input.value = '';
+    updatePortCathSaturdayFilterState();
+    renderPortCathTable();
+}
+
+function updatePortCathSaturdayFilterState() {
+    const input = document.getElementById('filter-date-portcath');
+    const wrap = document.getElementById('portcath-date-filter-wrap');
+    if (!input || !wrap) return;
+    wrap.classList.toggle('is-saturday', isSaturday(input.value));
+}
+
+function normalizeDateForApp(dateValue) {
+    if (!dateValue) return '';
+    const text = String(dateValue);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+    const date = new Date(text);
+    if (isNaN(date)) return text;
+
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+function isRealPatientRecord(patient) {
+    if (!patient || typeof patient !== 'object') return false;
+    return Boolean(String(patient.id || '').trim() || String(patient.name || '').trim() || String(patient.fileNumber || '').trim());
+}
+
+function normalizePatientRecord(patient) {
+    const normalized = { ...patient };
+    if (normalized.id !== undefined && normalized.id !== null) normalized.id = String(normalized.id);
+    if (normalized.fileNumber !== undefined && normalized.fileNumber !== null) normalized.fileNumber = String(normalized.fileNumber);
+    if (normalized.date) normalized.date = normalizeDateForApp(normalized.date);
+    if (normalized.date) normalized.day = getDayName(normalized.date);
+    if (Array.isArray(normalized.tasks) === false && normalized.tasks) {
+        try {
+            normalized.tasks = JSON.parse(normalized.tasks);
+        } catch (e) {
+            normalized.tasks = [];
+        }
+    }
+    return normalized;
+}
+
+function sanitizePatientList(list) {
+    return Array.isArray(list)
+        ? list.filter(isRealPatientRecord).map(normalizePatientRecord)
+        : [];
+}
+
+function sanitizeAllPatientLists() {
+    portCathList = sanitizePatientList(portCathList);
+    admissionsList = sanitizePatientList(admissionsList);
+    followUpList = sanitizePatientList(followUpList);
+    tumorBoardList = sanitizePatientList(tumorBoardList).map(patient => ({
+        ...patient,
+        tasks: Array.isArray(patient.tasks) ? patient.tasks : []
+    }));
+}
+
 // Persist and Fetch
 function saveToLocalStorage() {
+    sanitizeAllPatientLists();
     localStorage.setItem('medsched_portcath', JSON.stringify(portCathList));
     localStorage.setItem('medsched_admissions', JSON.stringify(admissionsList));
     localStorage.setItem('medsched_followup', JSON.stringify(followUpList));
@@ -354,6 +442,7 @@ function loadFromLocalStorage() {
     if (admData) admissionsList = JSON.parse(admData);
     if (fuData) followUpList = JSON.parse(fuData);
     if (tbData) tumorBoardList = JSON.parse(tbData);
+    sanitizeAllPatientLists();
     if (isDark === 'true') document.body.classList.add('dark-mode');
     
     // Update date filters
@@ -424,6 +513,181 @@ function idsMatch(left, right) {
     return String(left) === String(right);
 }
 
+function normalizeSearchText(value) {
+    return String(value || '').toLowerCase().trim();
+}
+
+function getGlobalPatientMatches(query) {
+    const q = normalizeSearchText(query);
+    if (q.length < 2) return [];
+
+    const modules = [
+        { type: 'portcath', label: 'Port Cath Placement', tab: 'portcath', list: portCathList },
+        { type: 'admissions', label: 'Planned Admissions', tab: 'admissions', list: admissionsList },
+        { type: 'followup', label: 'WhatsApp & Call Follow-up', tab: 'followup', list: followUpList },
+        { type: 'tumorboard', label: 'Tumor Board Follow-up', tab: 'tumorboard', list: tumorBoardList }
+    ];
+
+    const matches = [];
+    modules.forEach(module => {
+        module.list.forEach(patient => {
+            const haystack = [
+                patient.name,
+                patient.fileNumber,
+                patient.phone,
+                patient.primaryPhysician,
+                patient.physician,
+                patient.admissionDepartment,
+                patient.date ? formatDateDisplay(patient.date) : '',
+                patient.task,
+                patient.diagnosis,
+                patient.notes
+            ].map(normalizeSearchText).join(' ');
+
+            if (!haystack.includes(q)) return;
+
+            matches.push({
+                type: module.type,
+                tab: module.tab,
+                moduleLabel: module.label,
+                id: patient.id,
+                name: patient.name || 'Unnamed patient',
+                fileNumber: patient.fileNumber || '',
+                date: patient.date || '',
+                meta: patient.phone || patient.primaryPhysician || patient.physician || patient.admissionDepartment || patient.task || ''
+            });
+        });
+    });
+
+    return matches.slice(0, 12);
+}
+
+function renderGlobalPatientSearch() {
+    const input = document.getElementById('global-patient-search');
+    const resultsEl = document.getElementById('global-search-results');
+    if (!input || !resultsEl) return;
+
+    const query = input.value.trim();
+    if (query.length < 2) {
+        resultsEl.classList.remove('active');
+        resultsEl.innerHTML = '';
+        return;
+    }
+
+    const matches = getGlobalPatientMatches(query);
+    resultsEl.classList.add('active');
+
+    if (matches.length === 0) {
+        resultsEl.innerHTML = `
+            <div class="global-search-empty">
+                <strong>No patient found</strong>
+                <span>Try name, file number, phone, physician, or task.</span>
+            </div>
+        `;
+        return;
+    }
+
+    resultsEl.innerHTML = matches.map(match => `
+        <button class="global-search-result" type="button" onclick="openGlobalPatientResult('${match.type}', '${String(match.id).replace(/'/g, "\\'")}')">
+            <span class="global-search-main">
+                <strong>${match.name}</strong>
+                <small>${match.fileNumber ? `File # ${match.fileNumber}` : 'No file number'}</small>
+            </span>
+            <span class="global-search-location">
+                ${match.moduleLabel}
+                ${match.date ? `<small>${formatDateDisplay(match.date)}</small>` : ''}
+            </span>
+        </button>
+    `).join('');
+}
+
+function closeGlobalSearchResults() {
+    const resultsEl = document.getElementById('global-search-results');
+    if (resultsEl) resultsEl.classList.remove('active');
+}
+
+function handleGlobalSearchKey(event) {
+    if (event.key === 'Escape') {
+        event.currentTarget.value = '';
+        closeGlobalSearchResults();
+    }
+    if (event.key === 'Enter') {
+        const first = getGlobalPatientMatches(event.currentTarget.value)[0];
+        if (first) openGlobalPatientResult(first.type, first.id);
+    }
+}
+
+function openGlobalPatientResult(type, id) {
+    const tabMap = {
+        portcath: 'portcath',
+        admissions: 'admissions',
+        followup: 'followup',
+        tumorboard: 'tumorboard'
+    };
+    const tab = tabMap[type];
+    if (!tab) return;
+
+    closeGlobalSearchResults();
+    const input = document.getElementById('global-patient-search');
+    if (input) input.blur();
+
+    switchTab(tab);
+    clearModuleSearchForGlobalOpen(type);
+
+    if (type === 'portcath') {
+        const filter = document.getElementById('filter-date-portcath');
+        if (filter) filter.value = '';
+        updatePortCathSaturdayFilterState();
+        renderPortCathTable();
+    } else if (type === 'admissions') {
+        const filter = document.getElementById('filter-date-admissions');
+        if (filter) filter.value = 'all';
+        renderAdmissionsTable();
+    } else if (type === 'followup') {
+        const filter = document.getElementById('filter-date-followup');
+        if (filter) filter.value = 'all';
+        renderFollowUpTable();
+    } else if (type === 'tumorboard') {
+        renderTumorBoardTable();
+    }
+
+    window.setTimeout(() => {
+        highlightPatientRow(type, id);
+        if (type === 'tumorboard') openPatientProfile(id);
+    }, 80);
+}
+
+function clearModuleSearchForGlobalOpen(type) {
+    const searchId = {
+        portcath: 'search-portcath',
+        admissions: 'search-admissions',
+        followup: 'search-followup',
+        tumorboard: 'search-tumorboard'
+    }[type];
+    const searchInput = searchId ? document.getElementById(searchId) : null;
+    if (searchInput) searchInput.value = '';
+}
+
+function highlightPatientRow(type, id) {
+    const tableId = {
+        portcath: 'table-portcath',
+        admissions: 'table-admissions',
+        followup: 'table-followup',
+        tumorboard: 'table-tumorboard'
+    }[type];
+    if (!tableId) return;
+
+    const table = document.getElementById(tableId);
+    if (!table) return;
+
+    const row = Array.from(table.querySelectorAll('tbody tr')).find(tr => idsMatch(tr.dataset.recordId, id));
+    if (!row) return;
+
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.add('patient-row-focus');
+    window.setTimeout(() => row.classList.remove('patient-row-focus'), 2800);
+}
+
 // PORT CATH LOGIC
 function addPortCathPatient(event) {
     event.preventDefault();
@@ -468,9 +732,10 @@ function renderPortCathTable() {
     const tbody = document.querySelector('#table-portcath tbody');
     tbody.innerHTML = '';
     
-    const filterDate = document.getElementById('filter-date-portcath')?.value || 'all';
+    updatePortCathSaturdayFilterState();
+    const filterDate = document.getElementById('filter-date-portcath')?.value || '';
     let filteredList = [...portCathList];
-    if (filterDate !== 'all') {
+    if (filterDate) {
         filteredList = filteredList.filter(p => p.date === filterDate);
     }
     
@@ -497,6 +762,7 @@ function renderPortCathTable() {
     sortedList.forEach(patient => {
         const tr = document.createElement('tr');
         tr.setAttribute('data-sync-id', patient.id);
+        tr.setAttribute('data-record-id', patient.id);
         tr.addEventListener('click', (e) => {
             if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('textarea') || e.target.closest('.no-print')) {
                 return;
@@ -634,8 +900,8 @@ function renderAdmissionsTable() {
 
     if (filteredList.length === 0) {
         tbody.innerHTML = `
-            <tr>
-                <td colspan="14">
+            <tr class="admission-empty-row">
+                <td colspan="7">
                     <div class="empty-state">
                         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
                         <h3>No planned admissions</h3>
@@ -647,12 +913,13 @@ function renderAdmissionsTable() {
         return;
     }
 
-    // Sort by Date ascending
     const sortedList = filteredList.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     sortedList.forEach(patient => {
         const tr = document.createElement('tr');
+        tr.className = 'admission-card-row';
         tr.setAttribute('data-sync-id', patient.id);
+        tr.setAttribute('data-record-id', patient.id);
         tr.addEventListener('click', (e) => {
             if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('textarea') || e.target.closest('.no-print')) {
                 return;
@@ -660,35 +927,45 @@ function renderAdmissionsTable() {
             openEditPatient('admissions', patient.id);
         });
         tr.innerHTML = `
-            <td style="font-weight:600; white-space:nowrap;">${patient.name}</td>
-            <td><code>${patient.fileNumber}</code></td>
-            <td>${patient.age}</td>
-            <td>${getTriageBadge(patient.triageScore)}</td>
-            <td style="white-space:nowrap;">${patient.primaryPhysician}</td>
-            <td style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${patient.summary || ''}">
-                ${patient.summary || '-'}
-            </td>
-            <td style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${patient.causeOfAdmission || ''}">
-                ${patient.causeOfAdmission || '-'}
-            </td>
-            <td>${patient.placeOfReferral}</td>
-            <td>${patient.modeOfTransportation}</td>
-            <td>${patient.performanceStatus}</td>
-            <td><span class="badge badge-neutral">${patient.admissionDepartment}</span></td>
-            <td>${formatDateDisplay(patient.date)}</td>
-            <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${patient.notes || ''}">
-                ${patient.notes || '-'}
-            </td>
-            <td class="no-print">
-                <div class="table-actions">
-                    <span class="sync-row-badge" title="Synced">✓</span>
-                    <button class="action-btn edit" onclick="openEditPatient('admissions', '${patient.id}')" title="Edit Record">
-                        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button class="action-btn delete" onclick="deletePatient('admissions', '${patient.id}')" title="Delete Record">
-                        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    </button>
-                </div>
+            <td colspan="7">
+                <article class="admission-card">
+                    <div class="admission-card-top">
+                        <div class="admission-card-title">
+                            <strong title="${patient.name || ''}">${patient.name || '-'}</strong>
+                            <span>${patient.fileNumber || '-'} · ${patient.age || '-'} yrs · ${formatDateDisplay(patient.date)}</span>
+                        </div>
+                        <div class="admission-card-actions no-print">
+                            <span class="sync-row-badge" title="Synced">&#10003;</span>
+                            <button class="action-btn edit" onclick="openEditPatient('admissions', '${patient.id}')" title="Edit Record">
+                                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button class="action-btn delete" onclick="deletePatient('admissions', '${patient.id}')" title="Delete Record">
+                                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="admission-card-meta">
+                        <span>${getTriageBadge(patient.triageScore)}</span>
+                        <span title="${patient.admissionDepartment || ''}">${patient.admissionDepartment || '-'}</span>
+                        <span title="${patient.primaryPhysician || ''}">${patient.primaryPhysician || 'Unassigned'}</span>
+                    </div>
+
+                    <div class="admission-card-clinical">
+                        <div><span>Summary</span><strong title="${patient.summary || ''}">${patient.summary || '-'}</strong></div>
+                        <div><span>Cause</span><strong title="${patient.causeOfAdmission || ''}">${patient.causeOfAdmission || '-'}</strong></div>
+                    </div>
+
+                    <div class="admission-card-grid">
+                        <div><span>Referral</span><strong title="${patient.placeOfReferral || ''}">${patient.placeOfReferral || '-'}</strong></div>
+                        <div><span>Transport</span><strong title="${patient.modeOfTransportation || ''}">${patient.modeOfTransportation || '-'}</strong></div>
+                        <div><span>Performance</span><strong title="${patient.performanceStatus || ''}">${patient.performanceStatus || '-'}</strong></div>
+                    </div>
+
+                    <div class="admission-card-notes">
+                        <span>Notes</span><strong title="${patient.notes || ''}">${patient.notes || '-'}</strong>
+                    </div>
+                </article>
             </td>
         `;
         tbody.appendChild(tr);
@@ -697,28 +974,13 @@ function renderAdmissionsTable() {
 
 function filterAdmissionsTable() {
     const query = document.getElementById('search-admissions').value.toLowerCase().trim();
-    const rows = document.querySelectorAll('#table-admissions tbody tr');
+    const rows = document.querySelectorAll('#table-admissions tbody tr.admission-card-row');
     
     rows.forEach(row => {
-        if (row.querySelector('.empty-state')) return;
-        
-        let match = false;
-        // Search in Name (col 0), File (col 1), Physician (col 4), Dept (col 10), Notes (col 12)
-        const nameText = row.cells[0].innerText.toLowerCase();
-        const fileText = row.cells[1].innerText.toLowerCase();
-        const physText = row.cells[4].innerText.toLowerCase();
-        const deptText = row.cells[10].innerText.toLowerCase();
-        const notesText = row.cells[12].innerText.toLowerCase();
-        
-        if (nameText.includes(query) || fileText.includes(query) || physText.includes(query) || deptText.includes(query) || notesText.includes(query)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
+        const match = row.innerText.toLowerCase().includes(query);
+        row.style.display = match ? '' : 'none';
     });
 }
-
-
 // FOLLOW-UP LOGIC
 function addFollowUpPatient(event) {
     event.preventDefault();
@@ -791,6 +1053,7 @@ function renderFollowUpTable() {
     sortedList.forEach(patient => {
         const tr = document.createElement('tr');
         tr.setAttribute('data-sync-id', patient.id);
+        tr.setAttribute('data-record-id', patient.id);
         tr.addEventListener('click', (e) => {
             if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('textarea') || e.target.closest('.no-print')) {
                 return;
@@ -1199,6 +1462,8 @@ function saveEditedPatient() {
 
 // DASHBOARD RENDERER
 function renderDashboard() {
+    sanitizeAllPatientLists();
+
     // 1. Counters (with null checks for calendar-based dashboard)
     const portCathWidget = document.getElementById('count-widget-portcath');
     if (portCathWidget) portCathWidget.innerText = portCathList.length;
@@ -1215,6 +1480,7 @@ function renderDashboard() {
     const todayAdmissions = admissionsList.filter(a => a.date === todayStr).length;
     const todayWidget = document.getElementById('count-widget-today');
     if (todayWidget) todayWidget.innerText = todayPortCath + todayAdmissions;
+    updateCalendarStatsBar();
 
     // 2. Render Port Cath Dashboard list (first 5 elements sorted by date ascending)
     const pcDTableBody = document.querySelector('#dashboard-portcath-table tbody');
@@ -1269,9 +1535,42 @@ function renderDashboard() {
     }
 }
 
+function updateCalendarStatsBar() {
+    const statsEl = document.getElementById('cal-stats-bar');
+    if (!statsEl) return;
+
+    const todayStr = normalizeDateForApp(new Date());
+    const todayCounts = {
+        pc: portCathList.filter(p => p.date === todayStr).length,
+        adm: admissionsList.filter(p => p.date === todayStr).length,
+        fu: followUpList.filter(p => p.date === todayStr).length
+    };
+    const todayTotal = todayCounts.pc + todayCounts.adm + todayCounts.fu;
+
+    const monthPrefix = `${calYear}-${String(calMonth + 1).padStart(2, '0')}`;
+    const monthCounts = {
+        pc: portCathList.filter(p => p.date && p.date.startsWith(monthPrefix)).length,
+        adm: admissionsList.filter(p => p.date && p.date.startsWith(monthPrefix)).length,
+        fu: followUpList.filter(p => p.date && p.date.startsWith(monthPrefix)).length,
+        tb: tumorBoardList.length
+    };
+    const monthTotal = monthCounts.pc + monthCounts.adm + monthCounts.fu + monthCounts.tb;
+
+    const isLocalPreview = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+    const jsonpReadsEnabled = window.MEDSCHED_CONFIG?.jsonpReads === true;
+    const totalLoadedPatients = portCathList.length + admissionsList.length + followUpList.length + tumorBoardList.length;
+    if (isLocalPreview && !jsonpReadsEnabled && totalLoadedPatients === 0) {
+        statsEl.textContent = 'Local preview: no cached patients loaded. Enable Google Sheets JSONP reads after redeploying Apps Script.';
+        return;
+    }
+
+    statsEl.textContent = `${todayTotal} today | ${monthTotal} this month | Port Cath ${monthCounts.pc} · Admissions ${monthCounts.adm} · Follow-up ${monthCounts.fu} · Tumor Board ${monthCounts.tb}`;
+}
+
 // ── CALENDAR FUNCTIONS (Phase 4) ──────────────────────────────────────────
 
 function renderCalendar() {
+    sanitizeAllPatientLists();
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -1295,8 +1594,8 @@ function renderCalendar() {
 
     // Day headers
     html += '<div class="cal-weekdays">';
-    dayNames.forEach(day => {
-        html += `<div class="cal-weekday">${day}</div>`;
+    dayNames.forEach((day, index) => {
+        html += `<div class="cal-weekday ${index === 6 ? 'cal-weekday-saturday' : ''}">${day}</div>`;
     });
     html += '</div>';
 
@@ -1318,8 +1617,9 @@ function renderCalendar() {
         const totalCount = counts.pc + counts.adm + counts.fu + counts.tb;
         const isToday = new Date().toISOString().split('T')[0] === dateStr;
         const isSelected = calSelectedDate === dateStr;
+        const isSat = new Date(year, month, day).getDay() === 6;
 
-        html += `<div class="cal-cell ${isToday ? 'cal-today' : ''} ${isSelected ? 'cal-selected' : ''}" onclick="selectCalendarDate('${dateStr}')">
+        html += `<div class="cal-cell ${isToday ? 'cal-today' : ''} ${isSelected ? 'cal-selected' : ''} ${isSat ? 'cal-saturday' : ''}" onclick="selectCalendarDate('${dateStr}')">
             <div class="cal-day-num">${day}</div>
             <div class="cal-badges">
                 ${counts.pc > 0 ? `<span class="cal-badge cb-pc" title="Port Cath">${counts.pc}</span>` : ''}
@@ -1332,6 +1632,7 @@ function renderCalendar() {
 
     html += '</div>';
     calCard.innerHTML = html;
+    updateCalendarStatsBar();
 }
 
 function getCountsForDate(year, month, day) {
@@ -1478,6 +1779,51 @@ function closeDayWorkspace() {
     calSelectedDate = null;
     document.getElementById('cal-day-workspace').style.display = 'none';
     renderCalendar();
+}
+
+function openDashboardPrint(type) {
+    if (!calSelectedDate) {
+        showToast('Select a calendar day before printing.', 'warning');
+        return;
+    }
+
+    if (type === 'tumorboard') {
+        switchTab('tumorboard');
+        showToast('Open a Tumor Board patient profile to print it.', 'info');
+        return;
+    }
+
+    const lists = {
+        portcath: portCathList,
+        admissions: admissionsList,
+        followup: followUpList
+    };
+    const list = lists[type] || [];
+    const hasPatientsForDate = list.some(patient => patient.date === calSelectedDate);
+    if (!hasPatientsForDate) {
+        const labels = { portcath: 'Port Cath', admissions: 'Admissions', followup: 'Follow-up' };
+        showToast(`No ${labels[type] || 'patients'} patients on ${formatDateDisplay(calSelectedDate)}.`, 'warning');
+        return;
+    }
+
+    const filterSelect = document.getElementById(`filter-date-${type}`);
+    if (filterSelect) {
+        if (filterSelect.tagName === 'INPUT') {
+            filterSelect.value = calSelectedDate;
+            updatePortCathSaturdayFilterState();
+        } else {
+            let option = Array.from(filterSelect.options).find(opt => opt.value === calSelectedDate);
+            if (!option) {
+                option = document.createElement('option');
+                option.value = calSelectedDate;
+                option.textContent = formatDateDisplay(calSelectedDate);
+                filterSelect.appendChild(option);
+            }
+            filterSelect.value = calSelectedDate;
+        }
+    }
+
+    openPrintModal(type);
 }
 
 function filterWorkspaceSearch() {
@@ -2547,14 +2893,14 @@ function openPrintModal(type) {
 
     // Current selected date in tab dropdown
     const filterSelect = document.getElementById(`filter-date-${type}`);
-    const currentSelected = filterSelect ? filterSelect.value : 'all';
+    const currentSelected = filterSelect ? filterSelect.value : '';
 
     // Update radio text
     const selectedRadioText = document.getElementById('print-mode-selected-text');
     const selectedRadio = document.getElementById('print-mode-selected');
     const allRadio = document.getElementById('print-mode-all');
     
-    if (currentSelected !== 'all') {
+    if (currentSelected && currentSelected !== 'all') {
         selectedRadioText.innerText = `Print Selected Date Only (${formatDateDisplay(currentSelected)})`;
         selectedRadio.disabled = false;
         selectedRadio.checked = true;
@@ -2640,8 +2986,8 @@ function submitPrintReport(action = 'print') {
 
     if (modeVal === 'selected') {
         const filterSelect = document.getElementById(`filter-date-${type}`);
-        const currentSelected = filterSelect ? filterSelect.value : 'all';
-        if (currentSelected !== 'all') {
+        const currentSelected = filterSelect ? filterSelect.value : '';
+        if (currentSelected && currentSelected !== 'all') {
             datesToPrint = [currentSelected];
         } else {
             datesToPrint = [...new Set(list.map(p => p.date).filter(d => !!d))];
@@ -3020,6 +3366,7 @@ function renderTumorBoardTable() {
     filteredList.forEach(patient => {
         const tr = document.createElement('tr');
         tr.setAttribute('data-sync-id', patient.id);
+        tr.setAttribute('data-record-id', patient.id);
         tr.style.cursor = 'pointer';
 
         tr.addEventListener('click', (e) => {

@@ -64,43 +64,60 @@ const AUDIT_LOG_COLUMNS = {
  * Handle GET requests (read operations)
  */
 function doGet(e) {
+  const callback = e.parameter.callback;
   try {
     const action = e.parameter.action;
     const key = e.parameter.key;
 
     if (!validateApiKey(key)) {
-      return errorResponse('INVALID_KEY', 'Authentication failed', 403);
+      return callback
+        ? jsonpResponse({ status: 'error', code: 'INVALID_KEY', message: 'Authentication failed' }, callback)
+        : errorResponse('INVALID_KEY', 'Authentication failed', 403);
     }
 
     switch (action) {
       case 'setup':
         // Initialize/create all sheets and headers
         initializeSpreadsheet();
-        return successResponse({ status: 'ok', message: 'Spreadsheet initialized' });
+        return callback
+          ? jsonpResponse({ status: 'ok', message: 'Spreadsheet initialized' }, callback)
+          : successResponse({ status: 'ok', message: 'Spreadsheet initialized' });
 
       case 'getAll':
         // Auto-initialize if needed
         ensureSheetsExist();
-        return successResponse(getAllData());
+        const allData = { status: 'ok' };
+        Object.assign(allData, getAllData());
+        return callback ? jsonpResponse(allData, callback) : successResponse(getAllData());
 
       case 'getByDate':
         const type = e.parameter.type;
         const date = e.parameter.date;
         if (!type || !date) {
-          return errorResponse('MISSING_PARAMS', 'type and date required', 400);
+          return callback
+            ? jsonpResponse({ status: 'error', code: 'MISSING_PARAMS', message: 'type and date required' }, callback)
+            : errorResponse('MISSING_PARAMS', 'type and date required', 400);
         }
         ensureSheetsExist();
-        return successResponse(getByDate(type, date));
+        const byDateData = { status: 'ok' };
+        Object.assign(byDateData, getByDate(type, date));
+        return callback ? jsonpResponse(byDateData, callback) : successResponse(getByDate(type, date));
 
       case 'getSettings':
         ensureSheetsExist();
-        return successResponse(getSettings());
+        const settingsData = { status: 'ok' };
+        Object.assign(settingsData, getSettings());
+        return callback ? jsonpResponse(settingsData, callback) : successResponse(getSettings());
 
       default:
-        return errorResponse('INVALID_ACTION', `Unknown action: ${action}`, 400);
+        return callback
+          ? jsonpResponse({ status: 'error', code: 'INVALID_ACTION', message: `Unknown action: ${action}` }, callback)
+          : errorResponse('INVALID_ACTION', `Unknown action: ${action}`, 400);
     }
   } catch (err) {
-    return errorResponse('INTERNAL_ERROR', err.toString(), 500);
+    return callback
+      ? jsonpResponse({ status: 'error', code: 'INTERNAL_ERROR', message: err.toString() }, callback)
+      : errorResponse('INTERNAL_ERROR', err.toString(), 500);
   }
 }
 
@@ -796,6 +813,18 @@ function successResponse(data) {
   }
   return ContentService.createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Generate JSONP response for browser reads from localhost without CORS.
+ */
+function jsonpResponse(data, callback) {
+  const safeCallback = /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(callback || '')
+    ? callback
+    : 'callback';
+  return ContentService
+    .createTextOutput(`${safeCallback}(${JSON.stringify(data)});`)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 /**

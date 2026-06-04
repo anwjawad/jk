@@ -26,6 +26,13 @@
                 <span>AVH / LWF Coordination</span>
             </div>
         </div>
+        <div class="sidebar-search">
+            <div class="global-patient-search" role="search">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input id="global-patient-search" type="search" placeholder="Search patient..." autocomplete="off" oninput="renderGlobalPatientSearch()" onfocus="renderGlobalPatientSearch()" onkeydown="handleGlobalSearchKey(event)">
+                <div id="global-search-results" class="global-search-results" aria-label="Patient search results"></div>
+            </div>
+        </div>
         <ul class="sidebar-menu">
             <li id="menu-dashboard" class="active">
                 <a onclick="switchTab('dashboard')">
@@ -137,8 +144,11 @@
                         <button class="ws-filter-btn" onclick="setCalFilter('followup')">Follow-up</button>
                         <button class="ws-filter-btn" onclick="setCalFilter('tumorboard')">Tumor Board</button>
                     </div>
-                    <div style="display:flex;gap:8px;">
-                        <button class="btn btn-secondary" onclick="printDayAllModules(calSelectedDate, 'MedSched Coordinator', 'print')">Print Day</button>
+                    <div class="workspace-print-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('portcath')">Print Port</button>
+                        <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('admissions')">Print Admissions</button>
+                        <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('followup')">Print Follow-up</button>
+                        <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('tumorboard')">Print Tumor Board</button>
                         <button class="btn btn-icon" onclick="closeDayWorkspace()">✕</button>
                     </div>
                 </div>
@@ -170,9 +180,11 @@
                         <span class="list-counter" id="counter-portcath">0</span>
                     </div>
                     <div class="list-actions">
-                        <select id="filter-date-portcath" class="form-control" style="width: 140px; display: inline-block; padding: 6px 12px; font-size: 0.85rem;" onchange="renderPortCathTable()">
-                            <option value="all">All Dates</option>
-                        </select>
+                        <div class="date-filter-wrap" id="portcath-date-filter-wrap">
+                            <input type="date" id="filter-date-portcath" class="form-control date-filter-control" onchange="handlePortCathDateFilterChange()" title="Filter Port Cath by date">
+                            <button class="btn btn-secondary btn-sm" onclick="clearPortCathDateFilter()" title="Show all Port Cath dates">Clear</button>
+                            <span class="saturday-hint" id="portcath-saturday-hint">Saturday</span>
+                        </div>
                         <div class="search-input-wrapper">
                             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                             <input type="text" id="search-portcath" class="search-control" placeholder="Search by name or file..." oninput="filterPortCathTable()">
@@ -236,23 +248,16 @@
                     </div>
                 </div>
                 <div class="table-responsive">
-                    <table class="app-table" id="table-admissions" style="font-size: 0.85rem;">
+                    <table class="app-table admissions-table" id="table-admissions">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>File No.</th>
-                                <th>Age</th>
+                                <th>Patient</th>
+                                <th>File / Age</th>
+                                <th>Date / Dept</th>
                                 <th>Triage</th>
                                 <th>Physician</th>
-                                <th>Summary</th>
-                                <th>Cause</th>
-                                <th>Referral</th>
-                                <th>Transport</th>
-                                <th>Performance</th>
-                                <th>Department</th>
-                                <th>Date</th>
-                                <th>Notes</th>
-                                <th class="no-print" style="width: 80px;">Actions</th>
+                                <th>Clinical Snapshot</th>
+                                <th class="no-print" style="width: 104px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1057,7 +1062,8 @@
     <script>
       window.MEDSCHED_CONFIG = {
         gasUrl: 'https://script.google.com/macros/s/AKfycbxa2J7jW-uvf7YWvBF5LNmQVivW1w27ZhHHH4iIfo8Wuc9LUacZEw9zQxuPKyPeJsvU/exec',
-        apiKey: 'medsched-2026-key-abc123'
+        apiKey: 'medsched-2026-key-abc123',
+        jsonpReads: false
       };
     </script>
 

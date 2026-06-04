@@ -5,6 +5,7 @@ const GOOGLE_SCRIPT_URL = window.MEDSCHED_CONFIG?.gasUrl || 'PASTE_WEB_APP_URL_H
 const SYNC_API_KEY      = window.MEDSCHED_CONFIG?.apiKey || '';
 const PENDING_QUEUE_KEY = 'medsched_pending_queue';
 const IS_LOCAL_PREVIEW  = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+const ENABLE_JSONP_READS = window.MEDSCHED_CONFIG?.jsonpReads === true;
 
 let _pendingQueue = [];
 let _isSyncing    = false;
@@ -48,12 +49,42 @@ async function apiRequest(action, payload) {
 // ── Public CRUD wrappers ─────────────────────────────────────────────────────
 
 async function loadFromGoogleSheets() {
+    if (IS_LOCAL_PREVIEW && ENABLE_JSONP_READS) return loadFromGoogleSheetsJsonp();
+
     const url = `${GOOGLE_SCRIPT_URL}?action=getAll&key=${encodeURIComponent(SYNC_API_KEY)}`;
     const resp = await fetch(url, { redirect: 'follow' });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const json = await resp.json();
     if (json.status !== 'ok') throw new Error(json.message || 'GAS error');
     return json; // { status:'ok', portcath:[], admissions:[], followup:[], tumorboard:[] }
+}
+
+function loadFromGoogleSheetsJsonp() {
+    return new Promise((resolve, reject) => {
+        const callbackName = `medschedJsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const script = document.createElement('script');
+        const cleanup = () => {
+            delete window[callbackName];
+            script.remove();
+        };
+
+        window[callbackName] = (json) => {
+            cleanup();
+            if (!json || json.status !== 'ok') {
+                reject(new Error(json?.message || 'GAS JSONP error'));
+                return;
+            }
+            resolve(json);
+        };
+
+        script.onerror = () => {
+            cleanup();
+            reject(new Error('Failed to load Google Sheets JSONP endpoint'));
+        };
+
+        script.src = `${GOOGLE_SCRIPT_URL}?action=getAll&key=${encodeURIComponent(SYNC_API_KEY)}&callback=${encodeURIComponent(callbackName)}`;
+        document.head.appendChild(script);
+    });
 }
 
 async function saveRecordToGoogleSheets(type, record) {
@@ -207,7 +238,7 @@ async function initGoogleSheetsSync() {
     const stored = localStorage.getItem(PENDING_QUEUE_KEY);
     _pendingQueue = stored ? JSON.parse(stored) : [];
 
-    if (IS_LOCAL_PREVIEW) {
+    if (IS_LOCAL_PREVIEW && !ENABLE_JSONP_READS) {
         showSyncStatus(_pendingQueue.length > 0 ? 'pending' : 'offline');
         await syncAllLocalPendingChanges();
         return;
@@ -220,6 +251,7 @@ async function initGoogleSheetsSync() {
         if (Array.isArray(data.admissions)) admissionsList = data.admissions;
         if (Array.isArray(data.followup))   followUpList   = data.followup;
         if (Array.isArray(data.tumorboard)) tumorBoardList = data.tumorboard;
+        if (typeof sanitizeAllPatientLists === 'function') sanitizeAllPatientLists();
         saveToLocalStorage(); // update cache with fresh GAS data
         updateDateDropdown('portcath');
         updateDateDropdown('admissions');
