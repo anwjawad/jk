@@ -3,8 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clinical Scheduler & Patient Admissions System</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f766e'/%3E%3Cpath d='M30 16h8v12h12v8H38v12h-8V36H18v-8h12z' fill='white'/%3E%3C/svg%3E">
+    <title>MedSched Panel</title>
+    <meta name="description" content="AVH / LWF Clinical Scheduler & Patient Admissions">
+    <meta name="theme-color" content="#0f766e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MedSched">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
     <link rel="stylesheet" href="style.css">
     <!-- SheetJS for Smart Excel Importing -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -277,9 +285,10 @@
                         <span class="list-counter" id="counter-followup">0</span>
                     </div>
                     <div class="list-actions">
-                        <select id="filter-date-followup" class="form-control" style="width: 140px; display: inline-block; padding: 6px 12px; font-size: 0.85rem;" onchange="renderFollowUpTable()">
-                            <option value="all">All Dates</option>
-                        </select>
+                        <div class="date-filter-wrap" id="followup-date-filter-wrap">
+                            <input type="date" id="filter-date-followup" class="form-control date-filter-control" onchange="renderFollowUpTable()" title="Filter Follow-ups by date">
+                            <button class="btn btn-secondary btn-sm" onclick="clearFollowUpDateFilter()" title="Show all Follow-up dates">Clear</button>
+                        </div>
                         <div class="search-input-wrapper">
                             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                             <input type="text" id="search-followup" class="search-control" placeholder="Search follow-ups..." oninput="filterFollowUpTable()">

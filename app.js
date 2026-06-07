@@ -198,6 +198,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pc-date').value = today;
     document.getElementById('adm-date').value = today;
     document.getElementById('f-date').value = today;
+
+    // Set list date filters to today by default
+    const filterPortCath = document.getElementById('filter-date-portcath');
+    if (filterPortCath) { filterPortCath.value = today; updatePortCathSaturdayFilterState(); }
+    const filterAdmissions = document.getElementById('filter-date-admissions');
+    if (filterAdmissions) filterAdmissions.value = today;
+    const filterFollowUp = document.getElementById('filter-date-followup');
+    if (filterFollowUp) filterFollowUp.value = today;
     if (document.getElementById('prof-task-clinic-date')) {
         document.getElementById('prof-task-clinic-date').value = today;
     }
@@ -315,7 +323,7 @@ function updateDateDropdown(type) {
     if (!select) return;
 
     if (select.tagName === 'INPUT') {
-        updatePortCathSaturdayFilterState();
+        if (type === 'portcath') updatePortCathSaturdayFilterState();
         return;
     }
     
@@ -372,6 +380,12 @@ function clearAdmissionsDateFilter() {
     const input = document.getElementById('filter-date-admissions');
     if (input) input.value = '';
     renderAdmissionsTable();
+}
+
+function clearFollowUpDateFilter() {
+    const input = document.getElementById('filter-date-followup');
+    if (input) input.value = '';
+    renderFollowUpTable();
 }
 
 function updatePortCathSaturdayFilterState() {
@@ -651,11 +665,11 @@ function openGlobalPatientResult(type, id) {
         renderPortCathTable();
     } else if (type === 'admissions') {
         const filter = document.getElementById('filter-date-admissions');
-        if (filter) filter.value = 'all';
+        if (filter) filter.value = '';
         renderAdmissionsTable();
     } else if (type === 'followup') {
         const filter = document.getElementById('filter-date-followup');
-        if (filter) filter.value = 'all';
+        if (filter) filter.value = '';
         renderFollowUpTable();
     } else if (type === 'tumorboard') {
         renderTumorBoardTable();
@@ -899,9 +913,9 @@ function renderAdmissionsTable() {
     const tbody = document.querySelector('#table-admissions tbody');
     tbody.innerHTML = '';
     
-    const filterDate = document.getElementById('filter-date-admissions')?.value || 'all';
+    const filterDate = document.getElementById('filter-date-admissions')?.value || '';
     let filteredList = [...admissionsList];
-    if (filterDate !== 'all') {
+    if (filterDate) {
         filteredList = filteredList.filter(p => p.date === filterDate);
     }
     
@@ -1059,9 +1073,9 @@ function renderFollowUpTable() {
     const tbody = document.querySelector('#table-followup tbody');
     tbody.innerHTML = '';
     
-    const filterDate = document.getElementById('filter-date-followup')?.value || 'all';
+    const filterDate = document.getElementById('filter-date-followup')?.value || '';
     let filteredList = [...followUpList];
-    if (filterDate !== 'all') {
+    if (filterDate) {
         filteredList = filteredList.filter(p => p.date === filterDate);
     }
     
