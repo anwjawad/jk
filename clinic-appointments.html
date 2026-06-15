@@ -297,7 +297,6 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button class="btn btn-secondary" onclick="goToClinicToday()">Today</button>
                 <button class="btn btn-primary" onclick="openAddModal()">
                     <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M12 5v14M5 12h14"/></svg>
                     <span>Add Appointment</span>
@@ -307,16 +306,9 @@
 
         <!-- Calendar Card -->
         <div class="card cal-card">
-            <div class="cal-nav">
-                <button class="btn btn-icon" onclick="navigateClinicCalendar(-1)">&#8249;</button>
-                <h3 id="clinic-cal-month-label"></h3>
-                <button class="btn btn-icon" onclick="navigateClinicCalendar(1)">&#8250;</button>
+            <div class="cal-grid" id="clinic-cal-grid">
+                <!-- fully rendered by JS to match style.css expected structure -->
             </div>
-            <div class="cal-weekdays">
-                <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
-                <span>Thu</span><span>Fri</span><span>Sat</span>
-            </div>
-            <div class="cal-grid" id="clinic-cal-grid"></div>
         </div>
 
         <!-- Day Workspace -->
@@ -382,12 +374,14 @@
 
                     <div class="form-group">
                         <label class="form-label" for="cl-case">Case Summary *</label>
-                        <input type="text" id="cl-case" class="form-control" placeholder="e.g. Stage II Breast Cancer, follow-up" required>
+                        <input type="text" id="cl-case" class="form-control" placeholder="e.g. Stage II Breast Cancer, follow-up" required list="case-datalist" autocomplete="off">
+                        <datalist id="case-datalist"></datalist>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label" for="cl-cause">Cause of Admission / Reason for Visit</label>
-                        <input type="text" id="cl-cause" class="form-control" placeholder="e.g. Chemotherapy Cycle 4, routine follow-up">
+                        <input type="text" id="cl-cause" class="form-control" placeholder="e.g. Chemotherapy Cycle 4, routine follow-up" list="cause-datalist" autocomplete="off">
+                        <datalist id="cause-datalist"></datalist>
                     </div>
 
                     <div class="form-group">
@@ -607,6 +601,24 @@
         return clinicList.filter(r => (r.primaryPhysician || '').trim() === selectedPhysician);
     }
 
+    // ── Form Datalists ────────────────────────────────────────────────────────
+    function updateFormDataLists() {
+        // Physicians
+        const physicians = getUniquePhysicians();
+        const dl1 = document.getElementById('physician-datalist');
+        if (dl1) dl1.innerHTML = physicians.map(p => `<option value="${escHtml(p)}">`).join('');
+
+        // Case summaries
+        const cases = [...new Set(clinicList.map(r => (r.case || '').trim()).filter(Boolean))].sort();
+        const dl2 = document.getElementById('case-datalist');
+        if (dl2) dl2.innerHTML = cases.map(c => `<option value="${escHtml(c)}">`).join('');
+
+        // Causes of admission
+        const causes = [...new Set(clinicList.map(r => (r.causeOfAdmission || '').trim()).filter(Boolean))].sort();
+        const dl3 = document.getElementById('cause-datalist');
+        if (dl3) dl3.innerHTML = causes.map(c => `<option value="${escHtml(c)}">`).join('');
+    }
+
     // ── Physician Filter ──────────────────────────────────────────────────────
     function renderPhysicianFilter() {
         const container = document.getElementById('physician-btn-list');
@@ -627,9 +639,9 @@
             const count = clinicList.filter(r => (r.primaryPhysician || '').trim() === physician).length;
             const isActive = selectedPhysician === physician;
             html += `
-                <button class="physician-btn ${isActive ? 'active' : ''}" onclick="setPhysicianFilter('${physician.replace(/'/g, "\\'")}')">
+                <button class="physician-btn ${isActive ? 'active' : ''}" onclick="setPhysicianFilter('${physician.replace(/\\/g,'\\\\').replace(/'/g, "\\'")}')">
                     <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:15px;height:15px;flex-shrink:0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${physician}</span>
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escHtml(physician)}</span>
                     <span class="physician-btn-count">${count}</span>
                 </button>
             `;
@@ -640,12 +652,7 @@
         }
 
         container.innerHTML = html;
-
-        // Update physician datalist for the form
-        const datalist = document.getElementById('physician-datalist');
-        if (datalist) {
-            datalist.innerHTML = physicians.map(p => `<option value="${p}">`).join('');
-        }
+        updateFormDataLists();
     }
 
     function setPhysicianFilter(physician) {
@@ -656,28 +663,61 @@
     // ── Calendar ──────────────────────────────────────────────────────────────
     function renderClinicCalendar() {
         const grid = document.getElementById('clinic-cal-grid');
-        const label = document.getElementById('clinic-cal-month-label');
         if (!grid) return;
 
-        label.textContent = `${MONTHS[clinicCalMonth]} ${clinicCalYear}`;
-
         const filtered = getFilteredList();
-        const firstDay = new Date(clinicCalYear, clinicCalMonth, 1).getDay();
+        const firstDay    = new Date(clinicCalYear, clinicCalMonth, 1).getDay();
         const daysInMonth = new Date(clinicCalYear, clinicCalMonth + 1, 0).getDate();
-        const today = new Date().toISOString().split('T')[0];
+        const today       = new Date().toISOString().split('T')[0];
+        const monthLabel  = `${MONTHS[clinicCalMonth]} ${clinicCalYear}`;
 
-        let html = '';
+        // Stat: total appointments in this view
+        const monthTotal = filtered.filter(r => {
+            const m = `${clinicCalYear}-${String(clinicCalMonth+1).padStart(2,'0')}`;
+            return (r.date || '').startsWith(m);
+        }).length;
+
+        // ── Build full structure matching style.css expectations ──
+        // style.css hides .cal-nav/.cal-weekdays as direct children of .cal-card
+        // and expects: .cal-grid > .cal-header + .cal-weekdays + .cal-cells
+
+        let html = `
+            <div class="cal-header">
+                <button class="btn-icon" onclick="navigateClinicCalendar(-1)" title="Previous month">&#8249;</button>
+                <span class="cal-month-label">${monthLabel}</span>
+                <button class="btn-icon" onclick="navigateClinicCalendar(1)" title="Next month">&#8250;</button>
+                ${selectedPhysician ? `<span style="margin-left:auto;font-size:0.78rem;font-weight:600;color:#8b5cf6;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.25);border-radius:20px;padding:3px 10px;">${escHtml(selectedPhysician)}</span>` : ''}
+                ${monthTotal > 0 ? `<span style="font-size:0.78rem;font-weight:600;color:var(--text-muted);">${monthTotal} this month</span>` : ''}
+                <button class="btn btn-secondary" onclick="goToClinicToday()" style="margin-left:${selectedPhysician ? '0' : 'auto'};padding:5px 12px;font-size:0.8rem;">Today</button>
+            </div>
+            <div class="cal-weekdays">
+                <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
+                <span>Thu</span><span>Fri</span>
+                <span class="cal-weekday-saturday">Sat</span>
+            </div>
+            <div class="cal-cells">
+        `;
 
         for (let i = 0; i < firstDay; i++) {
             html += '<div class="cal-cell cal-empty"></div>';
         }
 
         for (let day = 1; day <= daysInMonth; day++) {
-            const dateStr = `${clinicCalYear}-${String(clinicCalMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-            const count = filtered.filter(r => r.date === dateStr).length;
-            const isToday    = today === dateStr;
+            const dateStr   = `${clinicCalYear}-${String(clinicCalMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const dayAppts  = filtered.filter(r => r.date === dateStr);
+            const count     = dayAppts.length;
+            const isToday   = today === dateStr;
             const isSelected = clinicSelectedDate === dateStr;
-            const isSat      = new Date(clinicCalYear, clinicCalMonth, day).getDay() === 6;
+            const isSat     = new Date(clinicCalYear, clinicCalMonth, day).getDay() === 6;
+
+            // Show physician initials on selected cell if showing all
+            const physicianHints = (!selectedPhysician && count > 0 && count <= 3)
+                ? dayAppts.map(r => {
+                    const name = (r.primaryPhysician || '').trim();
+                    const initials = name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+                    return `<span style="font-size:0.58rem;font-weight:700;background:rgba(139,92,246,0.18);color:#8b5cf6;border-radius:3px;padding:1px 4px;">${initials}</span>`;
+                }).join('')
+                : '';
 
             html += `
                 <div class="cal-cell ${isToday ? 'cal-today' : ''} ${isSelected ? 'cal-selected' : ''} ${isSat ? 'cal-saturday' : ''}" onclick="selectClinicDate('${dateStr}')">
@@ -685,10 +725,12 @@
                     <div class="cal-badges">
                         ${count > 0 ? `<span class="cal-badge cb-clinic" title="${count} appointment${count !== 1 ? 's' : ''}">${count}</span>` : ''}
                     </div>
+                    ${physicianHints ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">${physicianHints}</div>` : ''}
                 </div>
             `;
         }
 
+        html += '</div>'; // .cal-cells
         grid.innerHTML = html;
         updateStatsBar();
     }
@@ -819,6 +861,7 @@
         document.getElementById('cl-case').value = '';
         document.getElementById('cl-cause').value = '';
         document.getElementById('cl-note').value = '';
+        updateFormDataLists();
         document.getElementById('modal-add-clinic').classList.add('active');
         setTimeout(() => document.getElementById('cl-name').focus(), 100);
     }
@@ -842,6 +885,7 @@
         document.getElementById('cl-case').value = record.case || '';
         document.getElementById('cl-cause').value = record.causeOfAdmission || '';
         document.getElementById('cl-note').value = record.note || '';
+        updateFormDataLists();
         document.getElementById('modal-add-clinic').classList.add('active');
     }
 
