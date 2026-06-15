@@ -239,10 +239,85 @@
             border-bottom: 1px solid var(--border);
         }
 
+        /* ── Physician view panel ── */
+        .pv-back-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+        .pv-patient-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .pv-patient-table th {
+            background: var(--surface-subtle);
+            border: 1px solid var(--border);
+            padding: 10px 13px;
+            font-weight: 700;
+            font-size: 0.77rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .pv-patient-table td {
+            border: 1px solid var(--border);
+            padding: 10px 13px;
+            color: var(--text-main);
+            vertical-align: top;
+        }
+        .pv-patient-table tr:hover td {
+            background: var(--primary-light);
+        }
+        .pv-patient-table tr:nth-child(even) td {
+            background: color-mix(in srgb, var(--surface-subtle) 60%, var(--bg-card));
+        }
+        .pv-patient-table tr:nth-child(even):hover td {
+            background: var(--primary-light);
+        }
+        .pv-num-cell {
+            width: 42px;
+            text-align: center;
+            font-weight: 700;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+        .pv-name-cell { font-weight: 700; min-width: 160px; }
+        .pv-actions-cell { width: 76px; white-space: nowrap; }
+
+        /* Physician open icon button in sidebar */
+        .physician-open-btn {
+            background: none;
+            border: none;
+            color: #4b6280;
+            cursor: pointer;
+            padding: 4px 5px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            transition: var(--transition-fast);
+            flex-shrink: 0;
+        }
+        .physician-open-btn:hover {
+            background: rgba(139,92,246,0.15);
+            color: #a78bfa;
+        }
+        .physician-open-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+        /* Print container */
+        #clinic-print-container { display: none; }
+
         /* Print styles */
         @media print {
             .sidebar, .no-print { display: none !important; }
             .main-content { margin-left: 0 !important; padding: 20px !important; }
+            #clinic-print-container {
+                display: block !important;
+                width: 100%;
+            }
+            .main-content > *:not(#clinic-print-container) { display: none !important; }
         }
     </style>
 </head>
@@ -329,7 +404,76 @@
             <div id="clinic-workspace-body" class="clinic-list-grid"></div>
         </div>
 
+        <!-- ── PHYSICIAN VIEW PANEL ── -->
+        <div id="physician-view-panel" style="display:none;">
+
+            <!-- Header -->
+            <div class="app-header">
+                <div>
+                    <div class="pv-back-bar">
+                        <button class="btn btn-secondary btn-sm" onclick="closePhysicianView()">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:14px;height:14px;"><polyline points="15 18 9 12 15 6"/></svg>
+                            Calendar
+                        </button>
+                        <span style="color:var(--text-light);font-size:0.8rem;">/</span>
+                        <span style="font-size:0.82rem;color:var(--text-muted);font-weight:600;" id="pv-breadcrumb"></span>
+                    </div>
+                    <h2 id="pv-title" style="font-size:1.6rem;"></h2>
+                    <p id="pv-subtitle" style="color:var(--text-muted);font-size:0.88rem;margin-top:3px;"></p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="openPvPrintModal()">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                        <span>Print Report</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="openAddModal()">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M12 5v14M5 12h14"/></svg>
+                        <span>Add Appointment</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Patient List Panel -->
+            <div class="list-panel">
+                <div class="list-header-bar">
+                    <div class="list-title">
+                        <span id="pv-list-label">All Appointments</span>
+                        <span class="list-counter" id="pv-count">0</span>
+                    </div>
+                    <div class="list-actions">
+                        <div class="search-input-wrapper">
+                            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="pv-search" class="search-control" placeholder="Search patients..." oninput="renderPhysicianViewList()">
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="pv-patient-table" id="pv-patient-table">
+                        <thead>
+                            <tr>
+                                <th class="pv-num-cell">#</th>
+                                <th class="pv-name-cell">Patient Name</th>
+                                <th style="width:90px;">File #</th>
+                                <th style="width:55px;">Age</th>
+                                <th style="width:110px;">Date</th>
+                                <th>Case Summary</th>
+                                <th>Cause / Reason</th>
+                                <th>Notes</th>
+                                <th class="pv-actions-cell no-print">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pv-tbody">
+                            <!-- populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </main>
+
+    <!-- Hidden print container -->
+    <div id="clinic-print-container"></div>
 
     <!-- ───────────── ADD APPOINTMENT MODAL ───────────── -->
     <div class="modal-overlay no-print" id="modal-add-clinic">
@@ -412,6 +556,31 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
                 <button class="btn btn-danger" id="clinic-confirm-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ───────────── PREPARED BY MODAL (physician print) ───────────── -->
+    <div id="modal-pv-print" class="modal-overlay no-print">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3>Print Clinic Report</h3>
+                <button class="modal-close" onclick="closePvPrintModal()">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="pv-prepared-by">Prepared By (Coordinator Name)</label>
+                    <input id="pv-prepared-by" type="text" class="form-control" placeholder="Enter your name">
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn btn-secondary" onclick="closePvPrintModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitPhysicianPrint()">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:15px;height:15px;"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                    Print
+                </button>
             </div>
         </div>
     </div>
@@ -643,12 +812,18 @@
         physicians.forEach(physician => {
             const count = clinicList.filter(r => (r.primaryPhysician || '').trim() === physician).length;
             const isActive = selectedPhysician === physician;
+            const safeP = physician.replace(/\\/g,'\\\\').replace(/'/g, "\\'");
             html += `
-                <button class="physician-btn ${isActive ? 'active' : ''}" onclick="setPhysicianFilter('${physician.replace(/\\/g,'\\\\').replace(/'/g, "\\'")}')">
-                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:15px;height:15px;flex-shrink:0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escHtml(physician)}</span>
-                    <span class="physician-btn-count">${count}</span>
-                </button>
+                <div style="display:flex;align-items:center;gap:2px;">
+                    <button class="physician-btn ${isActive ? 'active' : ''}" style="flex:1;" onclick="setPhysicianFilter('${safeP}')">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:15px;height:15px;flex-shrink:0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escHtml(physician)}</span>
+                        <span class="physician-btn-count">${count}</span>
+                    </button>
+                    <button class="physician-open-btn" onclick="openPhysicianView('${safeP}')" title="Open physician page">
+                        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </button>
+                </div>
             `;
         });
 
@@ -845,11 +1020,212 @@
         if (statFilter) statFilter.textContent = selectedPhysician ? `Filtered: ${selectedPhysician}` : '';
     }
 
+    // ── Physician View ────────────────────────────────────────────────────────
+    let currentPhysicianView = null;
+
+    function openPhysicianView(physician) {
+        currentPhysicianView = physician;
+        selectedPhysician = physician;
+        document.getElementById('physician-view-panel').style.display = 'block';
+        document.querySelector('.card.cal-card').style.display = 'none';
+        const ws = document.getElementById('clinic-day-workspace');
+        if (ws) ws.style.display = 'none';
+        document.querySelector('.app-header').style.display = 'none';
+
+        // Update titles
+        document.getElementById('pv-breadcrumb').textContent = physician;
+        document.getElementById('pv-title').textContent = physician;
+        document.getElementById('pv-search').value = '';
+        renderPhysicianViewList();
+        renderPhysicianFilter();
+    }
+
+    function closePhysicianView() {
+        currentPhysicianView = null;
+        document.getElementById('physician-view-panel').style.display = 'none';
+        document.querySelector('.card.cal-card').style.display = '';
+        document.querySelector('.app-header').style.display = '';
+        renderAll();
+        // Re-open workspace if a date was selected
+        if (clinicSelectedDate) {
+            renderDayWorkspace();
+            document.getElementById('clinic-day-workspace').style.display = 'block';
+        }
+    }
+
+    function renderPhysicianViewList() {
+        const physician = currentPhysicianView;
+        if (!physician) return;
+
+        const query = (document.getElementById('pv-search')?.value || '').toLowerCase().trim();
+        let patients = clinicList
+            .filter(r => (r.primaryPhysician || '').trim() === physician)
+            .sort((a, b) => {
+                // Sort by date ascending, then by name
+                if (a.date && b.date) return a.date.localeCompare(b.date) || (a.name || '').localeCompare(b.name || '');
+                return (a.name || '').localeCompare(b.name || '');
+            });
+
+        if (query) {
+            patients = patients.filter(r =>
+                [r.name, r.fileNumber, r.case, r.causeOfAdmission, r.note, r.date]
+                    .map(v => (v || '').toLowerCase()).join(' ')
+                    .includes(query)
+            );
+        }
+
+        const total = clinicList.filter(r => (r.primaryPhysician || '').trim() === physician).length;
+        document.getElementById('pv-count').textContent = patients.length;
+        document.getElementById('pv-list-label').textContent = query ? 'Search Results' : 'All Appointments';
+        document.getElementById('pv-subtitle').textContent =
+            `${total} total appointment${total !== 1 ? 's' : ''} · Clinic Appointments`;
+
+        const tbody = document.getElementById('pv-tbody');
+        if (!tbody) return;
+
+        if (patients.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-light);">
+                ${query ? 'No results for "' + escHtml(query) + '"' : 'No appointments yet'}
+            </td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = patients.map((r, i) => `
+            <tr>
+                <td class="pv-num-cell">${i + 1}</td>
+                <td class="pv-name-cell">${escHtml(r.name || '—')}</td>
+                <td><code style="font-size:0.8rem;background:var(--surface-subtle);padding:2px 6px;border-radius:4px;">${escHtml(String(r.fileNumber || '—'))}</code></td>
+                <td style="text-align:center;">${r.age || '—'}</td>
+                <td style="white-space:nowrap;font-size:0.82rem;">${formatDate(r.date)}<br><span style="color:var(--text-muted);font-size:0.73rem;">${getDayName(r.date)}</span></td>
+                <td>${escHtml(r.case || '—')}</td>
+                <td>${escHtml(r.causeOfAdmission || '—')}</td>
+                <td style="font-style:italic;color:var(--text-muted);">${escHtml(r.note || '—')}</td>
+                <td class="pv-actions-cell no-print">
+                    <div style="display:flex;gap:4px;">
+                        <button class="btn btn-secondary btn-sm" onclick="openEditModal('${r.id}')" title="Edit" style="padding:4px 7px;">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:12px;height:12px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);padding:4px 7px;" onclick="confirmDelete('${r.id}','${escHtml(r.name||'').replace(/'/g,"\\'")}')">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:12px;height:12px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // ── Physician Print ───────────────────────────────────────────────────────
+    function openPvPrintModal() {
+        document.getElementById('pv-prepared-by').value = '';
+        document.getElementById('modal-pv-print').classList.add('active');
+        setTimeout(() => document.getElementById('pv-prepared-by').focus(), 100);
+    }
+    function closePvPrintModal() {
+        document.getElementById('modal-pv-print').classList.remove('active');
+    }
+
+    function submitPhysicianPrint() {
+        const preparedBy = document.getElementById('pv-prepared-by').value.trim() || 'MedSched Coordinator';
+        closePvPrintModal();
+        generatePhysicianPrint(currentPhysicianView, preparedBy);
+    }
+
+    function generatePhysicianPrint(physician, preparedBy) {
+        const patients = clinicList
+            .filter(r => (r.primaryPhysician || '').trim() === physician)
+            .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.name || '').localeCompare(b.name || ''));
+
+        const now = new Date();
+        const printDate = now.toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+
+        const rowsHtml = patients.map((r, i) => `
+            <tr>
+                <td style="text-align:center;font-weight:700;color:#475569;">${i + 1}</td>
+                <td style="font-weight:700;">${escHtml(r.name || '—')}</td>
+                <td><code style="background:#f1f5f9;padding:2px 5px;border-radius:3px;font-size:9pt;">${escHtml(String(r.fileNumber || '—'))}</code></td>
+                <td style="text-align:center;">${r.age || '—'}</td>
+                <td style="white-space:nowrap;">${formatDate(r.date)}<br><span style="color:#64748b;font-size:8pt;">${getDayName(r.date)}</span></td>
+                <td>${escHtml(r.case || '—')}</td>
+                <td>${escHtml(r.causeOfAdmission || '—')}</td>
+                <td style="color:#64748b;font-style:italic;">${escHtml(r.note || '—')}</td>
+            </tr>
+        `).join('');
+
+        const printHtml = `
+            <div style="font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#0f172a;">
+                <!-- Header -->
+                <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2.5px solid #0f172a;padding-bottom:12px;margin-bottom:20px;">
+                    <div style="flex:1;">
+                        <h2 style="font-size:15pt;font-weight:800;margin:0;color:#0f172a;text-transform:uppercase;letter-spacing:.5px;">Clinic Appointments List</h2>
+                        <p style="margin:4px 0 0;font-size:11pt;font-weight:700;color:#0d9488;">${escHtml(physician)}</p>
+                    </div>
+                    <div style="text-align:right;font-size:9.5pt;color:#1e293b;">
+                        <p style="margin:0;font-weight:700;font-size:10pt;">${printDate}</p>
+                        <p style="margin:3px 0 0;color:#475569;font-size:8.5pt;">Total: ${patients.length} patient${patients.length !== 1 ? 's' : ''}</p>
+                    </div>
+                </div>
+
+                <!-- Summary strip -->
+                <div style="display:flex;gap:30px;margin-bottom:18px;">
+                    <div>
+                        <div style="font-size:7.5pt;font-weight:700;text-transform:uppercase;color:#475569;letter-spacing:.06em;">Total Appointments</div>
+                        <div style="font-size:16pt;font-weight:800;color:#0f172a;">${patients.length}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:7.5pt;font-weight:700;text-transform:uppercase;color:#475569;letter-spacing:.06em;">Physician</div>
+                        <div style="font-size:13pt;font-weight:700;color:#0d9488;">${escHtml(physician)}</div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <table class="print-table" style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr>
+                            <th style="width:4%;text-align:center;">#</th>
+                            <th style="width:18%;">Patient Name</th>
+                            <th style="width:10%;">File #</th>
+                            <th style="width:5%;text-align:center;">Age</th>
+                            <th style="width:12%;">Date</th>
+                            <th style="width:20%;">Case Summary</th>
+                            <th style="width:18%;">Cause / Reason</th>
+                            <th style="width:13%;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+
+                <!-- Signature footer -->
+                <div style="margin-top:50px;display:flex;justify-content:flex-start;">
+                    <div style="width:220px;text-align:center;">
+                        <div style="font-size:11pt;font-weight:700;color:#0f172a;margin-bottom:2px;height:20px;line-height:20px;">
+                            ${escHtml(preparedBy)}
+                        </div>
+                        <div style="border-top:1px solid #000;margin-top:40px;margin-bottom:6px;"></div>
+                        <span style="font-size:9pt;font-weight:600;color:#475569;">Prepared By</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const container = document.getElementById('clinic-print-container');
+        container.innerHTML = printHtml;
+        document.body.classList.add('print-portrait-mode');
+        window.print();
+        setTimeout(() => {
+            document.body.classList.remove('print-portrait-mode');
+            container.innerHTML = '';
+        }, 1500);
+    }
+
     // ── Render All ────────────────────────────────────────────────────────────
     function renderAll() {
         renderPhysicianFilter();
         renderClinicCalendar();
         if (clinicSelectedDate) renderDayWorkspace();
+        if (currentPhysicianView) renderPhysicianViewList();
     }
 
     // ── CRUD ─────────────────────────────────────────────────────────────────
