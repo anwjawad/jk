@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinic Appointments — MedSched Panel</title>
+    <meta name="description" content="Clinic Appointment Calendar by Physician">
+    <meta name="theme-color" content="#0f766e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ── Clinic-specific overrides ── */
+
+        .physician-filter-section {
+            padding: 16px 12px 8px;
+            border-top: 1px solid rgba(148, 163, 184, 0.12);
+        }
+        .physician-filter-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #4b6280;
+            padding: 0 4px;
+            margin-bottom: 10px;
+        }
+        .physician-btn-list {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            max-height: calc(100vh - 340px);
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+        .physician-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 9px 14px;
+            border-radius: var(--border-radius-sm);
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+            position: relative;
+        }
+        .physician-btn:hover {
+            background: var(--secondary-hover);
+            color: #fff;
+        }
+        .physician-btn.active {
+            background: rgba(13, 148, 136, 0.15);
+            color: #ffffff;
+            padding-left: 18px;
+        }
+        .physician-btn.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 60%;
+            background: var(--primary);
+            border-radius: 0 3px 3px 0;
+        }
+        .physician-btn-count {
+            margin-left: auto;
+            background: rgba(148, 163, 184, 0.15);
+            color: #64748b;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 20px;
+            min-width: 22px;
+            text-align: center;
+        }
+        .physician-btn.active .physician-btn-count {
+            background: rgba(13, 148, 136, 0.25);
+            color: #2dd4bf;
+        }
+
+        /* Calendar cells for clinic */
+        .cal-badge.cb-clinic {
+            background: #8b5cf6;
+            color: #fff;
+        }
+
+        /* Day workspace patient cards */
+        .clinic-patient-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius-sm);
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: var(--transition-fast);
+            position: relative;
+        }
+        .clinic-patient-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary);
+        }
+        .clinic-patient-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .clinic-patient-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+        .clinic-patient-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .clinic-meta-chip {
+            background: var(--surface-subtle);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2px 9px;
+            font-size: 0.76rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        .clinic-physician-chip {
+            background: rgba(139, 92, 246, 0.1);
+            border-color: rgba(139, 92, 246, 0.3);
+            color: #8b5cf6;
+        }
+        .clinic-patient-note {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            border-left: 3px solid var(--border);
+            padding-left: 10px;
+            margin-top: 4px;
+            font-style: italic;
+        }
+        .clinic-card-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        /* Patient list in table view */
+        .clinic-list-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 4px 0;
+        }
+        .clinic-empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+        .clinic-empty-state svg {
+            width: 48px;
+            height: 48px;
+            stroke: var(--text-light);
+            fill: none;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        /* Stats bar */
+        .clinic-stats-bar {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .clinic-stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .clinic-stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            flex-shrink: 0;
+        }
+
+        /* Back link in sidebar */
+        .sidebar-back-link {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 10px 16px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            border-radius: var(--border-radius-sm);
+            margin: 0 12px 8px;
+            transition: var(--transition);
+        }
+        .sidebar-back-link:hover {
+            color: #94a3b8;
+            background: var(--secondary-hover);
+        }
+        .sidebar-back-link svg {
+            width: 15px;
+            height: 15px;
+            stroke: currentColor;
+            fill: none;
+            flex-shrink: 0;
+        }
+
+        /* Day workspace header */
+        .clinic-workspace-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Print styles */
+        @media print {
+            .sidebar, .no-print { display: none !important; }
+            .main-content { margin-left: 0 !important; padding: 20px !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar no-print">
+        <div class="sidebar-brand">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+            </svg>
+            <div>
+                <h1>Clinic Appointments</h1>
+                <span style="font-size: 0.75rem; color: #64748b;">AVH / LWF</span>
+            </div>
+        </div>
+
+        <a href="index.html" class="sidebar-back-link" title="Back to MedSched Panel">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to MedSched Panel
+        </a>
+
+        <!-- Physician Filter -->
+        <div class="physician-filter-section">
+            <div class="physician-filter-label">Filter by Physician</div>
+            <div class="physician-btn-list" id="physician-btn-list">
+                <!-- populated dynamically -->
+            </div>
+        </div>
+
+        <div class="sidebar-footer" style="margin-top: auto;">
+            <div id="sync-status-indicator" class="sync-status-pill" title="Google Sheets sync status">Offline</div>
+            <button class="theme-toggle-btn" onclick="toggleDarkMode()" title="Toggle Dark/Light Mode">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.46 5.05L5.75 4.343a1 1 0 10-1.414 1.414l.707.707zm1.414 8.486a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 011.414-1.414l.707.707zM6 11a1 1 0 100-2H5a1 1 0 100 2h1z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content no-print">
+
+        <!-- Header -->
+        <div class="app-header">
+            <div class="header-left">
+                <h2>Clinic Appointments Calendar</h2>
+                <div class="clinic-stats-bar" id="clinic-stats-bar">
+                    <span class="clinic-stat-item"><span class="clinic-stat-dot"></span><span id="stat-total">0 total appointments</span></span>
+                    <span id="stat-today" style="color: var(--primary); font-weight: 600;"></span>
+                    <span id="stat-physician-filter" style="color: #8b5cf6; font-weight: 600;"></span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="goToClinicToday()">Today</button>
+                <button class="btn btn-primary" onclick="openAddModal()">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M12 5v14M5 12h14"/></svg>
+                    <span>Add Appointment</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Calendar Card -->
+        <div class="card cal-card">
+            <div class="cal-nav">
+                <button class="btn btn-icon" onclick="navigateClinicCalendar(-1)">&#8249;</button>
+                <h3 id="clinic-cal-month-label"></h3>
+                <button class="btn btn-icon" onclick="navigateClinicCalendar(1)">&#8250;</button>
+            </div>
+            <div class="cal-weekdays">
+                <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
+                <span>Thu</span><span>Fri</span><span>Sat</span>
+            </div>
+            <div class="cal-grid" id="clinic-cal-grid"></div>
+        </div>
+
+        <!-- Day Workspace -->
+        <div id="clinic-day-workspace" class="card" style="display:none; margin-top:16px;">
+            <div class="clinic-workspace-header">
+                <div>
+                    <h3 id="clinic-workspace-date-label" style="font-size: 1.1rem; font-weight: 700;"></h3>
+                    <p id="clinic-workspace-sub" style="font-size: 0.83rem; color: var(--text-muted); margin-top: 3px;"></p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn btn-primary btn-sm" onclick="openAddModal()">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:14px;height:14px;"><path d="M12 5v14M5 12h14"/></svg>
+                        Add
+                    </button>
+                    <button class="btn btn-icon" onclick="closeDayWorkspace()" title="Close">✕</button>
+                </div>
+            </div>
+            <div id="clinic-workspace-body" class="clinic-list-grid"></div>
+        </div>
+
+    </main>
+
+    <!-- ───────────── ADD APPOINTMENT MODAL ───────────── -->
+    <div class="modal-overlay no-print" id="modal-add-clinic">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="add-modal-title">Add Clinic Appointment</h3>
+                <button class="modal-close" onclick="closeAddModal()">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="form-clinic" onsubmit="submitClinicForm(event)">
+                    <input type="hidden" id="clinic-edit-id" value="">
+
+                    <div class="form-group double">
+                        <div>
+                            <label class="form-label" for="cl-name">Patient Name *</label>
+                            <input type="text" id="cl-name" class="form-control" placeholder="Full Name" required>
+                        </div>
+                        <div>
+                            <label class="form-label" for="cl-file">File Number *</label>
+                            <input type="text" id="cl-file" class="form-control" placeholder="e.g. PAT123456" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group double">
+                        <div>
+                            <label class="form-label" for="cl-age">Age *</label>
+                            <input type="number" id="cl-age" class="form-control" min="0" max="150" placeholder="e.g. 45" required>
+                        </div>
+                        <div>
+                            <label class="form-label" for="cl-date">Appointment Date *</label>
+                            <input type="date" id="cl-date" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="cl-physician">Primary Physician *</label>
+                        <input type="text" id="cl-physician" class="form-control" placeholder="Dr. Name" required list="physician-datalist">
+                        <datalist id="physician-datalist"></datalist>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="cl-case">Case Summary *</label>
+                        <input type="text" id="cl-case" class="form-control" placeholder="e.g. Stage II Breast Cancer, follow-up" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="cl-cause">Cause of Admission / Reason for Visit</label>
+                        <input type="text" id="cl-cause" class="form-control" placeholder="e.g. Chemotherapy Cycle 4, routine follow-up">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="cl-note">Notes</label>
+                        <textarea id="cl-note" class="form-control" placeholder="Additional notes, special instructions..."></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="btn-submit-clinic">
+                            <span>Save Appointment</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ───────────── CONFIRM DELETE MODAL ───────────── -->
+    <div id="modal-confirm-clinic" class="modal-overlay no-print">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3>Confirm Delete</h3>
+            </div>
+            <div class="modal-body">
+                <p id="clinic-confirm-body"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn btn-danger" id="clinic-confirm-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container" class="toast-container no-print" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- ───────────── CONFIG ───────────── -->
+    <script>
+        window.MEDSCHED_CONFIG = {
+            gasUrl: 'https://script.google.com/macros/s/AKfycbxa2J7jW-uvf7YWvBF5LNmQVivW1w27ZhHHH4iIfo8Wuc9LUacZEw9zQxuPKyPeJsvU/exec',
+            apiKey: 'medsched-2026-key-abc123'
+        };
+    </script>
+
+    <!-- ───────────── CLINIC APP LOGIC ───────────── -->
+    <script>
+    // ── State ──────────────────────────────────────────────────────────────────
+    let clinicList = [];
+    let clinicCalYear  = new Date().getFullYear();
+    let clinicCalMonth = new Date().getMonth();
+    let clinicSelectedDate = null;
+    let selectedPhysician = null; // null = All
+    let _pendingQueue = [];
+    let _isSyncing = false;
+
+    const GAS_URL  = window.MEDSCHED_CONFIG?.gasUrl || '';
+    const API_KEY  = window.MEDSCHED_CONFIG?.apiKey || '';
+    const STORE_KEY   = 'medsched_clinic';
+    const PENDING_KEY = 'medsched_clinic_pending';
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    // ── Toast ──────────────────────────────────────────────────────────────────
+    function showToast(message, type = 'info', duration = 3200) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('removing');
+            toast.addEventListener('animationend', () => toast.remove(), { once: true });
+        }, duration);
+    }
+
+    // ── Dark Mode ─────────────────────────────────────────────────────────────
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        localStorage.setItem('medsched_dark_mode', document.body.classList.contains('dark-mode'));
+    }
+
+    // ── Sync Status Indicator ─────────────────────────────────────────────────
+    let _lastToastStatus = null;
+    function showSyncStatus(status) {
+        const el = document.getElementById('sync-status-indicator');
+        if (!el) return;
+        const map = { loading: 'Loading...', syncing: 'Syncing...', synced: 'Synced', pending: `Pending (${_pendingQueue.length})`, offline: 'Offline' };
+        el.textContent = map[status] || 'Offline';
+        el.dataset.status = status;
+        if (status !== _lastToastStatus) {
+            if (status === 'syncing') showToast('Syncing with Google Sheets...', 'info', 2000);
+            if (status === 'synced')  showToast('Google Sheets is up to date.', 'success', 2400);
+            if (status === 'pending') showToast(`${_pendingQueue.length} change(s) queued for retry.`, 'warning', 3600);
+            _lastToastStatus = status;
+        }
+        if (status === 'synced') setTimeout(() => { el.textContent = 'Offline'; el.dataset.status = 'offline'; _lastToastStatus = null; }, 3000);
+    }
+
+    // ── Storage ───────────────────────────────────────────────────────────────
+    function saveToStorage() {
+        localStorage.setItem(STORE_KEY, JSON.stringify(clinicList));
+    }
+
+    function loadFromStorage() {
+        const raw = localStorage.getItem(STORE_KEY);
+        if (raw) { try { clinicList = JSON.parse(raw); } catch(e) { clinicList = []; } }
+        const pending = localStorage.getItem(PENDING_KEY);
+        if (pending) { try { _pendingQueue = JSON.parse(pending); } catch(e) { _pendingQueue = []; } }
+        if (localStorage.getItem('medsched_dark_mode') === 'true') document.body.classList.add('dark-mode');
+    }
+
+    // ── API ───────────────────────────────────────────────────────────────────
+    async function apiPost(action, payload) {
+        const body = JSON.stringify({ action, key: API_KEY, ...payload });
+        const resp = await fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            redirect: 'follow',
+            body: new Blob([body], { type: 'text/plain;charset=utf-8' })
+        });
+        if (resp.type === 'opaque') return { status: 'ok' };
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json();
+    }
+
+    function syncAfterChange(action, payload) {
+        saveToStorage();
+        (async () => {
+            showSyncStatus('syncing');
+            try {
+                await apiPost(action, { type: 'clinic', ...payload });
+                showSyncStatus('synced');
+            } catch (e) {
+                _pendingQueue.push({ action, payload, ts: Date.now() });
+                localStorage.setItem(PENDING_KEY, JSON.stringify(_pendingQueue));
+                showSyncStatus('pending');
+                console.warn('[Clinic Sync] Queued:', action, e.message);
+            }
+        })();
+    }
+
+    async function flushPendingQueue() {
+        if (_isSyncing || _pendingQueue.length === 0) return;
+        _isSyncing = true;
+        const queue = [..._pendingQueue];
+        const failed = [];
+        for (const item of queue) {
+            try { await apiPost(item.action, { type: 'clinic', ...item.payload }); }
+            catch (e) { failed.push(item); }
+        }
+        _pendingQueue = failed;
+        localStorage.setItem(PENDING_KEY, JSON.stringify(_pendingQueue));
+        _isSyncing = false;
+    }
+
+    async function initSync() {
+        showSyncStatus(_pendingQueue.length > 0 ? 'pending' : 'loading');
+        try {
+            const url = `${GAS_URL}?action=getAll&key=${encodeURIComponent(API_KEY)}`;
+            const resp = await fetch(url, { redirect: 'follow' });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            if (data.status === 'ok' && Array.isArray(data.clinic)) {
+                clinicList = data.clinic.map(normalizeRecord).filter(isValidRecord);
+                saveToStorage();
+                renderAll();
+            }
+            showSyncStatus('synced');
+            await flushPendingQueue();
+        } catch (e) {
+            console.warn('[Clinic Sync] Using local cache:', e.message);
+            showSyncStatus(_pendingQueue.length > 0 ? 'pending' : 'offline');
+        }
+    }
+
+    // ── Data Helpers ──────────────────────────────────────────────────────────
+    function genId() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+
+    function normalizeRecord(r) {
+        if (!r || typeof r !== 'object') return r;
+        const out = { ...r };
+        if (out.id !== undefined) out.id = String(out.id);
+        if (out.fileNumber !== undefined) out.fileNumber = String(out.fileNumber);
+        if (out.age !== undefined) out.age = Number(out.age) || 0;
+        return out;
+    }
+
+    function isValidRecord(r) {
+        return r && (String(r.id || '').trim() || String(r.name || '').trim() || String(r.fileNumber || '').trim());
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr + 'T00:00:00');
+        if (isNaN(d)) return dateStr;
+        return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    }
+
+    function getDayName(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr + 'T00:00:00');
+        if (isNaN(d)) return '';
+        return d.toLocaleDateString('en-US', { weekday: 'long' });
+    }
+
+    function getUniquePhysicians() {
+        const set = new Set(clinicList.map(r => (r.primaryPhysician || '').trim()).filter(Boolean));
+        return [...set].sort((a, b) => a.localeCompare(b));
+    }
+
+    function getFilteredList() {
+        if (!selectedPhysician) return clinicList;
+        return clinicList.filter(r => (r.primaryPhysician || '').trim() === selectedPhysician);
+    }
+
+    // ── Physician Filter ──────────────────────────────────────────────────────
+    function renderPhysicianFilter() {
+        const container = document.getElementById('physician-btn-list');
+        if (!container) return;
+
+        const physicians = getUniquePhysicians();
+        const allCount = clinicList.length;
+
+        let html = `
+            <button class="physician-btn ${!selectedPhysician ? 'active' : ''}" onclick="setPhysicianFilter(null)">
+                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px;height:16px;flex-shrink:0;"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg>
+                <span>All Physicians</span>
+                <span class="physician-btn-count">${allCount}</span>
+            </button>
+        `;
+
+        physicians.forEach(physician => {
+            const count = clinicList.filter(r => (r.primaryPhysician || '').trim() === physician).length;
+            const isActive = selectedPhysician === physician;
+            html += `
+                <button class="physician-btn ${isActive ? 'active' : ''}" onclick="setPhysicianFilter('${physician.replace(/'/g, "\\'")}')">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:15px;height:15px;flex-shrink:0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${physician}</span>
+                    <span class="physician-btn-count">${count}</span>
+                </button>
+            `;
+        });
+
+        if (physicians.length === 0) {
+            html += `<p style="font-size:0.78rem;color:#4b6280;padding:8px 14px;">No physicians yet</p>`;
+        }
+
+        container.innerHTML = html;
+
+        // Update physician datalist for the form
+        const datalist = document.getElementById('physician-datalist');
+        if (datalist) {
+            datalist.innerHTML = physicians.map(p => `<option value="${p}">`).join('');
+        }
+    }
+
+    function setPhysicianFilter(physician) {
+        selectedPhysician = physician;
+        renderAll();
+    }
+
+    // ── Calendar ──────────────────────────────────────────────────────────────
+    function renderClinicCalendar() {
+        const grid = document.getElementById('clinic-cal-grid');
+        const label = document.getElementById('clinic-cal-month-label');
+        if (!grid) return;
+
+        label.textContent = `${MONTHS[clinicCalMonth]} ${clinicCalYear}`;
+
+        const filtered = getFilteredList();
+        const firstDay = new Date(clinicCalYear, clinicCalMonth, 1).getDay();
+        const daysInMonth = new Date(clinicCalYear, clinicCalMonth + 1, 0).getDate();
+        const today = new Date().toISOString().split('T')[0];
+
+        let html = '';
+
+        for (let i = 0; i < firstDay; i++) {
+            html += '<div class="cal-cell cal-empty"></div>';
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${clinicCalYear}-${String(clinicCalMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const count = filtered.filter(r => r.date === dateStr).length;
+            const isToday    = today === dateStr;
+            const isSelected = clinicSelectedDate === dateStr;
+            const isSat      = new Date(clinicCalYear, clinicCalMonth, day).getDay() === 6;
+
+            html += `
+                <div class="cal-cell ${isToday ? 'cal-today' : ''} ${isSelected ? 'cal-selected' : ''} ${isSat ? 'cal-saturday' : ''}" onclick="selectClinicDate('${dateStr}')">
+                    <div class="cal-day-num">${day}</div>
+                    <div class="cal-badges">
+                        ${count > 0 ? `<span class="cal-badge cb-clinic" title="${count} appointment${count !== 1 ? 's' : ''}">${count}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        grid.innerHTML = html;
+        updateStatsBar();
+    }
+
+    function navigateClinicCalendar(dir) {
+        clinicCalMonth += dir;
+        if (clinicCalMonth > 11) { clinicCalMonth = 0; clinicCalYear++; }
+        else if (clinicCalMonth < 0) { clinicCalMonth = 11; clinicCalYear--; }
+        renderClinicCalendar();
+    }
+
+    function goToClinicToday() {
+        const today = new Date();
+        clinicCalYear  = today.getFullYear();
+        clinicCalMonth = today.getMonth();
+        clinicSelectedDate = today.toISOString().split('T')[0];
+        renderClinicCalendar();
+        renderDayWorkspace();
+        document.getElementById('clinic-day-workspace').style.display = 'block';
+    }
+
+    function selectClinicDate(dateStr) {
+        clinicSelectedDate = dateStr;
+        renderClinicCalendar();
+        renderDayWorkspace();
+        document.getElementById('clinic-day-workspace').style.display = 'block';
+        // Smooth scroll to workspace
+        setTimeout(() => document.getElementById('clinic-day-workspace').scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    }
+
+    function closeDayWorkspace() {
+        document.getElementById('clinic-day-workspace').style.display = 'none';
+        clinicSelectedDate = null;
+        renderClinicCalendar();
+    }
+
+    // ── Day Workspace ─────────────────────────────────────────────────────────
+    function renderDayWorkspace() {
+        if (!clinicSelectedDate) return;
+        const dateLabel   = document.getElementById('clinic-workspace-date-label');
+        const subLabel    = document.getElementById('clinic-workspace-sub');
+        const body        = document.getElementById('clinic-workspace-body');
+
+        const dayName = getDayName(clinicSelectedDate);
+        dateLabel.textContent = `${dayName} — ${formatDate(clinicSelectedDate)}`;
+
+        const dayAppointments = getFilteredList().filter(r => r.date === clinicSelectedDate);
+        const physicianNote = selectedPhysician ? `Showing: Dr. ${selectedPhysician}` : 'All Physicians';
+        subLabel.textContent = `${dayAppointments.length} appointment${dayAppointments.length !== 1 ? 's' : ''} · ${physicianNote}`;
+
+        if (dayAppointments.length === 0) {
+            body.innerHTML = `
+                <div class="clinic-empty-state">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>
+                    <p style="font-size: 0.9rem; margin-bottom: 8px;">No appointments on this day</p>
+                    <button class="btn btn-primary btn-sm" onclick="openAddModal()">Add Appointment</button>
+                </div>
+            `;
+            return;
+        }
+
+        // Sort by name
+        const sorted = [...dayAppointments].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+        body.innerHTML = sorted.map(r => `
+            <div class="clinic-patient-card">
+                <div class="clinic-patient-card-header">
+                    <div>
+                        <div class="clinic-patient-name">${escHtml(r.name || 'Unnamed')}</div>
+                        <div class="clinic-patient-meta">
+                            <span class="clinic-meta-chip">File: ${escHtml(String(r.fileNumber || '—'))}</span>
+                            <span class="clinic-meta-chip">Age: ${r.age || '—'}</span>
+                            <span class="clinic-meta-chip clinic-physician-chip">
+                                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:10px;height:10px;display:inline;vertical-align:middle;margin-right:2px;"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                                ${escHtml(r.primaryPhysician || '—')}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="clinic-card-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="openEditModal('${r.id}')" title="Edit">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:13px;height:13px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button class="btn btn-sm" style="color: var(--danger); border-color: var(--danger);" onclick="confirmDelete('${r.id}', '${escHtml(r.name || '').replace(/'/g,"\\'")}')">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:13px;height:13px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                        </button>
+                    </div>
+                </div>
+                ${r.case ? `<div style="font-size:0.84rem; color:var(--text-main); margin-top:2px;"><strong style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Case</strong><br>${escHtml(r.case)}</div>` : ''}
+                ${r.causeOfAdmission ? `<div style="font-size:0.82rem; color:var(--text-muted);"><strong style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;">Reason</strong><br>${escHtml(r.causeOfAdmission)}</div>` : ''}
+                ${r.note ? `<div class="clinic-patient-note">${escHtml(r.note)}</div>` : ''}
+            </div>
+        `).join('');
+    }
+
+    // ── Stats Bar ─────────────────────────────────────────────────────────────
+    function updateStatsBar() {
+        const today = new Date().toISOString().split('T')[0];
+        const filtered = getFilteredList();
+        const todayCount = filtered.filter(r => r.date === today).length;
+
+        const statTotal = document.getElementById('stat-total');
+        const statToday = document.getElementById('stat-today');
+        const statFilter = document.getElementById('stat-physician-filter');
+
+        if (statTotal) statTotal.textContent = `${clinicList.length} total appointments`;
+        if (statToday) statToday.textContent = todayCount > 0 ? `${todayCount} today` : '';
+        if (statFilter) statFilter.textContent = selectedPhysician ? `Filtered: ${selectedPhysician}` : '';
+    }
+
+    // ── Render All ────────────────────────────────────────────────────────────
+    function renderAll() {
+        renderPhysicianFilter();
+        renderClinicCalendar();
+        if (clinicSelectedDate) renderDayWorkspace();
+    }
+
+    // ── CRUD ─────────────────────────────────────────────────────────────────
+    function openAddModal() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('add-modal-title').textContent = 'Add Clinic Appointment';
+        document.getElementById('btn-submit-clinic').querySelector('span').textContent = 'Save Appointment';
+        document.getElementById('clinic-edit-id').value = '';
+        document.getElementById('cl-name').value = '';
+        document.getElementById('cl-file').value = '';
+        document.getElementById('cl-age').value = '';
+        document.getElementById('cl-date').value = clinicSelectedDate || today;
+        document.getElementById('cl-physician').value = selectedPhysician || '';
+        document.getElementById('cl-case').value = '';
+        document.getElementById('cl-cause').value = '';
+        document.getElementById('cl-note').value = '';
+        document.getElementById('modal-add-clinic').classList.add('active');
+        setTimeout(() => document.getElementById('cl-name').focus(), 100);
+    }
+
+    function closeAddModal() {
+        document.getElementById('modal-add-clinic').classList.remove('active');
+        document.getElementById('form-clinic').reset();
+    }
+
+    function openEditModal(id) {
+        const record = clinicList.find(r => String(r.id) === String(id));
+        if (!record) return;
+        document.getElementById('add-modal-title').textContent = 'Edit Appointment';
+        document.getElementById('btn-submit-clinic').querySelector('span').textContent = 'Save Changes';
+        document.getElementById('clinic-edit-id').value = record.id;
+        document.getElementById('cl-name').value = record.name || '';
+        document.getElementById('cl-file').value = record.fileNumber || '';
+        document.getElementById('cl-age').value = record.age || '';
+        document.getElementById('cl-date').value = record.date || '';
+        document.getElementById('cl-physician').value = record.primaryPhysician || '';
+        document.getElementById('cl-case').value = record.case || '';
+        document.getElementById('cl-cause').value = record.causeOfAdmission || '';
+        document.getElementById('cl-note').value = record.note || '';
+        document.getElementById('modal-add-clinic').classList.add('active');
+    }
+
+    function submitClinicForm(event) {
+        event.preventDefault();
+        const editId = document.getElementById('clinic-edit-id').value;
+
+        const record = {
+            id:               editId || genId(),
+            name:             document.getElementById('cl-name').value.trim(),
+            fileNumber:       document.getElementById('cl-file').value.trim(),
+            age:              Number(document.getElementById('cl-age').value),
+            date:             document.getElementById('cl-date').value,
+            primaryPhysician: document.getElementById('cl-physician').value.trim(),
+            case:             document.getElementById('cl-case').value.trim(),
+            causeOfAdmission: document.getElementById('cl-cause').value.trim(),
+            note:             document.getElementById('cl-note').value.trim(),
+        };
+
+        if (editId) {
+            const idx = clinicList.findIndex(r => String(r.id) === String(editId));
+            if (idx !== -1) clinicList[idx] = record;
+            syncAfterChange('updateRecord', { record });
+            showToast('Appointment updated.', 'success');
+        } else {
+            clinicList.unshift(record);
+            syncAfterChange('createRecord', { record });
+            showToast('Appointment added.', 'success');
+        }
+
+        closeAddModal();
+        if (record.date !== clinicSelectedDate) {
+            clinicSelectedDate = record.date;
+            clinicCalYear  = Number(record.date.split('-')[0]);
+            clinicCalMonth = Number(record.date.split('-')[1]) - 1;
+        }
+        renderAll();
+        document.getElementById('clinic-day-workspace').style.display = 'block';
+        setTimeout(() => renderDayWorkspace(), 50);
+    }
+
+    function confirmDelete(id, name) {
+        const body = document.getElementById('clinic-confirm-body');
+        body.innerHTML = `Are you sure you want to delete <strong>${escHtml(name)}</strong>'s appointment? This cannot be undone.`;
+        const btn = document.getElementById('clinic-confirm-btn');
+        btn.onclick = () => { deleteAppointment(id); closeConfirmModal(); };
+        document.getElementById('modal-confirm-clinic').classList.add('active');
+    }
+
+    function closeConfirmModal() {
+        document.getElementById('modal-confirm-clinic').classList.remove('active');
+    }
+
+    function deleteAppointment(id) {
+        clinicList = clinicList.filter(r => String(r.id) !== String(id));
+        syncAfterChange('deleteRecord', { id });
+        showToast('Appointment deleted.', 'info');
+        renderAll();
+        if (clinicSelectedDate) renderDayWorkspace();
+    }
+
+    // ── Utilities ─────────────────────────────────────────────────────────────
+    function escHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // ── Boot ──────────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        loadFromStorage();
+        renderAll();
+        // Auto-open today's workspace
+        const today = new Date().toISOString().split('T')[0];
+        clinicSelectedDate = today;
+        if (clinicList.some(r => r.date === today)) {
+            renderDayWorkspace();
+            document.getElementById('clinic-day-workspace').style.display = 'block';
+        }
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', e => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+        // Init Google Sheets sync
+        if (GAS_URL && GAS_URL !== 'PASTE_WEB_APP_URL_HERE') {
+            initSync();
+        } else {
+            showSyncStatus('offline');
+        }
+    });
+    </script>
+</body>
+</html>

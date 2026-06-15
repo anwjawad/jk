@@ -20,6 +20,7 @@ const SHEET_NAMES = {
   admissions: 'Admissions',
   followup: 'FollowUp',
   tumorboard: 'TumorBoard',
+  clinic: 'ClinicAppointments',
   audit_log: 'AuditLog',
   settings: 'Settings'
 };
@@ -43,6 +44,11 @@ const COLUMN_MAP = {
   tumorboard: {
     id: 0, name: 1, fileNumber: 2, age: 3, physician: 4, diagnosis: 5, notes: 6,
     tasks: 7, createdAt: 8, updatedAt: 9, deletedAt: 10, version: 11, preparedBy: 12
+  },
+  clinic: {
+    id: 0, name: 1, fileNumber: 2, age: 3, date: 4, primaryPhysician: 5,
+    case: 6, causeOfAdmission: 7, note: 8,
+    createdAt: 9, updatedAt: 10, deletedAt: 11, version: 12
   }
 };
 
@@ -510,7 +516,8 @@ function getAllData() {
     portcath: getSheetData('portcath'),
     admissions: getSheetData('admissions'),
     followup: getSheetData('followup'),
-    tumorboard: getSheetData('tumorboard')
+    tumorboard: getSheetData('tumorboard'),
+    clinic: getSheetData('clinic')
   };
 }
 
@@ -597,6 +604,13 @@ function initializeSpreadsheet() {
   createSheetWithHeaders('TumorBoard', [
     'id', 'name', 'fileNumber', 'age', 'physician', 'diagnosis', 'notes',
     'tasks', 'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'
+  ]);
+
+  // Create ClinicAppointments sheet
+  createSheetWithHeaders('ClinicAppointments', [
+    'id', 'name', 'fileNumber', 'age', 'date', 'primaryPhysician',
+    'case', 'causeOfAdmission', 'note',
+    'createdAt', 'updatedAt', 'deletedAt', 'version'
   ]);
 
   // Create AuditLog sheet
