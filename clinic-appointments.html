@@ -550,6 +550,11 @@
                 clinicList = data.clinic.map(normalizeRecord).filter(isValidRecord);
                 saveToStorage();
                 renderAll();
+                // Re-render workspace after fresh data arrives
+                if (clinicSelectedDate) {
+                    renderDayWorkspace();
+                    document.getElementById('clinic-day-workspace').style.display = 'block';
+                }
             }
             showSyncStatus('synced');
             await flushPendingQueue();
@@ -961,22 +966,47 @@
     // ── Boot ──────────────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
         loadFromStorage();
-        renderAll();
-        // Auto-open today's workspace
+
         const today = new Date().toISOString().split('T')[0];
-        clinicSelectedDate = today;
-        if (clinicList.some(r => r.date === today)) {
-            renderDayWorkspace();
-            document.getElementById('clinic-day-workspace').style.display = 'block';
+
+        // Pick the best date to open the workspace on load:
+        // 1. Today if it has appointments
+        // 2. The nearest upcoming appointment date
+        // 3. The most recent past appointment date
+        // 4. Today (empty state)
+        function pickInitialDate() {
+            if (clinicList.length === 0) return today;
+            const dates = clinicList
+                .map(r => r.date)
+                .filter(d => d && /^\d{4}-\d{2}-\d{2}$/.test(d));
+            if (dates.includes(today)) return today;
+            const future = dates.filter(d => d > today).sort();
+            if (future.length > 0) return future[0]; // nearest upcoming
+            const past = dates.filter(d => d < today).sort().reverse();
+            if (past.length > 0) return past[0]; // most recent past
+            return today;
         }
+
+        clinicSelectedDate = pickInitialDate();
+
+        // Navigate calendar to the month of the selected date
+        const [y, m] = clinicSelectedDate.split('-').map(Number);
+        clinicCalYear  = y;
+        clinicCalMonth = m - 1;
+
+        renderAll();
+
+        // Always show the workspace so patients are visible on load
+        renderDayWorkspace();
+        document.getElementById('clinic-day-workspace').style.display = 'block';
+
         // Close modals on overlay click
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
             overlay.addEventListener('click', e => {
-                if (e.target === overlay) {
-                    overlay.classList.remove('active');
-                }
+                if (e.target === overlay) overlay.classList.remove('active');
             });
         });
+
         // Init Google Sheets sync
         if (GAS_URL && GAS_URL !== 'PASTE_WEB_APP_URL_HERE') {
             initSync();
