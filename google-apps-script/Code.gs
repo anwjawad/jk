@@ -469,10 +469,10 @@ function writeAuditLogHandler(payload) {
 
 /**
  * Write or update a setting
- * Payload: { key, value }
+ * Payload: { key, value } or { settingKey, value }
  */
 function writeSettingHandler(payload) {
-  const key = payload.key;
+  const key = payload.settingKey || payload.key;
   const value = payload.value;
 
   if (!key) {

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#14b8a6"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+    <clipPath id="rounded">
+      <rect width="512" height="512" rx="112" ry="112"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Dot grid decoration -->
+  <g opacity="0.14" fill="white">
+    <circle cx="153" cy="307" r="6"/><circle cx="204" cy="307" r="6"/><circle cx="255" cy="307" r="6"/>
+    <circle cx="306" cy="307" r="6"/><circle cx="357" cy="307" r="6"/>
+    <circle cx="153" cy="358" r="6"/><circle cx="204" cy="358" r="6"/><circle cx="255" cy="358" r="6"/>
+    <circle cx="306" cy="358" r="6"/><circle cx="357" cy="358" r="6"/>
+    <circle cx="153" cy="409" r="6"/><circle cx="204" cy="409" r="6"/><circle cx="255" cy="409" r="6"/>
+    <circle cx="306" cy="409" r="6"/><circle cx="357" cy="409" r="6"/>
+  </g>
+
+  <!-- Calendar header bar -->
+  <rect x="66" y="66" width="380" height="100" rx="20" fill="white" opacity="0.15"/>
+
+  <!-- Calendar pin knobs -->
+  <circle cx="179" cy="66" r="22" fill="white" opacity="0.85"/>
+  <circle cx="333" cy="66" r="22" fill="white" opacity="0.85"/>
+
+  <!-- Calendar cell grid (4x2) -->
+  <rect x="66"  y="192" width="78" height="66" rx="12" fill="white" opacity="0.18"/>
+  <rect x="158" y="192" width="78" height="66" rx="12" fill="white" opacity="0.30"/>
+  <rect x="250" y="192" width="78" height="66" rx="12" fill="white" opacity="0.18"/>
+  <rect x="342" y="192" width="78" height="66" rx="12" fill="white" opacity="0.18"/>
+  <rect x="66"  y="274" width="78" height="66" rx="12" fill="white" opacity="0.12"/>
+  <rect x="158" y="274" width="78" height="66" rx="12" fill="white" opacity="0.12"/>
+  <rect x="250" y="274" width="78" height="66" rx="12" fill="white" opacity="0.12"/>
+  <rect x="342" y="274" width="78" height="66" rx="12" fill="white" opacity="0.12"/>
+
+  <!-- Medical Cross (centered, white) -->
+  <!-- Vertical arm -->
+  <rect x="228" y="344" width="56" height="160" rx="18" fill="white" opacity="0.97"/>
+  <!-- Horizontal arm -->
+  <rect x="148" y="424" width="216" height="56" rx="18" fill="white" opacity="0.97"/>
+</svg>

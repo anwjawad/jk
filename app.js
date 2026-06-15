@@ -1890,7 +1890,22 @@ function printDayAllModules(dateStr, preparedBy, action) {
     const dateFormatted = formatDateDisplay(dateStr);
 
     const printContainer = document.getElementById('print-container');
-    let html = `<div class="print-portrait-report"><h2>${dayName} — ${dateFormatted}</h2>`;
+    let html = `
+        <div class="print-portrait-report">
+            <div class="print-report-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:20px;">
+                <div style="flex:1;display:flex;justify-content:flex-start;">
+                    <img src="${LOGO_BASE64}" alt="Augusta Victoria Hospital Logo" style="height:55px;object-fit:contain;">
+                </div>
+                <div style="flex:2;text-align:center;">
+                    <h2 style="font-size:18pt;font-weight:800;color:#0f172a;margin:0;text-transform:uppercase;letter-spacing:0.5px;">Daily Clinical Schedule</h2>
+                    <p style="margin:4px 0 0;color:#0d9488;font-size:10pt;font-weight:700;text-transform:uppercase;">All Modules</p>
+                </div>
+                <div style="flex:1;text-align:right;font-size:10.5pt;color:#1e293b;font-weight:600;">
+                    <p style="margin:0;font-size:12pt;color:#0f172a;font-weight:700;">${dateFormatted}</p>
+                    <p style="margin:2px 0 0;color:#475569;font-size:10pt;text-transform:uppercase;">${dayName}</p>
+                </div>
+            </div>
+    `;
 
     const types = ['portcath', 'admissions', 'followup', 'tumorboard'];
     types.forEach(type => {

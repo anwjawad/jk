@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clinic Appointments — MedSched Panel</title>
     <meta name="description" content="Clinic Appointment Calendar by Physician">
-    <meta name="theme-color" content="#0f766e">
+    <meta name="theme-color" content="#0d9488">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MedSched">
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
     <link rel="stylesheet" href="style.css">
     <style>
         /* ── Clinic-specific overrides ── */
@@ -52,6 +55,14 @@
             text-align: left;
             position: relative;
         }
+        .physician-color-dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 999px;
+            background: var(--physician-color, var(--primary));
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--physician-color, var(--primary)) 18%, transparent);
+            flex-shrink: 0;
+        }
         .physician-btn:hover {
             background: var(--secondary-hover);
             color: #fff;
@@ -69,7 +80,7 @@
             transform: translateY(-50%);
             width: 3px;
             height: 60%;
-            background: var(--primary);
+            background: var(--physician-color, var(--primary));
             border-radius: 0 3px 3px 0;
         }
         .physician-btn-count {
@@ -84,31 +95,189 @@
             text-align: center;
         }
         .physician-btn.active .physician-btn-count {
-            background: rgba(13, 148, 136, 0.25);
-            color: #2dd4bf;
+            background: color-mix(in srgb, var(--physician-color, var(--primary)) 24%, transparent);
+            color: color-mix(in srgb, var(--physician-color, var(--primary)) 82%, #ffffff);
+        }
+        .clinic-settings-btn {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            width: calc(100% - 24px);
+            margin: 10px 12px 4px;
+            padding: 10px 14px;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            background: rgba(255, 255, 255, 0.04);
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 700;
+            transition: var(--transition);
+            text-align: left;
+        }
+        .clinic-settings-btn:hover {
+            color: #ffffff;
+            background: rgba(13, 148, 136, 0.12);
+            border-color: rgba(45, 212, 191, 0.28);
+        }
+        .clinic-settings-btn svg {
+            width: 15px;
+            height: 15px;
+            stroke: currentColor;
+            fill: none;
+            flex-shrink: 0;
         }
 
         /* Calendar cells for clinic */
+        #clinic-cal-grid {
+            display: block;
+        }
+        #clinic-cal-grid .cal-cell {
+            position: relative;
+            overflow: hidden;
+        }
+        #clinic-cal-grid .cal-badges {
+            margin-top: auto;
+            min-height: 24px;
+            align-items: flex-end;
+        }
         .cal-badge.cb-clinic {
-            background: #8b5cf6;
+            background: var(--primary);
             color: #fff;
+            min-width: 28px;
+            min-height: 22px;
+            padding: 3px 9px;
+            font-size: 0.76rem;
+            box-shadow: 0 7px 14px rgba(13, 148, 136, 0.22);
+        }
+        .clinic-appt-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .clinic-appt-count::after {
+            content: "patients";
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+        #clinic-cal-grid .cal-selected .clinic-appt-count::after {
+            color: rgba(255, 255, 255, 0.88);
+        }
+        .clinic-physician-strip {
+            display: flex;
+            width: 100%;
+            height: 7px;
+            margin-top: 7px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: color-mix(in srgb, var(--border) 70%, transparent);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+        }
+        .clinic-physician-strip-segment {
+            min-width: 7px;
+            background: var(--physician-color, var(--primary));
+        }
+        .clinic-physician-mini-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-top: 5px;
+        }
+        .clinic-physician-mini-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: var(--physician-color, var(--primary));
         }
 
         /* Day workspace patient cards */
+        .clinic-day-board {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .clinic-day-summary {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .clinic-day-summary-card {
+            border: 1px solid var(--border);
+            background: var(--surface-subtle);
+            border-radius: var(--border-radius-sm);
+            padding: 12px 13px;
+            min-width: 0;
+        }
+        .clinic-day-summary-card .label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .clinic-day-summary-card .value {
+            color: var(--text-main);
+            font-size: 1.15rem;
+            font-weight: 900;
+            line-height: 1.1;
+        }
+        .clinic-day-summary-card .hint {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.74rem;
+            margin-top: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .clinic-day-color-key {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            padding: 2px 0 4px;
+        }
+        .clinic-day-key-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            max-width: 100%;
+            border: 1px solid color-mix(in srgb, var(--physician-color, var(--primary)) 24%, var(--border));
+            background: color-mix(in srgb, var(--physician-color, var(--primary)) 8%, transparent);
+            border-radius: 999px;
+            padding: 5px 9px;
+            color: var(--text-main);
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+        .clinic-day-key-item .physician-color-dot {
+            width: 8px;
+            height: 8px;
+            box-shadow: none;
+        }
+        .clinic-day-list {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
         .clinic-patient-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--border-radius-sm);
-            padding: 14px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+            padding: 10px 11px 10px 12px;
+            display: grid;
+            grid-template-columns: minmax(180px, 1.2fr) minmax(110px, 0.7fr) minmax(220px, 1.6fr) auto;
+            gap: 12px;
+            align-items: center;
             transition: var(--transition-fast);
             position: relative;
+            border-left: 4px solid var(--physician-color, var(--primary));
         }
         .clinic-patient-card:hover {
             box-shadow: var(--shadow-md);
-            border-color: var(--primary);
+            border-color: color-mix(in srgb, var(--physician-color, var(--primary)) 45%, var(--border));
         }
         .clinic-patient-card-header {
             display: flex;
@@ -116,10 +285,16 @@
             justify-content: space-between;
             gap: 8px;
         }
+        .clinic-patient-primary {
+            min-width: 0;
+        }
         .clinic-patient-name {
             font-weight: 700;
             font-size: 0.95rem;
             color: var(--text-main);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .clinic-patient-meta {
             display: flex;
@@ -128,6 +303,35 @@
             font-size: 0.8rem;
             color: var(--text-muted);
             margin-top: 2px;
+        }
+        .clinic-patient-case {
+            min-width: 0;
+            color: var(--text-main);
+            font-size: 0.84rem;
+            line-height: 1.35;
+        }
+        .clinic-patient-case strong,
+        .clinic-patient-reason strong {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.64rem;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .clinic-patient-case span,
+        .clinic-patient-reason span {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .clinic-patient-reason {
+            min-width: 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            line-height: 1.35;
         }
         .clinic-meta-chip {
             background: var(--surface-subtle);
@@ -139,9 +343,9 @@
             color: var(--text-muted);
         }
         .clinic-physician-chip {
-            background: rgba(139, 92, 246, 0.1);
-            border-color: rgba(139, 92, 246, 0.3);
-            color: #8b5cf6;
+            background: color-mix(in srgb, var(--physician-color, var(--primary)) 12%, transparent);
+            border-color: color-mix(in srgb, var(--physician-color, var(--primary)) 32%, var(--border));
+            color: var(--physician-color, var(--primary));
         }
         .clinic-patient-note {
             font-size: 0.82rem;
@@ -156,6 +360,39 @@
             gap: 6px;
             margin-left: auto;
         }
+        .clinic-card-actions .btn {
+            padding: 6px 8px;
+        }
+        .clinic-physician-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .clinic-physician-group + .clinic-physician-group {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+        .clinic-physician-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: var(--border-radius-sm);
+            background: color-mix(in srgb, var(--physician-color, var(--primary)) 9%, transparent);
+            border: 1px solid color-mix(in srgb, var(--physician-color, var(--primary)) 22%, var(--border));
+            color: var(--text-main);
+        }
+        .clinic-physician-group-header strong {
+            color: var(--physician-color, var(--primary));
+            font-size: 0.9rem;
+        }
+        .clinic-physician-group-header span {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
 
         /* Patient list in table view */
         .clinic-list-grid {
@@ -163,6 +400,37 @@
             flex-direction: column;
             gap: 10px;
             padding: 4px 0;
+        }
+        @media (max-width: 1100px) {
+            .clinic-day-summary {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .clinic-patient-card {
+                grid-template-columns: minmax(180px, 1fr) minmax(190px, 1fr) auto;
+            }
+            .clinic-patient-reason {
+                grid-column: 1 / -2;
+            }
+        }
+        @media (max-width: 720px) {
+            .clinic-day-summary {
+                grid-template-columns: 1fr;
+            }
+            .clinic-patient-card {
+                grid-template-columns: 1fr;
+                gap: 8px;
+                align-items: stretch;
+            }
+            .clinic-patient-name {
+                white-space: normal;
+            }
+            .clinic-card-actions {
+                margin-left: 0;
+                justify-content: flex-end;
+            }
+            .clinic-patient-reason {
+                grid-column: auto;
+            }
         }
         .clinic-empty-state {
             text-align: center;
@@ -197,8 +465,49 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #8b5cf6;
+            background: var(--primary);
             flex-shrink: 0;
+        }
+        .physician-settings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .physician-settings-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
+            gap: 12px;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius-sm);
+            background: var(--surface-subtle);
+        }
+        .physician-settings-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+        .physician-settings-name span:last-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .physician-color-input {
+            width: 46px;
+            height: 34px;
+            padding: 2px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: var(--bg-card);
+            cursor: pointer;
+        }
+        .physician-color-reset {
+            padding: 7px 10px;
+            font-size: 0.76rem;
         }
 
         /* Back link in sidebar */
@@ -301,13 +610,265 @@
             flex-shrink: 0;
         }
         .physician-open-btn:hover {
-            background: rgba(139,92,246,0.15);
-            color: #a78bfa;
+            background: rgba(13,148,136,0.15);
+            color: #2dd4bf;
         }
         .physician-open-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
 
         /* Print container */
         #clinic-print-container { display: none; }
+
+        .clinic-mobile-topbar,
+        .clinic-sidebar-overlay,
+        .clinic-bottom-nav,
+        .sidebar-mobile-close {
+            display: none;
+        }
+        .clinic-mobile-menu-btn:focus-visible,
+        .clinic-bottom-nav button:focus-visible,
+        .clinic-settings-btn:focus-visible,
+        .physician-btn:focus-visible,
+        .physician-open-btn:focus-visible,
+        .physician-color-input:focus-visible {
+            outline: 3px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                display: block;
+                padding-bottom: 76px;
+            }
+            .clinic-mobile-topbar {
+                position: sticky;
+                top: 0;
+                z-index: 120;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                padding: 10px 12px;
+                background: color-mix(in srgb, var(--bg-card) 92%, transparent);
+                border-bottom: 1px solid var(--border);
+                backdrop-filter: blur(14px);
+            }
+            .clinic-mobile-brand {
+                min-width: 0;
+            }
+            .clinic-mobile-brand strong {
+                display: block;
+                color: var(--text-main);
+                font-size: 0.92rem;
+                font-weight: 900;
+                line-height: 1.1;
+            }
+            .clinic-mobile-brand span {
+                display: block;
+                color: var(--text-muted);
+                font-size: 0.72rem;
+                font-weight: 700;
+                margin-top: 2px;
+            }
+            .clinic-mobile-menu-btn {
+                width: 40px;
+                height: 40px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                background: var(--bg-card);
+                color: var(--text-main);
+            }
+            .clinic-mobile-menu-btn svg {
+                width: 19px;
+                height: 19px;
+                stroke: currentColor;
+                fill: none;
+            }
+            .clinic-sidebar-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 130;
+                background: rgba(15, 23, 42, 0.46);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s ease;
+                display: block;
+            }
+            body.clinic-sidebar-open .clinic-sidebar-overlay {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: min(84vw, 320px);
+                height: 100vh;
+                transform: translateX(-105%);
+                z-index: 140;
+                box-shadow: 20px 0 48px -28px rgba(0, 0, 0, 0.5);
+                transition: transform 0.24s ease;
+            }
+            body.clinic-sidebar-open .sidebar {
+                transform: translateX(0);
+            }
+            .sidebar-brand {
+                position: relative;
+                padding-right: 58px;
+            }
+            .sidebar-mobile-close {
+                position: absolute;
+                right: 14px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 36px;
+                height: 36px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid rgba(148, 163, 184, 0.18);
+                border-radius: 10px;
+                background: rgba(255, 255, 255, 0.05);
+                color: #94a3b8;
+            }
+            .sidebar-mobile-close svg {
+                width: 17px;
+                height: 17px;
+                stroke: currentColor;
+                fill: none;
+            }
+            .physician-btn-list {
+                max-height: calc(100vh - 330px);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 12px;
+            }
+            .app-header {
+                margin: 10px 0 12px;
+                padding: 14px;
+                border-radius: 12px;
+                align-items: stretch;
+            }
+            .app-header h2 {
+                font-size: 1.28rem;
+                line-height: 1.18;
+            }
+            .clinic-stats-bar {
+                gap: 9px;
+                font-size: 0.74rem;
+            }
+            .header-actions {
+                width: 100%;
+            }
+            .header-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .card.cal-card {
+                border-radius: 12px;
+                padding: 10px;
+                overflow: hidden;
+            }
+            #clinic-cal-grid .cal-header {
+                gap: 7px;
+                flex-wrap: wrap;
+            }
+            #clinic-cal-grid .cal-month-label {
+                font-size: 1rem;
+            }
+            #clinic-cal-grid .cal-weekdays {
+                gap: 4px;
+                font-size: 0.68rem;
+            }
+            #clinic-cal-grid .cal-cells {
+                gap: 4px;
+            }
+            #clinic-cal-grid .cal-cell {
+                min-height: 68px;
+                padding: 6px;
+                border-radius: 8px;
+            }
+            #clinic-cal-grid .cal-day-num {
+                font-size: 0.76rem;
+            }
+            .cal-badge.cb-clinic {
+                min-width: 22px;
+                min-height: 18px;
+                padding: 2px 6px;
+                font-size: 0.68rem;
+            }
+            .clinic-appt-count::after {
+                display: none;
+            }
+            .clinic-physician-strip {
+                height: 5px;
+                margin-top: 5px;
+            }
+            .clinic-physician-mini-legend {
+                display: none;
+            }
+            #clinic-day-workspace {
+                margin-top: 12px !important;
+            }
+            .clinic-workspace-header {
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .clinic-workspace-header > div:last-child {
+                width: 100%;
+                justify-content: space-between;
+                flex-wrap: wrap;
+            }
+            .clinic-workspace-header .btn-sm {
+                flex: 1 1 auto;
+                justify-content: center;
+            }
+            .clinic-bottom-nav {
+                position: fixed;
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+                z-index: 125;
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 6px;
+                padding: 7px;
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                background: color-mix(in srgb, var(--bg-card) 94%, transparent);
+                box-shadow: 0 18px 42px -24px rgba(15, 23, 42, 0.5);
+                backdrop-filter: blur(14px);
+            }
+            .clinic-bottom-nav button {
+                border: 0;
+                border-radius: 11px;
+                background: transparent;
+                color: var(--text-muted);
+                min-height: 48px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 3px;
+                font-size: 0.66rem;
+                font-weight: 800;
+            }
+            .clinic-bottom-nav button:active,
+            .clinic-bottom-nav button.is-primary,
+            .clinic-bottom-nav button.is-active {
+                background: var(--primary-light);
+                color: var(--primary);
+            }
+            .clinic-bottom-nav svg {
+                width: 17px;
+                height: 17px;
+                stroke: currentColor;
+                fill: none;
+            }
+        }
 
         /* Print styles */
         @media print {
@@ -323,6 +884,21 @@
 </head>
 <body>
 
+    <div class="clinic-mobile-topbar no-print">
+        <button class="clinic-mobile-menu-btn" onclick="toggleClinicSidebar(true)" aria-label="Open physician filters">
+            <svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+        </button>
+        <div class="clinic-mobile-brand">
+            <strong>Clinic Appointments</strong>
+            <span id="clinic-mobile-date-label">Daily workspace</span>
+        </div>
+        <button class="clinic-mobile-menu-btn" onclick="openAddModal()" aria-label="Add appointment">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+    </div>
+
+    <div class="clinic-sidebar-overlay no-print" onclick="toggleClinicSidebar(false)" aria-hidden="true"></div>
+
     <!-- Sidebar Navigation -->
     <aside class="sidebar no-print">
         <div class="sidebar-brand">
@@ -333,6 +909,9 @@
                 <h1>Clinic Appointments</h1>
                 <span style="font-size: 0.75rem; color: #64748b;">AVH / LWF</span>
             </div>
+            <button class="sidebar-mobile-close" onclick="toggleClinicSidebar(false)" aria-label="Close physician filters">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
         </div>
 
         <a href="index.html" class="sidebar-back-link" title="Back to MedSched Panel">
@@ -347,6 +926,11 @@
                 <!-- populated dynamically -->
             </div>
         </div>
+
+        <button class="clinic-settings-btn" onclick="openPhysicianSettingsModal()" title="Choose physician colors">
+            <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            Physician Colors
+        </button>
 
         <div class="sidebar-footer" style="margin-top: auto;">
             <div id="sync-status-indicator" class="sync-status-pill" title="Google Sheets sync status">Offline</div>
@@ -368,7 +952,7 @@
                 <div class="clinic-stats-bar" id="clinic-stats-bar">
                     <span class="clinic-stat-item"><span class="clinic-stat-dot"></span><span id="stat-total">0 total appointments</span></span>
                     <span id="stat-today" style="color: var(--primary); font-weight: 600;"></span>
-                    <span id="stat-physician-filter" style="color: #8b5cf6; font-weight: 600;"></span>
+                    <span id="stat-physician-filter" style="color: var(--primary); font-weight: 600;"></span>
                 </div>
             </div>
             <div class="header-actions">
@@ -394,11 +978,17 @@
                     <p id="clinic-workspace-sub" style="font-size: 0.83rem; color: var(--text-muted); margin-top: 3px;"></p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="openDailyPrintModal()" title="Print all appointments for this day">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:14px;height:14px;"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                        Print Day
+                    </button>
                     <button class="btn btn-primary btn-sm" onclick="openAddModal()">
                         <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:14px;height:14px;"><path d="M12 5v14M5 12h14"/></svg>
                         Add
                     </button>
-                    <button class="btn btn-icon" onclick="closeDayWorkspace()" title="Close">✕</button>
+                    <button class="btn btn-icon" onclick="closeDayWorkspace()" title="Close" aria-label="Close day workspace">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px;height:16px;stroke-width:2.5;" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
                 </div>
             </div>
             <div id="clinic-workspace-body" class="clinic-list-grid"></div>
@@ -472,6 +1062,25 @@
 
     </main>
 
+    <nav class="clinic-bottom-nav no-print" aria-label="Clinic mobile navigation">
+        <button type="button" data-mobile-nav="calendar" onclick="scrollToClinicCalendar()">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Calendar
+        </button>
+        <button type="button" class="is-active" data-mobile-nav="today" onclick="scrollToClinicTodayWorkspace()">
+            <svg viewBox="0 0 24 24"><path d="M8 7V3M16 7V3"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 11h18"/><path d="M8 15h.01M12 15h.01M16 15h.01"/></svg>
+            Today
+        </button>
+        <button type="button" data-mobile-nav="physicians" onclick="toggleClinicSidebar(true)">
+            <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Physicians
+        </button>
+        <button type="button" data-mobile-nav="add" onclick="openAddModal()">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Add
+        </button>
+    </nav>
+
     <!-- Hidden print container -->
     <div id="clinic-print-container"></div>
 
@@ -480,8 +1089,8 @@
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <h3 id="add-modal-title">Add Clinic Appointment</h3>
-                <button class="modal-close" onclick="closeAddModal()">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button class="modal-close" onclick="closeAddModal()" aria-label="Close appointment dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div class="modal-body">
@@ -565,8 +1174,8 @@
         <div class="modal-content" style="max-width: 420px;">
             <div class="modal-header">
                 <h3>Print Clinic Report</h3>
-                <button class="modal-close" onclick="closePvPrintModal()">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button class="modal-close" onclick="closePvPrintModal()" aria-label="Close print dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div class="modal-body">
@@ -581,6 +1190,28 @@
                     <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:15px;height:15px;"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
                     Print
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Physician Color Settings Modal -->
+    <div id="modal-physician-settings" class="modal-overlay no-print">
+        <div class="modal-content" style="max-width: 560px;">
+            <div class="modal-header">
+                <h3>Physician Color Settings</h3>
+                <button class="modal-close" onclick="closePhysicianSettingsModal()" aria-label="Close physician settings">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="margin:0 0 14px;color:var(--text-muted);font-size:0.86rem;line-height:1.55;">
+                    Pick stable colors for each physician. The calendar uses these colors to show the total patient count and daily physician mix at a glance.
+                </p>
+                <div id="physician-settings-list" class="physician-settings-list"></div>
+            </div>
+            <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn btn-secondary" onclick="closePhysicianSettingsModal()">Close</button>
+                <button class="btn btn-primary" onclick="savePhysicianSettings()">Save Colors</button>
             </div>
         </div>
     </div>
@@ -606,11 +1237,20 @@
     let selectedPhysician = null; // null = All
     let _pendingQueue = [];
     let _isSyncing = false;
+    let pendingPrintMode = 'physician';
+    let physicianColorMap = {};
 
     const GAS_URL  = window.MEDSCHED_CONFIG?.gasUrl || '';
     const API_KEY  = window.MEDSCHED_CONFIG?.apiKey || '';
     const STORE_KEY   = 'medsched_clinic';
     const PENDING_KEY = 'medsched_clinic_pending';
+    const PHYSICIAN_COLORS_KEY = 'medsched_clinic_physician_colors';
+    const PHYSICIAN_COLOR_SETTING_KEY = 'clinicPhysicianColors';
+    const PHYSICIAN_COLOR_PALETTE = [
+        '#0d9488', '#2563eb', '#7c3aed', '#dc2626',
+        '#ea580c', '#16a34a', '#0891b2', '#be123c',
+        '#9333ea', '#4f46e5', '#ca8a04', '#059669'
+    ];
     const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
     // ── Toast ──────────────────────────────────────────────────────────────────
@@ -661,7 +1301,23 @@
         if (raw) { try { clinicList = JSON.parse(raw); } catch(e) { clinicList = []; } }
         const pending = localStorage.getItem(PENDING_KEY);
         if (pending) { try { _pendingQueue = JSON.parse(pending); } catch(e) { _pendingQueue = []; } }
+        loadPhysicianColorsFromStorage();
         if (localStorage.getItem('medsched_dark_mode') === 'true') document.body.classList.add('dark-mode');
+    }
+
+    function loadPhysicianColorsFromStorage() {
+        const raw = localStorage.getItem(PHYSICIAN_COLORS_KEY);
+        if (!raw) return;
+        try {
+            const parsed = JSON.parse(raw);
+            physicianColorMap = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch (e) {
+            physicianColorMap = {};
+        }
+    }
+
+    function savePhysicianColorsToStorage() {
+        localStorage.setItem(PHYSICIAN_COLORS_KEY, JSON.stringify(physicianColorMap));
     }
 
     // ── API ───────────────────────────────────────────────────────────────────
@@ -676,6 +1332,41 @@
         if (resp.type === 'opaque') return { status: 'ok' };
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         return resp.json();
+    }
+
+    async function loadClinicSettings() {
+        if (!GAS_URL || !API_KEY) return;
+        try {
+            const url = `${GAS_URL}?action=getSettings&key=${encodeURIComponent(API_KEY)}`;
+            const resp = await fetch(url, { redirect: 'follow' });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            const rawColors = data?.[PHYSICIAN_COLOR_SETTING_KEY];
+            if (!rawColors) return;
+            const parsed = typeof rawColors === 'string' ? JSON.parse(rawColors) : rawColors;
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                physicianColorMap = parsed;
+                savePhysicianColorsToStorage();
+            }
+        } catch (e) {
+            console.warn('[Clinic Settings] Using local physician colors:', e.message);
+        }
+    }
+
+    function syncPhysicianColors() {
+        savePhysicianColorsToStorage();
+        (async () => {
+            try {
+                await apiPost('writeSetting', {
+                    settingKey: PHYSICIAN_COLOR_SETTING_KEY,
+                    value: JSON.stringify(physicianColorMap)
+                });
+                showToast('Physician colors saved.', 'success', 2400);
+            } catch (e) {
+                showToast('Colors saved locally. Google Sheets update will need a retry.', 'warning', 3600);
+                console.warn('[Clinic Settings] Color sync failed:', e.message);
+            }
+        })();
     }
 
     function syncAfterChange(action, payload) {
@@ -718,6 +1409,7 @@
             if (data.status === 'ok' && Array.isArray(data.clinic)) {
                 clinicList = data.clinic.map(normalizeRecord).filter(isValidRecord);
                 saveToStorage();
+                await loadClinicSettings();
                 renderAll();
                 // Re-render workspace after fresh data arrives
                 if (clinicSelectedDate) {
@@ -744,6 +1436,7 @@
         if (out.id !== undefined) out.id = String(out.id);
         if (out.fileNumber !== undefined) out.fileNumber = String(out.fileNumber);
         if (out.age !== undefined) out.age = Number(out.age) || 0;
+        out.date = normalizeClinicDate(out.date);
         return out;
     }
 
@@ -751,16 +1444,45 @@
         return r && (String(r.id || '').trim() || String(r.name || '').trim() || String(r.fileNumber || '').trim());
     }
 
+    function formatLocalIsoDate(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function normalizeClinicDate(value) {
+        if (!value) return '';
+        if (value instanceof Date && !isNaN(value)) return formatLocalIsoDate(value);
+        const text = String(value).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+        const slashMatch = text.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+        if (slashMatch) {
+            const day = slashMatch[1].padStart(2, '0');
+            const month = slashMatch[2].padStart(2, '0');
+            const year = slashMatch[3].length === 2 ? `20${slashMatch[3]}` : slashMatch[3];
+            return `${year}-${month}-${day}`;
+        }
+        const parsed = new Date(text);
+        if (!isNaN(parsed)) return formatLocalIsoDate(parsed);
+        const isoMatch = text.match(/\d{4}-\d{2}-\d{2}/);
+        if (isoMatch) return isoMatch[0];
+        return text;
+    }
+
+    function sameClinicDate(left, right) {
+        return normalizeClinicDate(left) === normalizeClinicDate(right);
+    }
+
     function formatDate(dateStr) {
-        if (!dateStr) return '';
-        const d = new Date(dateStr + 'T00:00:00');
+        const normalized = normalizeClinicDate(dateStr);
+        if (!normalized) return '';
+        const d = new Date(normalized + 'T00:00:00');
         if (isNaN(d)) return dateStr;
         return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
     }
 
     function getDayName(dateStr) {
-        if (!dateStr) return '';
-        const d = new Date(dateStr + 'T00:00:00');
+        const normalized = normalizeClinicDate(dateStr);
+        if (!normalized) return '';
+        const d = new Date(normalized + 'T00:00:00');
         if (isNaN(d)) return '';
         return d.toLocaleDateString('en-US', { weekday: 'long' });
     }
@@ -768,6 +1490,58 @@
     function getUniquePhysicians() {
         const set = new Set(clinicList.map(r => (r.primaryPhysician || '').trim()).filter(Boolean));
         return [...set].sort((a, b) => a.localeCompare(b));
+    }
+
+    function normalizePhysicianName(name) {
+        return String(name || '').trim() || 'Unassigned Physician';
+    }
+
+    function hashString(value) {
+        return [...String(value || '')].reduce((hash, char) => {
+            return ((hash << 5) - hash) + char.charCodeAt(0);
+        }, 0);
+    }
+
+    function getDefaultPhysicianColor(physician) {
+        const index = Math.abs(hashString(normalizePhysicianName(physician))) % PHYSICIAN_COLOR_PALETTE.length;
+        return PHYSICIAN_COLOR_PALETTE[index];
+    }
+
+    function getPhysicianColor(physician) {
+        const key = normalizePhysicianName(physician);
+        return physicianColorMap[key] || getDefaultPhysicianColor(key);
+    }
+
+    function getPhysicianColorStyle(physician) {
+        return `--physician-color:${getPhysicianColor(physician)};`;
+    }
+
+    function getPhysicianBreakdown(records) {
+        const grouped = new Map();
+        records.forEach((record) => {
+            const physician = normalizePhysicianName(record.primaryPhysician);
+            grouped.set(physician, (grouped.get(physician) || 0) + 1);
+        });
+        return [...grouped.entries()]
+            .map(([physician, count]) => ({
+                physician,
+                count,
+                color: getPhysicianColor(physician),
+                width: records.length ? Math.max((count / records.length) * 100, 8) : 0
+            }))
+            .sort((a, b) => b.count - a.count || a.physician.localeCompare(b.physician));
+    }
+
+    function buildPhysicianStrip(records) {
+        const breakdown = getPhysicianBreakdown(records);
+        if (!breakdown.length) return '';
+        const segments = breakdown.map(item =>
+            `<span class="clinic-physician-strip-segment" style="--physician-color:${item.color};width:${item.width}%" title="${escHtml(item.physician)}: ${item.count}"></span>`
+        ).join('');
+        const legend = breakdown.slice(0, 5).map(item =>
+            `<span class="clinic-physician-mini-dot" style="--physician-color:${item.color}" title="${escHtml(item.physician)}"></span>`
+        ).join('');
+        return `<div class="clinic-physician-strip" aria-hidden="true">${segments}</div><div class="clinic-physician-mini-legend">${legend}</div>`;
     }
 
     function getFilteredList() {
@@ -793,6 +1567,63 @@
         if (dl3) dl3.innerHTML = causes.map(c => `<option value="${escHtml(c)}">`).join('');
     }
 
+    function openPhysicianSettingsModal() {
+        renderPhysicianSettings();
+        document.getElementById('modal-physician-settings').classList.add('active');
+    }
+
+    function closePhysicianSettingsModal() {
+        document.getElementById('modal-physician-settings').classList.remove('active');
+    }
+
+    function renderPhysicianSettings() {
+        const container = document.getElementById('physician-settings-list');
+        if (!container) return;
+        const physicians = getUniquePhysicians();
+        if (physicians.length === 0) {
+            container.innerHTML = `<div class="clinic-empty-state" style="padding:22px 12px;">No physicians yet. Add an appointment first, then assign colors here.</div>`;
+            return;
+        }
+        container.innerHTML = physicians.map((physician) => {
+            const safeP = physician.replace(/\\/g,'\\\\').replace(/'/g, "\\'");
+            const color = getPhysicianColor(physician);
+            const isCustom = Boolean(physicianColorMap[normalizePhysicianName(physician)]);
+            return `
+                <div class="physician-settings-row" style="${getPhysicianColorStyle(physician)}">
+                    <div class="physician-settings-name">
+                        <span class="physician-color-dot"></span>
+                        <span>${escHtml(physician)}</span>
+                    </div>
+                    <input class="physician-color-input" type="color" value="${color}" onchange="setPhysicianColor('${safeP}', this.value)" aria-label="Color for ${escHtml(physician)}">
+                    <button class="btn btn-secondary physician-color-reset" onclick="resetPhysicianColor('${safeP}')" ${isCustom ? '' : 'disabled'}>Reset</button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function setPhysicianColor(physician, color) {
+        physicianColorMap[normalizePhysicianName(physician)] = color;
+        savePhysicianColorsToStorage();
+        renderAll();
+        renderPhysicianSettings();
+        if (clinicSelectedDate) renderDayWorkspace();
+    }
+
+    function resetPhysicianColor(physician) {
+        delete physicianColorMap[normalizePhysicianName(physician)];
+        savePhysicianColorsToStorage();
+        renderAll();
+        renderPhysicianSettings();
+        if (clinicSelectedDate) renderDayWorkspace();
+    }
+
+    function savePhysicianSettings() {
+        syncPhysicianColors();
+        renderAll();
+        if (clinicSelectedDate) renderDayWorkspace();
+        closePhysicianSettingsModal();
+    }
+
     // ── Physician Filter ──────────────────────────────────────────────────────
     function renderPhysicianFilter() {
         const container = document.getElementById('physician-btn-list');
@@ -815,8 +1646,8 @@
             const safeP = physician.replace(/\\/g,'\\\\').replace(/'/g, "\\'");
             html += `
                 <div style="display:flex;align-items:center;gap:2px;">
-                    <button class="physician-btn ${isActive ? 'active' : ''}" style="flex:1;" onclick="setPhysicianFilter('${safeP}')">
-                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:15px;height:15px;flex-shrink:0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <button class="physician-btn ${isActive ? 'active' : ''}" style="flex:1;${getPhysicianColorStyle(physician)}" onclick="setPhysicianFilter('${safeP}')">
+                        <span class="physician-color-dot"></span>
                         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escHtml(physician)}</span>
                         <span class="physician-btn-count">${count}</span>
                     </button>
@@ -838,6 +1669,52 @@
     function setPhysicianFilter(physician) {
         selectedPhysician = physician;
         renderAll();
+        toggleClinicSidebar(false);
+    }
+
+    function toggleClinicSidebar(force) {
+        const shouldOpen = typeof force === 'boolean'
+            ? force
+            : !document.body.classList.contains('clinic-sidebar-open');
+        document.body.classList.toggle('clinic-sidebar-open', shouldOpen);
+        if (shouldOpen) setClinicMobileNavState('physicians');
+    }
+
+    function scrollToClinicCalendar() {
+        toggleClinicSidebar(false);
+        setClinicMobileNavState('calendar');
+        document.querySelector('.card.cal-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function scrollToClinicTodayWorkspace() {
+        toggleClinicSidebar(false);
+        setClinicMobileNavState('today');
+        if (!clinicSelectedDate) {
+            clinicSelectedDate = formatLocalIsoDate(new Date());
+            clinicCalYear = Number(clinicSelectedDate.split('-')[0]);
+            clinicCalMonth = Number(clinicSelectedDate.split('-')[1]) - 1;
+            renderAll();
+        }
+        const workspace = document.getElementById('clinic-day-workspace');
+        if (workspace) {
+            workspace.style.display = 'block';
+            renderDayWorkspace();
+            workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function setClinicMobileNavState(activeKey) {
+        document.querySelectorAll('.clinic-bottom-nav [data-mobile-nav]').forEach((btn) => {
+            btn.classList.toggle('is-active', btn.dataset.mobileNav === activeKey);
+        });
+    }
+
+    function updateClinicMobileDateLabel() {
+        const label = document.getElementById('clinic-mobile-date-label');
+        if (!label) return;
+        label.textContent = clinicSelectedDate
+            ? `${getDayName(clinicSelectedDate)} · ${formatDate(clinicSelectedDate)}`
+            : 'Daily workspace';
     }
 
     // ── Calendar ──────────────────────────────────────────────────────────────
@@ -848,13 +1725,13 @@
         const filtered = getFilteredList();
         const firstDay    = new Date(clinicCalYear, clinicCalMonth, 1).getDay();
         const daysInMonth = new Date(clinicCalYear, clinicCalMonth + 1, 0).getDate();
-        const today       = new Date().toISOString().split('T')[0];
+        const today       = formatLocalIsoDate(new Date());
         const monthLabel  = `${MONTHS[clinicCalMonth]} ${clinicCalYear}`;
 
         // Stat: total appointments in this view
         const monthTotal = filtered.filter(r => {
             const m = `${clinicCalYear}-${String(clinicCalMonth+1).padStart(2,'0')}`;
-            return (r.date || '').startsWith(m);
+            return normalizeClinicDate(r.date).startsWith(m);
         }).length;
 
         // ── Build full structure matching style.css expectations ──
@@ -866,7 +1743,7 @@
                 <button class="btn-icon" onclick="navigateClinicCalendar(-1)" title="Previous month">&#8249;</button>
                 <span class="cal-month-label">${monthLabel}</span>
                 <button class="btn-icon" onclick="navigateClinicCalendar(1)" title="Next month">&#8250;</button>
-                ${selectedPhysician ? `<span style="margin-left:auto;font-size:0.78rem;font-weight:600;color:#8b5cf6;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.25);border-radius:20px;padding:3px 10px;">${escHtml(selectedPhysician)}</span>` : ''}
+                ${selectedPhysician ? `<span style="margin-left:auto;font-size:0.78rem;font-weight:600;${getPhysicianColorStyle(selectedPhysician)}color:var(--physician-color);background:color-mix(in srgb, var(--physician-color) 10%, transparent);border:1px solid color-mix(in srgb, var(--physician-color) 28%, transparent);border-radius:20px;padding:3px 10px;">${escHtml(selectedPhysician)}</span>` : ''}
                 ${monthTotal > 0 ? `<span style="font-size:0.78rem;font-weight:600;color:var(--text-muted);">${monthTotal} this month</span>` : ''}
                 <button class="btn btn-secondary" onclick="goToClinicToday()" style="margin-left:${selectedPhysician ? '0' : 'auto'};padding:5px 12px;font-size:0.8rem;">Today</button>
             </div>
@@ -884,28 +1761,20 @@
 
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr   = `${clinicCalYear}-${String(clinicCalMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-            const dayAppts  = filtered.filter(r => r.date === dateStr);
+            const dayAppts  = filtered.filter(r => sameClinicDate(r.date, dateStr));
             const count     = dayAppts.length;
             const isToday   = today === dateStr;
             const isSelected = clinicSelectedDate === dateStr;
             const isSat     = new Date(clinicCalYear, clinicCalMonth, day).getDay() === 6;
-
-            // Show physician initials on selected cell if showing all
-            const physicianHints = (!selectedPhysician && count > 0 && count <= 3)
-                ? dayAppts.map(r => {
-                    const name = (r.primaryPhysician || '').trim();
-                    const initials = name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
-                    return `<span style="font-size:0.58rem;font-weight:700;background:rgba(139,92,246,0.18);color:#8b5cf6;border-radius:3px;padding:1px 4px;">${initials}</span>`;
-                }).join('')
-                : '';
+            const physicianStrip = count > 0 ? buildPhysicianStrip(dayAppts) : '';
 
             html += `
                 <div class="cal-cell ${isToday ? 'cal-today' : ''} ${isSelected ? 'cal-selected' : ''} ${isSat ? 'cal-saturday' : ''}" onclick="selectClinicDate('${dateStr}')">
                     <div class="cal-day-num">${day}</div>
                     <div class="cal-badges">
-                        ${count > 0 ? `<span class="cal-badge cb-clinic" title="${count} appointment${count !== 1 ? 's' : ''}">${count}</span>` : ''}
+                        ${count > 0 ? `<span class="cal-badge cb-clinic clinic-appt-count" title="${count} patient${count !== 1 ? 's' : ''} booked">${count}</span>` : ''}
                     </div>
-                    ${physicianHints ? `<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">${physicianHints}</div>` : ''}
+                    ${physicianStrip}
                 </div>
             `;
         }
@@ -926,7 +1795,7 @@
         const today = new Date();
         clinicCalYear  = today.getFullYear();
         clinicCalMonth = today.getMonth();
-        clinicSelectedDate = today.toISOString().split('T')[0];
+        clinicSelectedDate = formatLocalIsoDate(today);
         renderClinicCalendar();
         renderDayWorkspace();
         document.getElementById('clinic-day-workspace').style.display = 'block';
@@ -934,8 +1803,10 @@
 
     function selectClinicDate(dateStr) {
         clinicSelectedDate = dateStr;
+        setClinicMobileNavState('today');
         renderClinicCalendar();
         renderDayWorkspace();
+        updateClinicMobileDateLabel();
         document.getElementById('clinic-day-workspace').style.display = 'block';
         // Smooth scroll to workspace
         setTimeout(() => document.getElementById('clinic-day-workspace').scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
@@ -945,10 +1816,11 @@
         document.getElementById('clinic-day-workspace').style.display = 'none';
         clinicSelectedDate = null;
         renderClinicCalendar();
+        updateClinicMobileDateLabel();
     }
 
     // ── Day Workspace ─────────────────────────────────────────────────────────
-    function renderDayWorkspace() {
+    function renderDayWorkspaceLegacy() {
         if (!clinicSelectedDate) return;
         const dateLabel   = document.getElementById('clinic-workspace-date-label');
         const subLabel    = document.getElementById('clinic-workspace-sub');
@@ -957,7 +1829,7 @@
         const dayName = getDayName(clinicSelectedDate);
         dateLabel.textContent = `${dayName} — ${formatDate(clinicSelectedDate)}`;
 
-        const dayAppointments = getFilteredList().filter(r => r.date === clinicSelectedDate);
+        const dayAppointments = getFilteredList().filter(r => sameClinicDate(r.date, clinicSelectedDate));
         const physicianNote = selectedPhysician ? `Showing: Dr. ${selectedPhysician}` : 'All Physicians';
         subLabel.textContent = `${dayAppointments.length} appointment${dayAppointments.length !== 1 ? 's' : ''} · ${physicianNote}`;
 
@@ -972,11 +1844,8 @@
             return;
         }
 
-        // Sort by name
-        const sorted = [...dayAppointments].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-        body.innerHTML = sorted.map(r => `
-            <div class="clinic-patient-card">
+        const renderPatientCard = (r) => `
+            <div class="clinic-patient-card" style="${getPhysicianColorStyle(r.primaryPhysician)}">
                 <div class="clinic-patient-card-header">
                     <div>
                         <div class="clinic-patient-name">${escHtml(r.name || 'Unnamed')}</div>
@@ -1002,14 +1871,149 @@
                 ${r.causeOfAdmission ? `<div style="font-size:0.82rem; color:var(--text-muted);"><strong style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;">Reason</strong><br>${escHtml(r.causeOfAdmission)}</div>` : ''}
                 ${r.note ? `<div class="clinic-patient-note">${escHtml(r.note)}</div>` : ''}
             </div>
+        `;
+
+        const sorted = [...dayAppointments].sort((a, b) => {
+            const physicianCompare = (a.primaryPhysician || '').localeCompare(b.primaryPhysician || '');
+            return physicianCompare || (a.name || '').localeCompare(b.name || '');
+        });
+
+        if (selectedPhysician) {
+            body.innerHTML = sorted.map(renderPatientCard).join('');
+            return;
+        }
+
+        const groups = {};
+        sorted.forEach((r) => {
+            const physician = (r.primaryPhysician || 'Unassigned Physician').trim();
+            if (!groups[physician]) groups[physician] = [];
+            groups[physician].push(r);
+        });
+
+        body.innerHTML = Object.keys(groups).sort().map((physician) => `
+            <section class="clinic-physician-group" style="${getPhysicianColorStyle(physician)}">
+                <div class="clinic-physician-group-header">
+                    <strong>${escHtml(physician)}</strong>
+                    <span>${groups[physician].length} patient${groups[physician].length !== 1 ? 's' : ''}</span>
+                </div>
+                ${groups[physician].map(renderPatientCard).join('')}
+            </section>
         `).join('');
     }
 
     // ── Stats Bar ─────────────────────────────────────────────────────────────
+    function renderDayWorkspace() {
+        if (!clinicSelectedDate) return;
+        const dateLabel = document.getElementById('clinic-workspace-date-label');
+        const subLabel = document.getElementById('clinic-workspace-sub');
+        const body = document.getElementById('clinic-workspace-body');
+
+        const dayName = getDayName(clinicSelectedDate);
+        dateLabel.textContent = `${dayName} - ${formatDate(clinicSelectedDate)}`;
+
+        const dayAppointments = getFilteredList().filter(r => sameClinicDate(r.date, clinicSelectedDate));
+        const physicianNote = selectedPhysician ? `Showing: ${selectedPhysician}` : 'All Physicians';
+        subLabel.textContent = `${dayAppointments.length} appointment${dayAppointments.length !== 1 ? 's' : ''} · ${physicianNote}`;
+
+        if (dayAppointments.length === 0) {
+            body.innerHTML = `
+                <div class="clinic-empty-state">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>
+                    <p style="font-size: 0.9rem; margin-bottom: 8px;">No appointments on this day</p>
+                    <button class="btn btn-primary btn-sm" onclick="openAddModal()">Add Appointment</button>
+                </div>
+            `;
+            return;
+        }
+
+        const sorted = [...dayAppointments].sort((a, b) => {
+            const physicianCompare = normalizePhysicianName(a.primaryPhysician).localeCompare(normalizePhysicianName(b.primaryPhysician));
+            return physicianCompare || (a.name || '').localeCompare(b.name || '') || String(a.fileNumber || '').localeCompare(String(b.fileNumber || ''));
+        });
+        const physicianBreakdown = getPhysicianBreakdown(sorted);
+        const busiest = physicianBreakdown[0];
+        const uniqueFiles = new Set(sorted.map(r => String(r.fileNumber || '').trim()).filter(Boolean)).size;
+
+        const colorKeyHtml = physicianBreakdown.map(item => `
+            <span class="clinic-day-key-item" style="--physician-color:${item.color}" title="${escHtml(item.physician)}: ${item.count} patient${item.count !== 1 ? 's' : ''}">
+                <span class="physician-color-dot"></span>
+                <span>${escHtml(item.physician)}</span>
+                <span style="color:var(--physician-color);">${item.count}</span>
+            </span>
+        `).join('');
+
+        const summaryHtml = `
+            <div class="clinic-day-summary">
+                <div class="clinic-day-summary-card">
+                    <span class="label">Patients</span>
+                    <span class="value">${sorted.length}</span>
+                    <span class="hint">Booked for this day</span>
+                </div>
+                <div class="clinic-day-summary-card">
+                    <span class="label">Physicians</span>
+                    <span class="value">${physicianBreakdown.length}</span>
+                    <span class="hint">${selectedPhysician ? escHtml(selectedPhysician) : 'Visible in this view'}</span>
+                </div>
+                <div class="clinic-day-summary-card">
+                    <span class="label">Top Load</span>
+                    <span class="value">${busiest ? busiest.count : 0}</span>
+                    <span class="hint">${busiest ? escHtml(busiest.physician) : 'No physician'}</span>
+                </div>
+                <div class="clinic-day-summary-card">
+                    <span class="label">Files</span>
+                    <span class="value">${uniqueFiles}</span>
+                    <span class="hint">Unique file numbers</span>
+                </div>
+            </div>
+            ${colorKeyHtml ? `<div class="clinic-day-color-key">${colorKeyHtml}</div>` : ''}
+        `;
+
+        const renderPatientRow = (r) => `
+            <div class="clinic-patient-card" style="${getPhysicianColorStyle(r.primaryPhysician)}">
+                <div class="clinic-patient-primary">
+                    <div class="clinic-patient-name" title="${escHtml(r.name || 'Unnamed')}">${escHtml(r.name || 'Unnamed')}</div>
+                    <div class="clinic-patient-meta">
+                        <span class="clinic-meta-chip">File: ${escHtml(String(r.fileNumber || '-'))}</span>
+                        <span class="clinic-meta-chip">Age: ${r.age || '-'}</span>
+                        <span class="clinic-meta-chip clinic-physician-chip">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:10px;height:10px;display:inline;vertical-align:middle;margin-right:2px;"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                            ${escHtml(r.primaryPhysician || '-')}
+                        </span>
+                    </div>
+                </div>
+                <div class="clinic-patient-case">
+                    <strong>Case</strong>
+                    <span>${escHtml(r.case || '-')}</span>
+                </div>
+                <div class="clinic-patient-reason">
+                    <strong>Reason / Notes</strong>
+                    <span>${escHtml([r.causeOfAdmission, r.note].filter(Boolean).join(' · ') || '-')}</span>
+                </div>
+                <div class="clinic-card-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="openEditModal('${r.id}')" title="Edit">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:13px;height:13px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn btn-sm" style="color: var(--danger); border-color: var(--danger);" onclick="confirmDelete('${r.id}', '${escHtml(r.name || '').replace(/'/g,"\\'")}')">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:13px;height:13px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        body.innerHTML = `
+            <div class="clinic-day-board">
+                ${summaryHtml}
+                <div class="clinic-day-list">
+                    ${sorted.map(renderPatientRow).join('')}
+                </div>
+            </div>
+        `;
+    }
+
     function updateStatsBar() {
-        const today = new Date().toISOString().split('T')[0];
+        const today = formatLocalIsoDate(new Date());
         const filtered = getFilteredList();
-        const todayCount = filtered.filter(r => r.date === today).length;
+        const todayCount = filtered.filter(r => sameClinicDate(r.date, today)).length;
 
         const statTotal = document.getElementById('stat-total');
         const statToday = document.getElementById('stat-today');
@@ -1017,7 +2021,10 @@
 
         if (statTotal) statTotal.textContent = `${clinicList.length} total appointments`;
         if (statToday) statToday.textContent = todayCount > 0 ? `${todayCount} today` : '';
-        if (statFilter) statFilter.textContent = selectedPhysician ? `Filtered: ${selectedPhysician}` : '';
+        if (statFilter) {
+            statFilter.textContent = selectedPhysician ? `Filtered: ${selectedPhysician}` : '';
+            statFilter.style.color = selectedPhysician ? getPhysicianColor(selectedPhysician) : 'var(--primary)';
+        }
     }
 
     // ── Physician View ────────────────────────────────────────────────────────
@@ -1026,6 +2033,7 @@
     function openPhysicianView(physician) {
         currentPhysicianView = physician;
         selectedPhysician = physician;
+        toggleClinicSidebar(false);
         document.getElementById('physician-view-panel').style.display = 'block';
         document.querySelector('.card.cal-card').style.display = 'none';
         const ws = document.getElementById('clinic-day-workspace');
@@ -1116,6 +2124,8 @@
 
     // ── Physician Print ───────────────────────────────────────────────────────
     function openPvPrintModal() {
+        pendingPrintMode = 'physician';
+        document.querySelector('#modal-pv-print .modal-header h3').textContent = 'Print Clinic Report';
         document.getElementById('pv-prepared-by').value = '';
         document.getElementById('modal-pv-print').classList.add('active');
         setTimeout(() => document.getElementById('pv-prepared-by').focus(), 100);
@@ -1127,7 +2137,20 @@
     function submitPhysicianPrint() {
         const preparedBy = document.getElementById('pv-prepared-by').value.trim() || 'MedSched Coordinator';
         closePvPrintModal();
+        if (pendingPrintMode === 'day') {
+            generateDailyClinicPrint(clinicSelectedDate, preparedBy);
+            return;
+        }
         generatePhysicianPrint(currentPhysicianView, preparedBy);
+    }
+
+    function openDailyPrintModal() {
+        if (!clinicSelectedDate) return;
+        pendingPrintMode = 'day';
+        document.querySelector('#modal-pv-print .modal-header h3').textContent = 'Print Daily Clinic List';
+        document.getElementById('pv-prepared-by').value = '';
+        document.getElementById('modal-pv-print').classList.add('active');
+        setTimeout(() => document.getElementById('pv-prepared-by').focus(), 100);
     }
 
     function generatePhysicianPrint(physician, preparedBy) {
@@ -1158,9 +2181,12 @@
             <div style="font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#0f172a;">
                 <!-- Header -->
                 <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2.5px solid #0f172a;padding-bottom:12px;margin-bottom:20px;">
-                    <div style="flex:1;">
-                        <h2 style="font-size:15pt;font-weight:800;margin:0;color:#0f172a;text-transform:uppercase;letter-spacing:.5px;">Clinic Appointments List</h2>
-                        <p style="margin:4px 0 0;font-size:11pt;font-weight:700;color:#0d9488;">${escHtml(physician)}</p>
+                    <div style="flex:1;display:flex;align-items:center;gap:12px;">
+                        <img src="logo.png" alt="Augusta Victoria Hospital Logo" style="height:54px;object-fit:contain;">
+                        <div>
+                            <h2 style="font-size:15pt;font-weight:800;margin:0;color:#0f172a;text-transform:uppercase;letter-spacing:.5px;">Clinic Appointments List</h2>
+                            <p style="margin:4px 0 0;font-size:11pt;font-weight:700;color:#0d9488;">${escHtml(physician)}</p>
+                        </div>
                     </div>
                     <div style="text-align:right;font-size:9.5pt;color:#1e293b;">
                         <p style="margin:0;font-weight:700;font-size:10pt;">${printDate}</p>
@@ -1220,17 +2246,144 @@
         }, 1500);
     }
 
+    function generateDailyClinicPrint(dateStr, preparedBy) {
+        if (!dateStr) return;
+
+        const patients = clinicList
+            .filter(r => sameClinicDate(r.date, dateStr))
+            .sort((a, b) => {
+                const physicianCompare = (a.primaryPhysician || '').localeCompare(b.primaryPhysician || '');
+                return physicianCompare || (a.name || '').localeCompare(b.name || '');
+            });
+
+        const groups = {};
+        patients.forEach((r) => {
+            const physician = (r.primaryPhysician || 'Unassigned Physician').trim();
+            if (!groups[physician]) groups[physician] = [];
+            groups[physician].push(r);
+        });
+
+        const physicians = Object.keys(groups).sort();
+        const now = new Date();
+        const printDate = now.toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+
+        const rowsHtml = patients.map((r, i) => `
+                <tr>
+                    <td style="text-align:center;font-weight:700;color:#475569;">${i + 1}</td>
+                    <td style="font-weight:700;">${escHtml(r.name || '-')}</td>
+                    <td>${escHtml(r.primaryPhysician || 'Unassigned Physician')}</td>
+                    <td><code style="background:#f1f5f9;padding:2px 5px;border-radius:3px;font-size:9pt;">${escHtml(String(r.fileNumber || '-'))}</code></td>
+                    <td style="text-align:center;">${r.age || '-'}</td>
+                    <td>${escHtml(r.case || '-')}</td>
+                    <td>${escHtml(r.causeOfAdmission || '-')}</td>
+                    <td style="color:#64748b;font-style:italic;">${escHtml(r.note || '-')}</td>
+                </tr>
+            `).join('');
+
+        const emptyHtml = `
+            <tr>
+                <td colspan="8" style="text-align:center;color:#64748b;padding:24px!important;">No clinic appointments booked for this day.</td>
+            </tr>
+        `;
+
+        const printHtml = `
+            <div class="print-portrait-report">
+                <div class="print-report-header">
+                    <div class="hospital-info">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <img src="logo.png" alt="Augusta Victoria Hospital Logo" style="height:55px;object-fit:contain;">
+                            <div>
+                                <h2 style="margin:0;">MedSched Panel</h2>
+                                <p style="margin:4px 0 0;">Clinic Appointments - Daily List</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="report-meta">
+                        <h3>Clinic Daily Report</h3>
+                        <p>${escHtml(getDayName(dateStr))} - ${escHtml(formatDate(dateStr))}</p>
+                        <p>Generated: ${escHtml(printDate)}</p>
+                    </div>
+                </div>
+
+                <div class="print-summary">
+                    <div class="print-summary-item">
+                        <span class="label">Date</span>
+                        <span class="val">${escHtml(formatDate(dateStr))}</span>
+                    </div>
+                    <div class="print-summary-item">
+                        <span class="label">Day</span>
+                        <span class="val">${escHtml(getDayName(dateStr))}</span>
+                    </div>
+                    <div class="print-summary-item">
+                        <span class="label">Patients</span>
+                        <span class="val">${patients.length}</span>
+                    </div>
+                    <div class="print-summary-item">
+                        <span class="label">Physicians</span>
+                        <span class="val">${physicians.length}</span>
+                    </div>
+                </div>
+
+                <table class="print-table">
+                    <thead>
+                        <tr>
+                            <th style="width:5%;text-align:center;">#</th>
+                            <th style="width:18%;">Patient Name</th>
+                            <th style="width:15%;">Physician</th>
+                            <th style="width:10%;">File #</th>
+                            <th style="width:5%;text-align:center;">Age</th>
+                            <th style="width:21%;">Case Summary</th>
+                            <th style="width:18%;">Cause / Reason</th>
+                            <th style="width:13%;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>${patients.length ? rowsHtml : emptyHtml}</tbody>
+                </table>
+
+                <div class="print-footer-signature">
+                    <div class="signature-box">
+                        <div style="font-size:11pt;font-weight:700;color:#0f172a;margin-bottom:2px;height:20px;line-height:20px;">
+                            ${escHtml(preparedBy)}
+                        </div>
+                        <div class="signature-line" style="margin-top:14px;margin-bottom:4px;"></div>
+                        <span class="signature-title" style="line-height:1.2;">Prepared By</span>
+                    </div>
+                    <div class="signature-box">
+                        <div style="height:20px;margin-bottom:2px;"></div>
+                        <div class="signature-line" style="margin-top:14px;margin-bottom:4px;"></div>
+                        <span class="signature-title" style="line-height:1.2;">Reviewed By</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const container = document.getElementById('clinic-print-container');
+        container.innerHTML = printHtml;
+        document.body.classList.add('print-portrait-mode');
+        window.print();
+        setTimeout(() => {
+            document.body.classList.remove('print-portrait-mode');
+            container.innerHTML = '';
+        }, 1500);
+    }
+
     // ── Render All ────────────────────────────────────────────────────────────
     function renderAll() {
         renderPhysicianFilter();
         renderClinicCalendar();
         if (clinicSelectedDate) renderDayWorkspace();
         if (currentPhysicianView) renderPhysicianViewList();
+        updateClinicMobileDateLabel();
     }
 
     // ── CRUD ─────────────────────────────────────────────────────────────────
     function openAddModal() {
-        const today = new Date().toISOString().split('T')[0];
+        toggleClinicSidebar(false);
+        setClinicMobileNavState('add');
+        const today = formatLocalIsoDate(new Date());
         document.getElementById('add-modal-title').textContent = 'Add Clinic Appointment';
         document.getElementById('btn-submit-clinic').querySelector('span').textContent = 'Save Appointment';
         document.getElementById('clinic-edit-id').value = '';
@@ -1298,10 +2451,11 @@
         }
 
         closeAddModal();
-        if (record.date !== clinicSelectedDate) {
-            clinicSelectedDate = record.date;
-            clinicCalYear  = Number(record.date.split('-')[0]);
-            clinicCalMonth = Number(record.date.split('-')[1]) - 1;
+        const recordDate = normalizeClinicDate(record.date);
+        if (!sameClinicDate(recordDate, clinicSelectedDate)) {
+            clinicSelectedDate = recordDate;
+            clinicCalYear  = Number(recordDate.split('-')[0]);
+            clinicCalMonth = Number(recordDate.split('-')[1]) - 1;
         }
         renderAll();
         document.getElementById('clinic-day-workspace').style.display = 'block';
@@ -1343,7 +2497,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         loadFromStorage();
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = formatLocalIsoDate(new Date());
 
         // Pick the best date to open the workspace on load:
         // 1. Today if it has appointments
@@ -1353,7 +2507,7 @@
         function pickInitialDate() {
             if (clinicList.length === 0) return today;
             const dates = clinicList
-                .map(r => r.date)
+                .map(r => normalizeClinicDate(r.date))
                 .filter(d => d && /^\d{4}-\d{2}-\d{2}$/.test(d));
             if (dates.includes(today)) return today;
             const future = dates.filter(d => d > today).sort();
@@ -1383,6 +2537,10 @@
             });
         });
 
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') toggleClinicSidebar(false);
+        });
+
         // Init Google Sheets sync
         if (GAS_URL && GAS_URL !== 'PASTE_WEB_APP_URL_HERE') {
             initSync();
@@ -1390,6 +2548,99 @@
             showSyncStatus('offline');
         }
     });
+    </script>
+
+    <!-- PWA Install Banner (same as main app) -->
+    <div id="pwa-install-banner" role="complementary" aria-label="Install MedSched app">
+        <div class="pwa-banner-icon">
+            <img src="icons/icon-192.png" alt="MedSched icon" width="52" height="52">
+        </div>
+        <div class="pwa-banner-text">
+            <div class="pwa-banner-title">Install MedSched Panel</div>
+            <div class="pwa-banner-sub">Works offline &bull; Fast &bull; No browser bar</div>
+            <div class="pwa-device-chips">
+                <span class="pwa-chip">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+                    Mobile
+                </span>
+                <span class="pwa-chip">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                    Desktop
+                </span>
+                <span class="pwa-chip">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+                    Tablet
+                </span>
+            </div>
+        </div>
+        <div class="pwa-banner-actions">
+            <button class="pwa-install-btn" id="pwa-install-btn" aria-label="Install MedSched as an app">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Install
+            </button>
+            <button class="pwa-dismiss-btn" id="pwa-dismiss-btn" aria-label="Dismiss install prompt">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .catch(err => console.warn('SW registration failed:', err));
+            });
+        }
+        const DISMISSED_KEY = 'medsched_pwa_dismissed';
+        const INSTALLED_KEY = 'medsched_pwa_installed';
+        let deferredPrompt = null;
+        const banner = document.getElementById('pwa-install-banner');
+        const installBtn = document.getElementById('pwa-install-btn');
+        const dismissBtn = document.getElementById('pwa-dismiss-btn');
+        function showBanner() {
+            if (!banner) return;
+            const dismissed = localStorage.getItem(DISMISSED_KEY);
+            if (dismissed && (Date.now() - Number(dismissed)) < 7 * 24 * 60 * 60 * 1000) return;
+            if (localStorage.getItem(INSTALLED_KEY)) return;
+            if (window.matchMedia('(display-mode: standalone)').matches) return;
+            if (window.navigator.standalone === true) return;
+            setTimeout(() => { banner.classList.add('visible'); }, 3000);
+        }
+        function hideBanner() {
+            if (banner) banner.classList.remove('visible');
+        }
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showBanner();
+        });
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        if (isIOS && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)) showBanner();
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                    if (outcome === 'accepted') { localStorage.setItem(INSTALLED_KEY, '1'); hideBanner(); }
+                } else if (isIOS) {
+                    alert('On iOS: tap the Share button (↗) then "Add to Home Screen"');
+                    hideBanner();
+                }
+            });
+        }
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+                localStorage.setItem(DISMISSED_KEY, String(Date.now()));
+                hideBanner();
+            });
+        }
+        window.addEventListener('appinstalled', () => {
+            localStorage.setItem(INSTALLED_KEY, '1');
+            hideBanner();
+        });
+    })();
     </script>
 </body>
 </html>

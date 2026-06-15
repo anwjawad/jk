@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MedSched Panel</title>
     <meta name="description" content="AVH / LWF Clinical Scheduler & Patient Admissions">
-    <meta name="theme-color" content="#0f766e">
+    <meta name="theme-color" content="#0d9488">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -43,8 +43,8 @@
         </div>
         <ul class="sidebar-menu">
             <li id="menu-dashboard" class="active">
-                <a onclick="switchTab('dashboard')">
-                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none">
+                <a href="javascript:;" onclick="switchTab('dashboard')" tabindex="0" aria-label="Dashboard">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true">
                         <rect x="3" y="3" width="7" height="9" rx="1"/>
                         <rect x="14" y="3" width="7" height="5" rx="1"/>
                         <rect x="14" y="12" width="7" height="9" rx="1"/>
@@ -54,16 +54,16 @@
                 </a>
             </li>
             <li id="menu-portcath">
-                <a onclick="switchTab('portcath')">
-                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none">
+                <a href="javascript:;" onclick="switchTab('portcath')" tabindex="0" aria-label="Port Cath List">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true">
                         <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                     </svg>
                     <span>Port Cath List</span>
                 </a>
             </li>
             <li id="menu-admissions">
-                <a onclick="switchTab('admissions')">
-                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none">
+                <a href="javascript:;" onclick="switchTab('admissions')" tabindex="0" aria-label="Planned Admissions">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                         <circle cx="9" cy="7" r="4"/>
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -72,16 +72,16 @@
                 </a>
             </li>
             <li id="menu-followup">
-                <a onclick="switchTab('followup')">
-                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                <a href="javascript:;" onclick="switchTab('followup')" tabindex="0" aria-label="WhatsApp and Call Follow-up">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" aria-hidden="true">
                         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                     </svg>
                     <span>WhatsApp & Call</span>
                 </a>
             </li>
             <li id="menu-tumorboard">
-                <a onclick="switchTab('tumorboard')">
-                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                <a href="javascript:;" onclick="switchTab('tumorboard')" tabindex="0" aria-label="Tumor Board Follow-up">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" aria-hidden="true">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                     </svg>
@@ -89,8 +89,8 @@
                 </a>
             </li>
             <li id="menu-import">
-                <a onclick="switchTab('import')">
-                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none">
+                <a href="javascript:;" onclick="switchTab('import')" tabindex="0" aria-label="Smart Import">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                     </svg>
                     <span>Smart Import</span>
@@ -100,17 +100,17 @@
 
         <!-- Clinic Appointments subtle link -->
         <div style="padding: 4px 12px 12px;">
-            <a href="clinic-appointments.html" title="Clinic Appointments Calendar" style="display:flex;align-items:center;gap:9px;padding:9px 14px;border-radius:8px;text-decoration:none;color:#64748b;font-size:0.82rem;font-weight:500;transition:all 0.2s;border:1px dashed rgba(148,163,184,0.2);" onmouseover="this.style.background='rgba(139,92,246,0.08)';this.style.color='#a78bfa';this.style.borderColor='rgba(139,92,246,0.3)';" onmouseout="this.style.background='';this.style.color='#64748b';this.style.borderColor='rgba(148,163,184,0.2)';">
-                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:15px;height:15px;flex-shrink:0;stroke-width:2;"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg>
+            <a href="clinic-appointments.html" class="sidebar-clinic-link" aria-label="Clinic Appointments Calendar (opens in same tab)">
+                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg>
                 <span>Clinic Appointments</span>
-                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:12px;height:12px;margin-left:auto;opacity:.5;stroke-width:2;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" class="ext-icon" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
             </a>
         </div>
 
         <div class="sidebar-footer">
             <span class="app-version">v1.0.0</span>
             <div id="sync-status-indicator" class="sync-status-pill" title="Google Sheets sync status">Offline</div>
-            <button class="theme-toggle-btn" onclick="toggleDarkMode()" title="Toggle Dark/Light Mode">
+            <button class="theme-toggle-btn" onclick="toggleDarkMode()" title="Toggle Dark/Light Mode" aria-label="Toggle dark/light mode">
                 <svg viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.46 5.05L5.75 4.343a1 1 0 10-1.414 1.414l.707.707zm1.414 8.486a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 011.414-1.414l.707.707zM6 11a1 1 0 100-2H5a1 1 0 100 2h1z" clip-rule="evenodd" />
                 </svg>
@@ -167,7 +167,9 @@
                         <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('admissions')">Print Admissions</button>
                         <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('followup')">Print Follow-up</button>
                         <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('tumorboard')">Print Tumor Board</button>
-                        <button class="btn btn-icon" onclick="closeDayWorkspace()">✕</button>
+                        <button class="btn btn-icon" onclick="closeDayWorkspace()" aria-label="Close day workspace">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px;height:16px;stroke-width:2.5;" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        </button>
                     </div>
                 </div>
                 <div id="workspace-body"></div>
@@ -476,8 +478,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modal-edit-title">Edit Patient Information</h3>
-                <button class="modal-close" onclick="closeEditModal()">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button class="modal-close" onclick="closeEditModal()" aria-label="Close dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div class="modal-body" id="modal-edit-body">
@@ -495,8 +497,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Print Settings</h3>
-                <button class="modal-close" onclick="closePrintModal()">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button class="modal-close" onclick="closePrintModal()" aria-label="Close print options">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div class="modal-body">
@@ -548,8 +550,8 @@
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3>Add New Port Cath Patient</h3>
-                <button class="modal-close" onclick="closeAddModal('portcath')">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button class="modal-close" onclick="closeAddModal('portcath')" aria-label="Close add patient dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div class="modal-body">
@@ -589,8 +591,8 @@
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <h3>Add Admission Details</h3>
-                <button class="modal-close" onclick="closeAddModal('admissions')">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button class="modal-close" onclick="closeAddModal('admissions')" aria-label="Close add admission dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div class="modal-body">
@@ -699,8 +701,8 @@
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3>Add Follow-up Case</h3>
-                <button class="modal-close" onclick="closeAddModal('followup')">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button class="modal-close" onclick="closeAddModal('followup')" aria-label="Close add follow-up dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div class="modal-body">
@@ -738,8 +740,8 @@
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3>Add Tumor Board Patient</h3>
-                <button class="modal-close" onclick="closeAddModal('tumorboard')">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button class="modal-close" onclick="closeAddModal('tumorboard')" aria-label="Close add tumor board dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div class="modal-body">
@@ -779,8 +781,8 @@
         <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
                 <h3>Import Patients from Word Document (Tumor Board)</h3>
-                <button class="modal-close" onclick="closeImportWordModal()">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button class="modal-close" onclick="closeImportWordModal()" aria-label="Close import dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
@@ -837,8 +839,8 @@
         <div class="modal-content" style="max-width: 1050px; width: 95%;">
             <div class="modal-header">
                 <h3>Patient Clinical Profile & Task Follow-ups</h3>
-                <button class="modal-close" onclick="closePatientProfileModal()">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button class="modal-close" onclick="closePatientProfileModal()" aria-label="Close patient profile">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div class="modal-body">
@@ -897,7 +899,7 @@
                             <h4 style="margin-bottom: 10px;">Add New Follow-up Task</h4>
                             <div style="display: grid; grid-template-columns: 200px 1fr auto; gap: 12px; align-items: end; flex-wrap: wrap;">
                                 <div class="form-group" style="margin: 0;">
-                                    <label class="form-label">Task Type *</label>
+                                    <label class="form-label" for="prof-add-task-type">Task Type *</label>
                                     <select id="prof-add-task-type" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;" onchange="toggleProfileTaskFields()">
                                         <option value="referral_followup" selected>متابعة تحويلة (Referral Follow-up)</option>
                                         <option value="referral_submit">تقديم تحويلة (Submit Referral)</option>
@@ -912,23 +914,23 @@
                                 <!-- Clinic Booking Fields -->
                                 <div id="prof-task-clinic-fields" style="display: none; grid-template-columns: 1fr 1fr; gap: 8px;">
                                     <div class="form-group" style="margin: 0;">
-                                        <label class="form-label">Clinic Type</label>
+                                        <label class="form-label" for="prof-task-clinic-type">Clinic Type</label>
                                         <input type="text" id="prof-task-clinic-type" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;" placeholder="e.g. Oncology">
                                     </div>
                                     <div class="form-group" style="margin: 0;">
-                                        <label class="form-label">Clinic Date</label>
+                                        <label class="form-label" for="prof-task-clinic-date">Clinic Date</label>
                                         <input type="date" id="prof-task-clinic-date" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;">
                                     </div>
                                 </div>
 
                                 <!-- Other custom follow-up field -->
                                 <div id="prof-task-other-fields" style="display: none; margin: 0;" class="form-group">
-                                    <label class="form-label">Follow-up Title</label>
+                                    <label class="form-label" for="prof-task-other-title">Follow-up Title</label>
                                     <input type="text" id="prof-task-other-title" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;" placeholder="Enter custom follow-up...">
                                 </div>
 
                                 <div class="form-group" style="margin: 0; flex-grow: 1;">
-                                    <label class="form-label">Notes / Instructions</label>
+                                    <label class="form-label" for="prof-add-task-notes">Notes / Instructions</label>
                                     <input type="text" id="prof-add-task-notes" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;" placeholder="Add specific task notes...">
                                 </div>
 
@@ -953,8 +955,8 @@
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3>Select Follow-ups to Print</h3>
-                <button class="modal-close" onclick="closePrintProfileSettingsModal()">
-                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <button class="modal-close" onclick="closePrintProfileSettingsModal()" aria-label="Close print settings">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             <div class="modal-body">
@@ -1034,17 +1036,22 @@
         <div class="modal-content" style="max-width:420px">
             <div class="modal-header">
                 <h3>Export Report</h3>
-                <button class="modal-close-btn" onclick="closePreparedByModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;">✕</button>
+                <button class="modal-close-btn modal-close" onclick="closePreparedByModal()" aria-label="Close export dialog">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:20px;height:20px;stroke-width:2;" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Prepared By (Coordinator Name)</label>
-                    <input id="prepared-by-input" type="text" class="form-control" placeholder="Enter your name">
+                    <label for="prepared-by-input" class="form-label">Prepared By (Coordinator Name)</label>
+                    <input id="prepared-by-input" type="text" class="form-control" placeholder="Enter your name" autocomplete="name">
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closePreparedByModal()">Cancel</button>
-                <button class="btn btn-secondary" onclick="submitReportExport('print')">🖨 Print</button>
+                <button class="btn btn-secondary" onclick="submitReportExport('print')">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                    Print
+                </button>
                 <button class="btn btn-primary" onclick="submitReportExport('pdf')">Export PDF</button>
                 <button class="btn btn-primary" onclick="submitReportExport('word')">Export Word (.doc)</button>
             </div>
@@ -1062,6 +1069,140 @@
 
     <script src="sync.js"></script>
     <script src="app.js"></script>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" role="complementary" aria-label="Install MedSched app">
+        <div class="pwa-banner-icon">
+            <img src="icons/icon-192.png" alt="MedSched icon" width="52" height="52">
+        </div>
+        <div class="pwa-banner-text">
+            <div class="pwa-banner-title">Install MedSched Panel</div>
+            <div class="pwa-banner-sub">Works offline &bull; Fast &bull; No browser bar</div>
+            <div class="pwa-device-chips">
+                <span class="pwa-chip">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+                    Mobile
+                </span>
+                <span class="pwa-chip">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                    Desktop
+                </span>
+                <span class="pwa-chip">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+                    Tablet
+                </span>
+            </div>
+        </div>
+        <div class="pwa-banner-actions">
+            <button class="pwa-install-btn" id="pwa-install-btn" aria-label="Install MedSched as an app">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Install
+            </button>
+            <button class="pwa-dismiss-btn" id="pwa-dismiss-btn" aria-label="Dismiss install prompt">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- PWA & Service Worker Script -->
+    <script>
+    (function () {
+        'use strict';
+
+        // ── Service Worker registration ──────────────────────────────────────
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .catch(err => console.warn('SW registration failed:', err));
+            });
+        }
+
+        // ── Install banner logic ─────────────────────────────────────────────
+        const DISMISSED_KEY = 'medsched_pwa_dismissed';
+        const INSTALLED_KEY = 'medsched_pwa_installed';
+        let deferredPrompt = null;
+        const banner  = document.getElementById('pwa-install-banner');
+        const installBtn = document.getElementById('pwa-install-btn');
+        const dismissBtn = document.getElementById('pwa-dismiss-btn');
+
+        function showBanner() {
+            if (!banner) return;
+            // Don't show if already dismissed within 7 days or already installed
+            const dismissed = localStorage.getItem(DISMISSED_KEY);
+            if (dismissed && (Date.now() - Number(dismissed)) < 7 * 24 * 60 * 60 * 1000) return;
+            if (localStorage.getItem(INSTALLED_KEY)) return;
+            // Don't show if already running as standalone (installed)
+            if (window.matchMedia('(display-mode: standalone)').matches) return;
+            if (window.navigator.standalone === true) return;
+
+            setTimeout(() => {
+                banner.classList.add('visible');
+                banner.removeAttribute('aria-hidden');
+            }, 3000);
+        }
+
+        function hideBanner() {
+            if (!banner) return;
+            banner.classList.remove('visible');
+            banner.setAttribute('aria-hidden', 'true');
+        }
+
+        // Capture the beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showBanner();
+        });
+
+        // On iOS/Safari (no beforeinstallprompt), still show banner after delay
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        if (isIOS && isSafari) {
+            showBanner();
+        }
+
+        // Install button click
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                    if (outcome === 'accepted') {
+                        localStorage.setItem(INSTALLED_KEY, '1');
+                        hideBanner();
+                    }
+                } else if (isIOS) {
+                    // Show iOS instructions toast
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(
+                            'On iOS: tap the Share button (↗) then "Add to Home Screen"',
+                            'info', 6000
+                        );
+                    }
+                    hideBanner();
+                }
+            });
+        }
+
+        // Dismiss button
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+                localStorage.setItem(DISMISSED_KEY, String(Date.now()));
+                hideBanner();
+            });
+        }
+
+        // Hide if app installed successfully
+        window.addEventListener('appinstalled', () => {
+            localStorage.setItem(INSTALLED_KEY, '1');
+            hideBanner();
+            if (typeof window.showToast === 'function') {
+                window.showToast('MedSched installed successfully!', 'success');
+            }
+        });
+    })();
+    </script>
 </body>
 </html>
 
