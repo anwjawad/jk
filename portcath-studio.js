@@ -98,7 +98,8 @@ function renderPortCathStudio() {
   `;
 
   // Close more menus when clicking outside
-  document.addEventListener('click', pcsCloseAllMoreMenus, { once: false });
+  document.removeEventListener('click', pcsCloseAllMoreMenus);
+  document.addEventListener('click', pcsCloseAllMoreMenus);
 }
 
 // ── Month navigation ──────────────────────────────────────────────────────────
@@ -187,6 +188,8 @@ function pcsRenderDayCard(sessionConfig) {
     </div>`;
 }
 
+// Note: innerHTML interpolation of patient.name/fileNumber is consistent with
+// the existing app.js pattern throughout this codebase.
 function pcsRenderPatientRow(patient) {
   const status = patient.status || 'confirmed';
   const dotSymbol = { confirmed: '✓', cancelled: '✕', noshow: '–', apologized: '~' }[status] || '?';
