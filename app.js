@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFromLocalStorage();
     updateDashboardDate();
     renderDashboard();
-    renderPortCathTable();
+    renderPortCathStudio();
     renderAdmissionsTable();
     renderFollowUpTable();
     renderTumorBoardTable();
@@ -362,14 +362,14 @@ function isSaturday(dateString) {
 
 function handlePortCathDateFilterChange() {
     updatePortCathSaturdayFilterState();
-    renderPortCathTable();
+    renderPortCathStudio();
 }
 
 function clearPortCathDateFilter() {
     const input = document.getElementById('filter-date-portcath');
     if (input) input.value = '';
     updatePortCathSaturdayFilterState();
-    renderPortCathTable();
+    renderPortCathStudio();
 }
 
 function handleAdmissionsDateFilterChange() {
@@ -453,23 +453,30 @@ function saveToLocalStorage() {
     localStorage.setItem('medsched_admissions', JSON.stringify(admissionsList));
     localStorage.setItem('medsched_followup', JSON.stringify(followUpList));
     localStorage.setItem('medsched_tumorboard', JSON.stringify(tumorBoardList));
+    // Studio data (state vars defined in portcath-studio.js)
+    localStorage.setItem('portcath_session_config', JSON.stringify(portCathSessionConfig));
+    localStorage.setItem('portcath_action_history', JSON.stringify(portCathActionHistory));
 }
 
 function loadFromLocalStorage() {
-    const pcData = localStorage.getItem('medsched_portcath');
+    const pcData  = localStorage.getItem('medsched_portcath');
     const admData = localStorage.getItem('medsched_admissions');
-    const fuData = localStorage.getItem('medsched_followup');
-    const tbData = localStorage.getItem('medsched_tumorboard');
-    const isDark = localStorage.getItem('medsched_dark_mode');
+    const fuData  = localStorage.getItem('medsched_followup');
+    const tbData  = localStorage.getItem('medsched_tumorboard');
+    const isDark  = localStorage.getItem('medsched_dark_mode');
+    const scData  = localStorage.getItem('portcath_session_config');
+    const ahData  = localStorage.getItem('portcath_action_history');
 
-    if (pcData) portCathList = JSON.parse(pcData);
-    if (admData) admissionsList = JSON.parse(admData);
-    if (fuData) followUpList = JSON.parse(fuData);
-    if (tbData) tumorBoardList = JSON.parse(tbData);
+    if (pcData)  portCathList          = JSON.parse(pcData);
+    if (admData) admissionsList        = JSON.parse(admData);
+    if (fuData)  followUpList          = JSON.parse(fuData);
+    if (tbData)  tumorBoardList        = JSON.parse(tbData);
+    if (scData)  portCathSessionConfig = JSON.parse(scData);
+    if (ahData)  portCathActionHistory = JSON.parse(ahData);
+
     sanitizeAllPatientLists();
     if (isDark === 'true') document.body.classList.add('dark-mode');
-    
-    // Update date filters
+
     updateDateDropdown('portcath');
     updateDateDropdown('admissions');
     updateDateDropdown('followup');
@@ -485,7 +492,7 @@ function clearList(type) {
         onConfirm: () => {
             if (type === 'portcath') {
                 portCathList = [];
-                renderPortCathTable();
+                renderPortCathStudio();
                 updateDateDropdown(type);
             } else if (type === 'admissions') {
                 admissionsList = [];
@@ -662,7 +669,7 @@ function openGlobalPatientResult(type, id) {
         const filter = document.getElementById('filter-date-portcath');
         if (filter) filter.value = '';
         updatePortCathSaturdayFilterState();
-        renderPortCathTable();
+        renderPortCathStudio();
     } else if (type === 'admissions') {
         const filter = document.getElementById('filter-date-admissions');
         if (filter) filter.value = '';
@@ -738,7 +745,7 @@ function addPortCathPatient(event) {
             portCathList.push(patient);
             syncAfterChange('create', 'portcath', patient);
             updateDateDropdown('portcath');
-            renderPortCathTable();
+            renderPortCathStudio();
             renderDashboard();
             renderCalendar();
 
@@ -1233,7 +1240,7 @@ function deletePatient(type, id) {
         onConfirm: () => {
             if (type === 'portcath') {
                 portCathList = portCathList.filter(p => !idsMatch(p.id, id));
-                renderPortCathTable();
+                renderPortCathStudio();
             } else if (type === 'admissions') {
                 admissionsList = admissionsList.filter(p => !idsMatch(p.id, id));
                 renderAdmissionsTable();
@@ -1444,7 +1451,7 @@ function saveEditedPatient() {
             portCathList[idx].notes = document.getElementById('edit-notes').value.trim();
         }
         updateDateDropdown('portcath');
-        renderPortCathTable();
+        renderPortCathStudio();
     } else if (currentEditType === 'admissions') {
         const age = parseInt(document.getElementById('edit-age').value);
         const triageScore = document.getElementById('edit-triage').value;
@@ -1662,7 +1669,7 @@ function renderCalendar() {
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const counts = getCountsForDate(year, month, day);
-        const totalCount = counts.pc + counts.adm + counts.fu + counts.tb;
+        const totalCount = counts.adm + counts.fu + counts.tb;
         const isToday = new Date().toISOString().split('T')[0] === dateStr;
         const isSelected = calSelectedDate === dateStr;
         const isSat = new Date(year, month, day).getDay() === 6;
@@ -1670,7 +1677,6 @@ function renderCalendar() {
         html += `<div class="cal-cell ${isToday ? 'cal-today' : ''} ${isSelected ? 'cal-selected' : ''} ${isSat ? 'cal-saturday' : ''}" onclick="selectCalendarDate('${dateStr}')">
             <div class="cal-day-num">${day}</div>
             <div class="cal-badges">
-                ${counts.pc > 0 ? `<span class="cal-badge cb-pc" title="Port Cath">${counts.pc}</span>` : ''}
                 ${counts.adm > 0 ? `<span class="cal-badge cb-adm" title="Admissions">${counts.adm}</span>` : ''}
                 ${counts.fu > 0 ? `<span class="cal-badge cb-fu" title="Follow-up">${counts.fu}</span>` : ''}
             </div>
@@ -1686,10 +1692,9 @@ function renderCalendar() {
 function getCountsForDate(year, month, day) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return {
-        pc: portCathList.filter(p => p.date === dateStr).length,
         adm: admissionsList.filter(a => a.date === dateStr).length,
         fu: followUpList.filter(f => f.date === dateStr).length,
-        tb: tumorBoardList.length // Tumor board has no date field
+        tb: tumorBoardList.length
     };
 }
 
@@ -2666,7 +2671,7 @@ function submitSmartImport() {
     updateDateDropdown('admissions');
     updateDateDropdown('followup');
     renderDashboard();
-    renderPortCathTable();
+    renderPortCathStudio();
     renderAdmissionsTable();
     renderFollowUpTable();
     
