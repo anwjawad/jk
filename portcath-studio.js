@@ -385,7 +385,8 @@ function pcsToggleDay(dateStr) {
       id: Date.now().toString(),
       date: dateStr,
       isActive: true,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      _isNew: true
     });
   } else if (existing.isActive) {
     existing.isActive = false;
@@ -398,7 +399,9 @@ function pcsToggleDay(dateStr) {
 function pcsSaveConfig() {
   saveToLocalStorage();
   portCathSessionConfig.forEach(c => {
-    syncAfterChange(c.isActive ? 'create' : 'update', 'portcath-session-config', c);
+    const action = c._isNew ? 'create' : 'update';
+    syncAfterChange(action, 'portcath-session-config', c);
+    delete c._isNew;
   });
   pcsCloseConfig();
   renderPortCathStudio();
