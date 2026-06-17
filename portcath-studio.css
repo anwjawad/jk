@@ -17,10 +17,10 @@
   --pcs-green-dim: rgba(24,167,122,0.12);
   --pcs-red:       #D95050;
   --pcs-red-dim:   rgba(217,80,80,0.1);
-  --pcs-blue-hi:   var(--pcs-blue-hi);
-  --pcs-green-hi:  var(--pcs-green-hi);
-  --pcs-yellow-hi: var(--pcs-yellow-hi);
-  --pcs-red-hi:    var(--pcs-red-hi);
+  --pcs-blue-hi:   #93B8FF;
+  --pcs-green-hi:  #5FD4AE;
+  --pcs-yellow-hi: #FDE047;
+  --pcs-red-hi:    #F09090;
   --pcs-ease:      cubic-bezier(0.16, 1, 0.3, 1);
   font-family: 'Outfit', system-ui, sans-serif;
   background: var(--pcs-bg);
