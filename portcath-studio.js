@@ -254,8 +254,153 @@ function pcsCloseAllMoreMenus() {
 }
 
 // ── Stubs for handlers defined in later tasks ─────────────────────────────────
-function pcsOpenConfig()                   { /* implemented in Task 4 */ }
+// pcsOpenConfig defined below in Session Config section
 function pcsOpenMoveModal(patientId)       { /* implemented in Task 5 */ }
 function pcsOpenActionModal(patientId, a)  { /* implemented in Task 6 */ }
 function pcsEditPatient(patientId)         { openEditModal('portcath', patientId); }
 function pcsPrint()                        { /* implemented in Task 9 */ }
+
+// ── Session Config ────────────────────────────────────────────────────────────
+let _pcsConfigYear  = new Date().getFullYear();
+let _pcsConfigMonth = new Date().getMonth();
+
+function pcsOpenConfig() {
+  _pcsConfigYear  = pcStudioYear;
+  _pcsConfigMonth = pcStudioMonth;
+  const overlay = document.getElementById('pcs-config-overlay');
+  if (overlay) overlay.classList.add('active');
+  pcsRenderConfigCalendar();
+}
+
+function pcsCloseConfig() {
+  const overlay = document.getElementById('pcs-config-overlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+function pcsConfigNavigateMonth(delta) {
+  _pcsConfigMonth += delta;
+  if (_pcsConfigMonth < 0)  { _pcsConfigMonth = 11; _pcsConfigYear--; }
+  if (_pcsConfigMonth > 11) { _pcsConfigMonth = 0;  _pcsConfigYear++; }
+  pcsRenderConfigCalendar();
+}
+
+function pcsRenderConfigCalendar() {
+  const inner = document.getElementById('pcs-config-inner');
+  if (!inner) return;
+
+  const year  = _pcsConfigYear;
+  const month = _pcsConfigMonth;
+  const m1    = month + 1;
+  const prefix = `${year}-${String(m1).padStart(2,'0')}-`;
+
+  const activeDays    = portCathSessionConfig.filter(c => c.date.startsWith(prefix) && c.isActive).length;
+  const cancelledDays = portCathSessionConfig.filter(c => c.date.startsWith(prefix) && !c.isActive).length;
+
+  const firstDOW    = new Date(`${year}-${String(m1).padStart(2,'0')}-01`).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  let cells = '';
+  for (let i = 0; i < firstDOW; i++) {
+    cells += `<div class="pcs-cal-day empty"></div>`;
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = pcsDateStr(year, m1, d);
+    const conf = portCathSessionConfig.find(c => c.date === dateStr);
+    let cls = 'inactive';
+    if (conf) cls = conf.isActive ? 'active' : 'cancelled-day';
+    const count = pcsPatientsOnDate(dateStr).length;
+    const countLabel = count > 0 ? `${count} م` : '';
+    const delay = (firstDOW + d - 1) * 16;
+    cells += `
+      <div class="pcs-cal-day ${cls}" data-date="${dateStr}"
+           style="animation-delay:${delay}ms"
+           onclick="pcsToggleDay('${dateStr}')">
+        <span class="pcs-dn">${d}</span>
+        <span class="pcs-dc">${countLabel}</span>
+      </div>`;
+  }
+
+  inner.innerHTML = `
+    <div class="pcs-config-shell">
+      <aside class="pcs-config-rail">
+        <div class="pcs-eyebrow" style="font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--pcs-blue);margin-bottom:10px;">Port Cath Studio</div>
+        <h2 style="font-size:1.3rem;font-weight:800;letter-spacing:-0.025em;color:var(--pcs-txt);margin-bottom:8px;line-height:1.2;">إعداد<br/>الجلسات</h2>
+        <p style="font-size:0.75rem;color:var(--pcs-txt-2);line-height:1.6;margin-bottom:24px;">حدد أيام Port Cath لكل شهر. عدد المرضى يظهر في كل يوم تلقائياً.</p>
+        <div class="pcs-stat-list">
+          <div class="pcs-stat-row">
+            <div class="pcs-stat-pip blue"></div>
+            <span class="pcs-stat-lbl">أيام نشطة</span>
+            <span class="pcs-stat-val">${activeDays}</span>
+          </div>
+          <div class="pcs-stat-row">
+            <div class="pcs-stat-pip red"></div>
+            <span class="pcs-stat-lbl">أيام ملغاة</span>
+            <span class="pcs-stat-val">${cancelledDays}</span>
+          </div>
+        </div>
+        <div class="pcs-legend">
+          <div class="pcs-legend-item"><div class="pcs-ldot a"></div>يوم جلسة نشط</div>
+          <div class="pcs-legend-item"><div class="pcs-ldot c"></div>ملغي</div>
+          <div class="pcs-legend-item"><div class="pcs-ldot n"></div>غير محدد</div>
+        </div>
+      </aside>
+      <main>
+        <div class="pcs-cal-card">
+          <div class="pcs-cal-topbar">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button class="pcs-nav-btn" onclick="pcsConfigNavigateMonth(-1)">&#8250;</button>
+              <span class="pcs-month-label">${PCS_MONTHS_AR[month]} ${year}</span>
+              <button class="pcs-nav-btn" onclick="pcsConfigNavigateMonth(1)">&#8249;</button>
+            </div>
+            <span style="font-size:0.67rem;color:var(--pcs-txt-3)">اضغط يوم لتفعيله أو إلغائه</span>
+          </div>
+          <div class="pcs-cal-body">
+            <div class="pcs-day-hdr-row">
+              <div class="pcs-dh">أح</div><div class="pcs-dh">إث</div>
+              <div class="pcs-dh">ثل</div><div class="pcs-dh">أر</div>
+              <div class="pcs-dh">خم</div><div class="pcs-dh">جم</div>
+              <div class="pcs-dh">سب</div>
+            </div>
+            <div class="pcs-cal-grid">${cells}</div>
+            <div class="pcs-cal-hint">
+              <b>اضغط</b> على تاريخ فارغ لإضافة يوم جلسة ·
+              <b>اضغط</b> على يوم نشط لإلغائه · عدد المرضى يُحدَّث تلقائياً
+            </div>
+          </div>
+          <div class="pcs-cal-footer">
+            <button class="pcs-btn" onclick="pcsCloseConfig()">إلغاء</button>
+            <button class="pcs-btn pcs-btn-primary" onclick="pcsSaveConfig()">
+              حفظ ومزامنة
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>`;
+}
+
+function pcsToggleDay(dateStr) {
+  const existing = portCathSessionConfig.find(c => c.date === dateStr);
+  if (!existing) {
+    portCathSessionConfig.push({
+      id: Date.now().toString(),
+      date: dateStr,
+      isActive: true,
+      createdAt: new Date().toISOString()
+    });
+  } else if (existing.isActive) {
+    existing.isActive = false;
+  } else {
+    existing.isActive = true;
+  }
+  pcsRenderConfigCalendar();
+}
+
+function pcsSaveConfig() {
+  saveToLocalStorage();
+  portCathSessionConfig.forEach(c => {
+    syncAfterChange(c.isActive ? 'create' : 'update', 'portcath-session-config', c);
+  });
+  pcsCloseConfig();
+  renderPortCathStudio();
+  if (typeof showToast === 'function') showToast('تم حفظ أيام الجلسات ومزامنتها', 'success', 2600);
+}
