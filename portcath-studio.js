@@ -7,10 +7,10 @@ let portCathActionHistory = [];
 let pcStudioYear  = new Date().getFullYear();
 let pcStudioMonth = new Date().getMonth();
 
-// ── Arabic month names ────────────────────────────────────────────────────────
+// ── Month / day names ─────────────────────────────────────────────────────────
 const PCS_MONTHS_AR = [
-  'يناير','فبراير','مارس','أبريل','مايو','يونيو',
-  'يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December'
 ];
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -19,13 +19,13 @@ function pcsDateStr(year, month1, day) {
 }
 
 function pcsDayName(dateStr) {
-  const days = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   return days[new Date(dateStr + 'T00:00:00').getDay()];
 }
 
 function pcsFormatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
-  return `${pcsDayName(dateStr)}، ${d.getDate()} ${PCS_MONTHS_AR[d.getMonth()]} ${d.getFullYear()}`;
+  return `${pcsDayName(dateStr)}, ${PCS_MONTHS_AR[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 function pcsPatientsOnDate(dateStr) {
@@ -60,25 +60,25 @@ function renderPortCathStudio() {
         <div class="pcs-header">
           <div class="pcs-header-left">
             <div class="pcs-eyebrow">Port Cath Studio</div>
-            <h1>جدولة Port Cath</h1>
+            <h1>Port Cath Schedule</h1>
             <div class="pcs-subtitle">
               ${PCS_MONTHS_AR[pcStudioMonth]} ${pcStudioYear} —
-              ${activeDays} ${activeDays === 1 ? 'يوم جلسة' : 'أيام جلسات'} ·
-              ${totalPatients} مريض
+              ${activeDays} ${activeDays === 1 ? 'session day' : 'session days'} ·
+              ${totalPatients} patients
             </div>
           </div>
           <div class="pcs-header-actions">
             <button class="pcs-btn" onclick="pcsOpenConfig()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
-              إعداد الأيام
+              Configure Days
             </button>
             <button class="pcs-btn pcs-btn-primary" onclick="openAddModal('portcath')">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              إضافة مريض
+              Add Patient
             </button>
             <button class="pcs-btn" onclick="pcsPrint()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-              طباعة
+              Print
             </button>
           </div>
         </div>
@@ -122,9 +122,9 @@ function pcsRenderDayCards() {
   if (sessionDays.length === 0) {
     return `
       <div class="pcs-empty">
-        <h3>لا توجد أيام جلسات هذا الشهر</h3>
-        <p>اضغط "إعداد الأيام" لتحديد أيام Port Cath لهذا الشهر</p>
-        <button class="pcs-btn pcs-btn-primary" onclick="pcsOpenConfig()">إعداد الأيام</button>
+        <h3>No session days this month</h3>
+        <p>Click "Configure Days" to set Port Cath session days for this month.</p>
+        <button class="pcs-btn pcs-btn-primary" onclick="pcsOpenConfig()">Configure Days</button>
       </div>`;
   }
 
@@ -141,10 +141,10 @@ function pcsRenderDayCard(sessionConfig) {
   const isCancelled = !isActive;
 
   const chips = [
-    confirmed  > 0 ? `<span class="pcs-chip pcs-chip-green">${confirmed} مؤكد</span>`   : '',
-    cancelled  > 0 ? `<span class="pcs-chip pcs-chip-red">${cancelled} ملغي</span>`     : '',
-    noshow     > 0 ? `<span class="pcs-chip pcs-chip-yellow">${noshow} لم يحضر</span>`  : '',
-    apologized > 0 ? `<span class="pcs-chip pcs-chip-grey">${apologized} اعتذر</span>`  : '',
+    confirmed  > 0 ? `<span class="pcs-chip pcs-chip-green">${confirmed} Confirmed</span>`  : '',
+    cancelled  > 0 ? `<span class="pcs-chip pcs-chip-red">${cancelled} Cancelled</span>`   : '',
+    noshow     > 0 ? `<span class="pcs-chip pcs-chip-yellow">${noshow} No-Show</span>`     : '',
+    apologized > 0 ? `<span class="pcs-chip pcs-chip-grey">${apologized} Apologized</span>`: '',
   ].filter(Boolean).join('');
 
   const historyItems = portCathActionHistory
@@ -160,8 +160,8 @@ function pcsRenderDayCard(sessionConfig) {
           <div class="pcs-card-date">${pcsFormatDate(date)}</div>
           <div class="pcs-card-chips">
             ${isCancelled
-              ? `<span class="pcs-chip pcs-chip-red">يوم ملغي</span>`
-              : (chips || `<span class="pcs-chip pcs-chip-grey">لا مرضى</span>`)
+              ? `<span class="pcs-chip pcs-chip-red">Day Cancelled</span>`
+              : (chips || `<span class="pcs-chip pcs-chip-grey">No patients</span>`)
             }
           </div>
         </div>
@@ -170,18 +170,18 @@ function pcsRenderDayCard(sessionConfig) {
 
       <div class="pcs-patient-list" style="display:none">
         ${patients.length === 0
-          ? `<div style="padding:12px 16px;font-size:0.75rem;color:var(--pcs-txt-3)">لا يوجد مرضى في هذا اليوم</div>`
+          ? `<div style="padding:12px 16px;font-size:0.75rem;color:var(--text-muted)">No patients scheduled for this day.</div>`
           : patients.map(p => pcsRenderPatientRow(p)).join('')
         }
       </div>
 
       <div class="pcs-history-toggle" onclick="pcsToggleHistory('${date}')">
-        <span>السجل (${historyItems.length} حدث)</span>
+        <span>History (${historyItems.length} event${historyItems.length === 1 ? '' : 's'})</span>
         <span>▼</span>
       </div>
       <div class="pcs-history-list" id="pcs-hist-${date}" style="display:none">
         ${historyItems.length === 0
-          ? `<div style="font-size:0.7rem;color:var(--pcs-txt-3);padding:4px 0">لا توجد أحداث مسجلة</div>`
+          ? `<div style="font-size:0.7rem;color:var(--text-muted);padding:4px 0">No history recorded.</div>`
           : historyItems.map(h => pcsRenderHistoryItem(h)).join('')
         }
       </div>
@@ -197,26 +197,26 @@ function pcsRenderPatientRow(patient) {
     <div class="pcs-patient-row" data-patient-id="${patient.id}">
       <div class="pcs-status-dot ${status}">${dotSymbol}</div>
       <div class="pcs-patient-name">${patient.name}</div>
-      <div class="pcs-patient-meta">ملف ${patient.fileNumber}</div>
+      <div class="pcs-patient-meta">File # ${patient.fileNumber}</div>
       <div class="pcs-patient-actions" style="position:relative">
-        <button class="pcs-action-btn move" onclick="pcsOpenMoveModal('${patient.id}')">نقل</button>
-        <button class="pcs-action-btn cancel" onclick="pcsOpenActionModal('${patient.id}','cancel')">إلغاء</button>
+        <button class="pcs-action-btn move" onclick="pcsOpenMoveModal('${patient.id}')">Move</button>
+        <button class="pcs-action-btn cancel" onclick="pcsOpenActionModal('${patient.id}','cancel')">Cancel</button>
         <button class="pcs-action-btn more" onclick="pcsToggleMoreMenu(event,'${patient.id}')">⋯</button>
         <div class="pcs-more-menu" id="pcs-more-${patient.id}">
-          <button class="pcs-more-item" onclick="pcsOpenActionModal('${patient.id}','noshow')">عدم حضور</button>
-          <button class="pcs-more-item" onclick="pcsOpenActionModal('${patient.id}','apologize')">اعتذار</button>
-          <button class="pcs-more-item" onclick="pcsOpenActionModal('${patient.id}','restore')">استعادة</button>
-          <button class="pcs-more-item" onclick="pcsEditPatient('${patient.id}')">تعديل</button>
+          <button class="pcs-more-item" onclick="pcsOpenActionModal('${patient.id}','noshow')">No-Show</button>
+          <button class="pcs-more-item" onclick="pcsOpenActionModal('${patient.id}','apologize')">Apologize</button>
+          <button class="pcs-more-item" onclick="pcsOpenActionModal('${patient.id}','restore')">Restore</button>
+          <button class="pcs-more-item" onclick="pcsEditPatient('${patient.id}')">Edit</button>
         </div>
       </div>
     </div>`;
 }
 
 function pcsRenderHistoryItem(h) {
-  const labels = { move:'نقل', cancel:'إلغاء', noshow:'لم يحضر', apologize:'اعتذار', restore:'استعادة', add:'إضافة', edit:'تعديل' };
-  const timeStr = new Date(h.timestamp).toLocaleString('ar-SA', { dateStyle:'short', timeStyle:'short' });
+  const labels = { move:'Move', cancel:'Cancel', noshow:'No-Show', apologize:'Apologize', restore:'Restore', add:'Add', edit:'Edit' };
+  const timeStr = new Date(h.timestamp).toLocaleString('en-US', { dateStyle:'short', timeStyle:'short' });
   const desc = h.action === 'move'
-    ? `${h.patientName} — من ${h.fromDate} إلى ${h.toDate} · ${h.reason}`
+    ? `${h.patientName} — from ${h.fromDate} to ${h.toDate} · ${h.reason}`
     : `${h.patientName} · ${h.reason || ''}`;
   return `
     <div class="pcs-history-item">
@@ -259,8 +259,7 @@ function pcsOpenMoveModal(patientId)       { _pcsMoveOpen(patientId); }
 function pcsOpenActionModal(patientId, action) { _pcsActionOpen(patientId, action); }
 function pcsEditPatient(patientId)         { openEditModal('portcath', patientId); }
 function pcsPrint() {
-  const MONTH_NAMES = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-  const STATUS_AR = { confirmed:'مؤكد', cancelled:'ملغى', noshow:'لم يحضر', apologized:'اعتذر', restore:'مستعاد' };
+  const STATUS_EN = { confirmed:'Confirmed', cancelled:'Cancelled', noshow:'No-Show', apologized:'Apologized', restore:'Restored' };
 
   const activeDays = portCathSessionConfig.filter(c =>
     c.isActive && Number(c.year) === pcStudioYear && Number(c.month) === pcStudioMonth
@@ -271,37 +270,37 @@ function pcsPrint() {
     const patients = pcsPatientsOnDate(sc.date);
     const patientRows = patients.length
       ? patients.map((p, i) =>
-          `<tr><td>${i + 1}</td><td>${p.name}</td><td>${p.fileNumber}</td><td>${STATUS_AR[p.status] || p.status || ''}</td></tr>`
+          `<tr><td>${i + 1}</td><td>${p.name}</td><td>${p.fileNumber}</td><td>${STATUS_EN[p.status] || p.status || ''}</td></tr>`
         ).join('')
-      : `<tr><td colspan="4" style="color:#888;text-align:center">لا يوجد مرضى</td></tr>`;
+      : `<tr><td colspan="4" style="color:#888;text-align:center">No patients</td></tr>`;
     rows += `
       <div class="day-block">
-        <h3>${pcsFormatDate(sc.date)} — ${sc.dayOfWeek || pcsDayName(sc.date)}</h3>
-        <table><thead><tr><th>#</th><th>المريض</th><th>الملف</th><th>الحالة</th></tr></thead>
+        <h3>${pcsFormatDate(sc.date)}</h3>
+        <table><thead><tr><th>#</th><th>Patient</th><th>File #</th><th>Status</th></tr></thead>
         <tbody>${patientRows}</tbody></table>
       </div>`;
   });
 
-  if (!rows) rows = '<p style="text-align:center;color:#888">لا توجد جلسات مجدولة لهذا الشهر</p>';
+  if (!rows) rows = '<p style="text-align:center;color:#888">No sessions scheduled this month.</p>';
 
-  const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8">
-    <title>Port Cath — ${MONTH_NAMES[pcStudioMonth]} ${pcStudioYear}</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Port Cath — ${PCS_MONTHS_AR[pcStudioMonth]} ${pcStudioYear}</title>
     <style>
-      body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; font-size: 13px; }
+      body { font-family: Arial, sans-serif; padding: 20px; font-size: 13px; }
       h2 { text-align: center; margin-bottom: 16px; }
       .day-block { margin-bottom: 24px; page-break-inside: avoid; }
       h3 { font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
       table { width: 100%; border-collapse: collapse; }
-      th, td { border: 1px solid #ddd; padding: 5px 8px; text-align: right; }
+      th, td { border: 1px solid #ddd; padding: 5px 8px; text-align: left; }
       th { background: #f0f0f0; }
       @media print { body { padding: 0; } }
     </style></head><body>
-    <h2>جدول مرضى Port Cath — ${MONTH_NAMES[pcStudioMonth]} ${pcStudioYear}</h2>
+    <h2>Port Cath Schedule — ${PCS_MONTHS_AR[pcStudioMonth]} ${pcStudioYear}</h2>
     ${rows}
   </body></html>`;
 
   const printWin = window.open('', '_blank', 'width=800,height=600');
-  if (!printWin) { alert('يرجى السماح بالنوافذ المنبثقة لطباعة الجدول'); return; }
+  if (!printWin) { alert('Please allow pop-ups to print the schedule.'); return; }
   printWin.document.write(html);
   printWin.document.close();
   printWin.focus();
@@ -357,7 +356,7 @@ function pcsRenderConfigCalendar() {
     let cls = 'inactive';
     if (conf) cls = conf.isActive ? 'active' : 'cancelled-day';
     const count = pcsPatientsOnDate(dateStr).length;
-    const countLabel = count > 0 ? `${count} م` : '';
+    const countLabel = count > 0 ? `${count}` : '';
     const delay = (firstDOW + d - 1) * 16;
     cells += `
       <div class="pcs-cal-day ${cls}" data-date="${dateStr}"
@@ -372,24 +371,24 @@ function pcsRenderConfigCalendar() {
     <div class="pcs-config-shell">
       <aside class="pcs-config-rail">
         <div class="pcs-eyebrow" style="font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--pcs-blue);margin-bottom:10px;">Port Cath Studio</div>
-        <h2 style="font-size:1.3rem;font-weight:800;letter-spacing:-0.025em;color:var(--pcs-txt);margin-bottom:8px;line-height:1.2;">إعداد<br/>الجلسات</h2>
-        <p style="font-size:0.75rem;color:var(--pcs-txt-2);line-height:1.6;margin-bottom:24px;">حدد أيام Port Cath لكل شهر. عدد المرضى يظهر في كل يوم تلقائياً.</p>
+        <h2 style="font-size:1.3rem;font-weight:800;letter-spacing:-0.025em;color:var(--text-main);margin-bottom:8px;line-height:1.2;">Configure<br/>Sessions</h2>
+        <p style="font-size:0.75rem;color:var(--text-muted);line-height:1.6;margin-bottom:24px;">Select Port Cath session days for each month. Patient counts update automatically.</p>
         <div class="pcs-stat-list">
           <div class="pcs-stat-row">
             <div class="pcs-stat-pip blue"></div>
-            <span class="pcs-stat-lbl">أيام نشطة</span>
+            <span class="pcs-stat-lbl">Active days</span>
             <span class="pcs-stat-val">${activeDays}</span>
           </div>
           <div class="pcs-stat-row">
             <div class="pcs-stat-pip red"></div>
-            <span class="pcs-stat-lbl">أيام ملغاة</span>
+            <span class="pcs-stat-lbl">Cancelled days</span>
             <span class="pcs-stat-val">${cancelledDays}</span>
           </div>
         </div>
         <div class="pcs-legend">
-          <div class="pcs-legend-item"><div class="pcs-ldot a"></div>يوم جلسة نشط</div>
-          <div class="pcs-legend-item"><div class="pcs-ldot c"></div>ملغي</div>
-          <div class="pcs-legend-item"><div class="pcs-ldot n"></div>غير محدد</div>
+          <div class="pcs-legend-item"><div class="pcs-ldot a"></div>Active session</div>
+          <div class="pcs-legend-item"><div class="pcs-ldot c"></div>Cancelled</div>
+          <div class="pcs-legend-item"><div class="pcs-ldot n"></div>Unset</div>
         </div>
       </aside>
       <main>
@@ -400,25 +399,25 @@ function pcsRenderConfigCalendar() {
               <span class="pcs-month-label">${PCS_MONTHS_AR[month]} ${year}</span>
               <button class="pcs-nav-btn" onclick="pcsConfigNavigateMonth(1)">&#8249;</button>
             </div>
-            <span style="font-size:0.67rem;color:var(--pcs-txt-3)">اضغط يوم لتفعيله أو إلغائه</span>
+            <span style="font-size:0.67rem;color:var(--text-muted)">Click a day to toggle it</span>
           </div>
           <div class="pcs-cal-body">
             <div class="pcs-day-hdr-row">
-              <div class="pcs-dh">أح</div><div class="pcs-dh">إث</div>
-              <div class="pcs-dh">ثل</div><div class="pcs-dh">أر</div>
-              <div class="pcs-dh">خم</div><div class="pcs-dh">جم</div>
-              <div class="pcs-dh">سب</div>
+              <div class="pcs-dh">Sun</div><div class="pcs-dh">Mon</div>
+              <div class="pcs-dh">Tue</div><div class="pcs-dh">Wed</div>
+              <div class="pcs-dh">Thu</div><div class="pcs-dh">Fri</div>
+              <div class="pcs-dh">Sat</div>
             </div>
             <div class="pcs-cal-grid">${cells}</div>
             <div class="pcs-cal-hint">
-              <b>اضغط</b> على تاريخ فارغ لإضافة يوم جلسة ·
-              <b>اضغط</b> على يوم نشط لإلغائه · عدد المرضى يُحدَّث تلقائياً
+              <b>Click</b> an empty date to add a session day ·
+              <b>Click</b> an active day to cancel it · Patient counts update automatically
             </div>
           </div>
           <div class="pcs-cal-footer">
-            <button class="pcs-btn" onclick="pcsCloseConfig()">إلغاء</button>
+            <button class="pcs-btn" onclick="pcsCloseConfig()">Cancel</button>
             <button class="pcs-btn pcs-btn-primary" onclick="pcsSaveConfig()">
-              حفظ ومزامنة
+              Save &amp; Sync
             </button>
           </div>
         </div>
@@ -453,7 +452,7 @@ function pcsSaveConfig() {
   });
   pcsCloseConfig();
   renderPortCathStudio();
-  if (typeof showToast === 'function') showToast('تم حفظ أيام الجلسات ومزامنتها', 'success', 2600);
+  if (typeof showToast === 'function') showToast('Session days saved and synced.', 'success', 2600);
 }
 
 // ── Move Workflow ─────────────────────────────────────────────────────────────
@@ -465,11 +464,11 @@ function _pcsMoveOpen(patientId) {
   _pcsMovePatientId = patientId;
 
   document.getElementById('pcs-move-patient-info').textContent =
-    `${patient.name} · ملف ${patient.fileNumber}`;
+    `${patient.name} · File # ${patient.fileNumber}`;
 
   const today  = new Date().toISOString().split('T')[0];
   const select = document.getElementById('pcs-move-date-select');
-  select.innerHTML = `<option value="">اختر يوم الجلسة</option>`;
+  select.innerHTML = `<option value="">Select session day</option>`;
   portCathSessionConfig
     .filter(c => c.isActive && c.date !== patient.date && c.date >= today)
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -500,7 +499,7 @@ function pcsConfirmMove() {
   const errEl = document.getElementById('pcs-move-reason-err');
   if (reason.length < 3) { errEl.classList.add('visible'); return; }
   errEl.classList.remove('visible');
-  if (!toDate) { if (typeof showToast === 'function') showToast('يرجى اختيار تاريخ الوجهة', 'warning', 3000); return; }
+  if (!toDate) { if (typeof showToast === 'function') showToast('Please select a destination date.', 'warning', 3000); return; }
 
   const fromDate = patient.date;
 
@@ -532,15 +531,15 @@ function pcsConfirmMove() {
   pcsCloseMoveModal();
   renderPortCathStudio();
   if (typeof showToast === 'function')
-    showToast(`تم نقل ${patient.name} إلى ${pcsFormatDate(toDate)}`, 'success', 3000);
+    showToast(`${patient.name} moved to ${pcsFormatDate(toDate)}`, 'success', 3000);
 }
 
 // ── Status Actions (cancel / noshow / apologize / restore) ────────────────────
 const PCS_ACTION_LABELS = {
-  cancel:    { title: 'إلغاء الموعد',    newStatus: 'cancelled'  },
-  noshow:    { title: 'تسجيل عدم حضور', newStatus: 'noshow'     },
-  apologize: { title: 'تسجيل اعتذار',   newStatus: 'apologized' },
-  restore:   { title: 'استعادة الموعد', newStatus: 'confirmed'  }
+  cancel:    { title: 'Cancel Appointment', newStatus: 'cancelled'  },
+  noshow:    { title: 'Record No-Show',     newStatus: 'noshow'     },
+  apologize: { title: 'Record Apology',     newStatus: 'apologized' },
+  restore:   { title: 'Restore Appointment',newStatus: 'confirmed'  }
 };
 
 let _pcsActionPatientId = null;
@@ -555,7 +554,7 @@ function _pcsActionOpen(patientId, action) {
 
   document.getElementById('pcs-action-title').textContent = PCS_ACTION_LABELS[action].title;
   document.getElementById('pcs-action-patient-info').textContent =
-    `${patient.name} · ملف ${patient.fileNumber} · ${pcsFormatDate(patient.date)}`;
+    `${patient.name} · File # ${patient.fileNumber} · ${pcsFormatDate(patient.date)}`;
   document.getElementById('pcs-action-reason').value = '';
   document.getElementById('pcs-action-reason-err').classList.remove('visible');
   document.getElementById('pcs-action-overlay').classList.add('active');
@@ -605,5 +604,5 @@ function pcsConfirmAction() {
   pcsCloseActionModal();
   renderPortCathStudio();
   if (typeof showToast === 'function')
-    showToast(`تم تحديث حالة ${patient.name}`, 'success', 2600);
+    showToast(`Status updated for ${patient.name}`, 'success', 2600);
 }

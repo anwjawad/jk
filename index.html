@@ -580,7 +580,7 @@
                         <textarea id="pc-notes" class="form-control" placeholder="folfox, chemotherapy preparation, etc."></textarea>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="add-portcath-phone">رقم الهاتف (اختياري)</label>
+                        <label class="form-label" for="add-portcath-phone">Phone (optional)</label>
                         <input type="tel" id="add-portcath-phone" class="form-control" dir="ltr" placeholder="+966XXXXXXXXX">
                     </div>
                     <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">
@@ -1084,22 +1084,22 @@
     <!-- Port Cath Studio: Move Modal -->
     <div class="pcs-modal-overlay" id="pcs-move-overlay">
       <div class="pcs-modal">
-        <h3>نقل مريض</h3>
+        <h3>Move Patient</h3>
         <div class="pcs-modal-sub" id="pcs-move-patient-info"></div>
         <div class="pcs-modal-field">
-          <label>نقل إلى تاريخ</label>
+          <label>Move to date</label>
           <select id="pcs-move-date-select">
-            <option value="">اختر يوم الجلسة</option>
+            <option value="">Select session day</option>
           </select>
         </div>
         <div class="pcs-modal-field">
-          <label>السبب <span style="color:var(--pcs-red)">*</span></label>
-          <input type="text" id="pcs-move-reason" placeholder="اكتب سبب النقل..." autocomplete="off" dir="rtl"/>
-          <div class="pcs-error-msg" id="pcs-move-reason-err">السبب مطلوب (3 أحرف على الأقل)</div>
+          <label>Reason <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="pcs-move-reason" placeholder="Enter reason for moving..." autocomplete="off"/>
+          <div class="pcs-error-msg" id="pcs-move-reason-err">Reason is required (at least 3 characters)</div>
         </div>
         <div class="pcs-modal-actions">
-          <button class="pcs-btn" onclick="pcsCloseMoveModal()">إلغاء</button>
-          <button class="pcs-btn pcs-btn-primary" onclick="pcsConfirmMove()">تأكيد النقل</button>
+          <button class="pcs-btn" onclick="pcsCloseMoveModal()">Cancel</button>
+          <button class="pcs-btn pcs-btn-primary" onclick="pcsConfirmMove()">Confirm Move</button>
         </div>
       </div>
     </div>
@@ -1107,16 +1107,16 @@
     <!-- Port Cath Studio: Action Modal (cancel/noshow/apologize/restore) -->
     <div class="pcs-modal-overlay" id="pcs-action-overlay">
       <div class="pcs-modal">
-        <h3 id="pcs-action-title">تأكيد الإجراء</h3>
+        <h3 id="pcs-action-title">Confirm Action</h3>
         <div class="pcs-modal-sub" id="pcs-action-patient-info"></div>
         <div class="pcs-modal-field">
-          <label>السبب <span style="color:var(--pcs-red)">*</span></label>
-          <textarea id="pcs-action-reason" rows="2" placeholder="اكتب السبب..." dir="rtl"></textarea>
-          <div class="pcs-error-msg" id="pcs-action-reason-err">السبب مطلوب (3 أحرف على الأقل)</div>
+          <label>Reason <span style="color:var(--danger)">*</span></label>
+          <textarea id="pcs-action-reason" rows="2" placeholder="Enter reason..."></textarea>
+          <div class="pcs-error-msg" id="pcs-action-reason-err">Reason is required (at least 3 characters)</div>
         </div>
         <div class="pcs-modal-actions">
-          <button class="pcs-btn" onclick="pcsCloseActionModal()">إلغاء</button>
-          <button class="pcs-btn pcs-btn-primary" id="pcs-action-confirm-btn" onclick="pcsConfirmAction()">تأكيد</button>
+          <button class="pcs-btn" onclick="pcsCloseActionModal()">Cancel</button>
+          <button class="pcs-btn pcs-btn-primary" id="pcs-action-confirm-btn" onclick="pcsConfirmAction()">Confirm</button>
         </div>
       </div>
     </div>
