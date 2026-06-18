@@ -256,7 +256,7 @@ function pcsCloseAllMoreMenus() {
 // ── Stubs for handlers defined in later tasks ─────────────────────────────────
 // pcsOpenConfig defined below in Session Config section
 function pcsOpenMoveModal(patientId)       { _pcsMoveOpen(patientId); }
-function pcsOpenActionModal(patientId, a)  { /* implemented in Task 6 */ }
+function pcsOpenActionModal(patientId, action) { _pcsActionOpen(patientId, action); }
 function pcsEditPatient(patientId)         { openEditModal('portcath', patientId); }
 function pcsPrint()                        { /* implemented in Task 9 */ }
 
@@ -485,4 +485,76 @@ function pcsConfirmMove() {
   renderPortCathStudio();
   if (typeof showToast === 'function')
     showToast(`تم نقل ${patient.name} إلى ${pcsFormatDate(toDate)}`, 'success', 3000);
+}
+
+// ── Status Actions (cancel / noshow / apologize / restore) ────────────────────
+const PCS_ACTION_LABELS = {
+  cancel:    { title: 'إلغاء الموعد',    newStatus: 'cancelled'  },
+  noshow:    { title: 'تسجيل عدم حضور', newStatus: 'noshow'     },
+  apologize: { title: 'تسجيل اعتذار',   newStatus: 'apologized' },
+  restore:   { title: 'استعادة الموعد', newStatus: 'confirmed'  }
+};
+
+let _pcsActionPatientId = null;
+let _pcsActionType      = null;
+
+function _pcsActionOpen(patientId, action) {
+  const patient = portCathList.find(p => p.id === patientId);
+  if (!patient || !PCS_ACTION_LABELS[action]) return;
+  _pcsActionPatientId = patientId;
+  _pcsActionType      = action;
+
+  document.getElementById('pcs-action-title').textContent = PCS_ACTION_LABELS[action].title;
+  document.getElementById('pcs-action-patient-info').textContent =
+    `${patient.name} · ملف ${patient.fileNumber} · ${pcsFormatDate(patient.date)}`;
+  document.getElementById('pcs-action-reason').value = '';
+  document.getElementById('pcs-action-reason-err').classList.remove('visible');
+  document.getElementById('pcs-action-overlay').classList.add('active');
+}
+
+function pcsCloseActionModal() {
+  document.getElementById('pcs-action-overlay').classList.remove('active');
+  _pcsActionPatientId = null;
+  _pcsActionType      = null;
+}
+
+function pcsConfirmAction() {
+  const patient = portCathList.find(p => p.id === _pcsActionPatientId);
+  if (!patient || !_pcsActionType) return;
+
+  const reason = document.getElementById('pcs-action-reason').value.trim();
+  const errEl  = document.getElementById('pcs-action-reason-err');
+  if (reason.length < 3) { errEl.classList.add('visible'); return; }
+  errEl.classList.remove('visible');
+
+  const { newStatus } = PCS_ACTION_LABELS[_pcsActionType];
+
+  // 1. Update patient status
+  patient.status = newStatus;
+
+  // 2. History record
+  const histRecord = {
+    id:          Date.now().toString() + '_' + _pcsActionType,
+    patientId:   patient.id,
+    patientName: patient.name,
+    fileNumber:  patient.fileNumber,
+    action:      _pcsActionType,
+    fromDate:    patient.date,
+    toDate:      '',
+    reason,
+    note:        '',
+    timestamp:   Date.now(),
+    syncStatus:  'pending'
+  };
+  portCathActionHistory.push(histRecord);
+
+  // 3. Persist and sync
+  saveToLocalStorage();
+  syncAfterChange('update', 'portcath', patient);
+  syncAfterChange('create', 'portcath-history', histRecord);
+
+  pcsCloseActionModal();
+  renderPortCathStudio();
+  if (typeof showToast === 'function')
+    showToast(`تم تحديث حالة ${patient.name}`, 'success', 2600);
 }

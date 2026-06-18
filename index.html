@@ -1100,6 +1100,23 @@
       </div>
     </div>
 
+    <!-- Port Cath Studio: Action Modal (cancel/noshow/apologize/restore) -->
+    <div class="pcs-modal-overlay" id="pcs-action-overlay">
+      <div class="pcs-modal">
+        <h3 id="pcs-action-title">تأكيد الإجراء</h3>
+        <div class="pcs-modal-sub" id="pcs-action-patient-info"></div>
+        <div class="pcs-modal-field">
+          <label>السبب <span style="color:var(--pcs-red)">*</span></label>
+          <textarea id="pcs-action-reason" rows="2" placeholder="اكتب السبب..." dir="rtl"></textarea>
+          <div class="pcs-error-msg" id="pcs-action-reason-err">السبب مطلوب (3 أحرف على الأقل)</div>
+        </div>
+        <div class="pcs-modal-actions">
+          <button class="pcs-btn" onclick="pcsCloseActionModal()">إلغاء</button>
+          <button class="pcs-btn pcs-btn-primary" id="pcs-action-confirm-btn" onclick="pcsConfirmAction()">تأكيد</button>
+        </div>
+      </div>
+    </div>
+
     <script src="portcath-studio.js"></script>
     <script src="sync.js"></script>
     <script src="app.js"></script>
