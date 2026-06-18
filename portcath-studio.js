@@ -258,7 +258,55 @@ function pcsCloseAllMoreMenus() {
 function pcsOpenMoveModal(patientId)       { _pcsMoveOpen(patientId); }
 function pcsOpenActionModal(patientId, action) { _pcsActionOpen(patientId, action); }
 function pcsEditPatient(patientId)         { openEditModal('portcath', patientId); }
-function pcsPrint()                        { /* implemented in Task 9 */ }
+function pcsPrint() {
+  const MONTH_NAMES = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const STATUS_AR = { confirmed:'مؤكد', cancelled:'ملغى', noshow:'لم يحضر', apologized:'اعتذر', restore:'مستعاد' };
+
+  const activeDays = portCathSessionConfig.filter(c =>
+    c.isActive && Number(c.year) === pcStudioYear && Number(c.month) === pcStudioMonth
+  ).sort((a, b) => a.date.localeCompare(b.date));
+
+  let rows = '';
+  activeDays.forEach(sc => {
+    const patients = pcsPatientsOnDate(sc.date);
+    const patientRows = patients.length
+      ? patients.map((p, i) =>
+          `<tr><td>${i + 1}</td><td>${p.name}</td><td>${p.fileNumber}</td><td>${STATUS_AR[p.status] || p.status || ''}</td></tr>`
+        ).join('')
+      : `<tr><td colspan="4" style="color:#888;text-align:center">لا يوجد مرضى</td></tr>`;
+    rows += `
+      <div class="day-block">
+        <h3>${pcsFormatDate(sc.date)} — ${sc.dayOfWeek || pcsDayName(sc.date)}</h3>
+        <table><thead><tr><th>#</th><th>المريض</th><th>الملف</th><th>الحالة</th></tr></thead>
+        <tbody>${patientRows}</tbody></table>
+      </div>`;
+  });
+
+  if (!rows) rows = '<p style="text-align:center;color:#888">لا توجد جلسات مجدولة لهذا الشهر</p>';
+
+  const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8">
+    <title>Port Cath — ${MONTH_NAMES[pcStudioMonth]} ${pcStudioYear}</title>
+    <style>
+      body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; font-size: 13px; }
+      h2 { text-align: center; margin-bottom: 16px; }
+      .day-block { margin-bottom: 24px; page-break-inside: avoid; }
+      h3 { font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #ddd; padding: 5px 8px; text-align: right; }
+      th { background: #f0f0f0; }
+      @media print { body { padding: 0; } }
+    </style></head><body>
+    <h2>جدول مرضى Port Cath — ${MONTH_NAMES[pcStudioMonth]} ${pcStudioYear}</h2>
+    ${rows}
+  </body></html>`;
+
+  const printWin = window.open('', '_blank', 'width=800,height=600');
+  if (!printWin) { alert('يرجى السماح بالنوافذ المنبثقة لطباعة الجدول'); return; }
+  printWin.document.write(html);
+  printWin.document.close();
+  printWin.focus();
+  printWin.print();
+}
 
 // ── Session Config ────────────────────────────────────────────────────────────
 let _pcsConfigYear  = new Date().getFullYear();
