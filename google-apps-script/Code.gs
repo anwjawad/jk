@@ -21,6 +21,8 @@ const SHEET_NAMES = {
   followup: 'FollowUp',
   tumorboard: 'TumorBoard',
   clinic: 'ClinicAppointments',
+  'portcath-session-config': 'PortCathSessionConfig',
+  'portcath-history': 'PortCathHistory',
   audit_log: 'AuditLog',
   settings: 'Settings'
 };
@@ -29,7 +31,17 @@ const SHEET_NAMES = {
 const COLUMN_MAP = {
   portcath: {
     id: 0, name: 1, fileNumber: 2, date: 3, day: 4, weight: 5, notes: 6,
+    status: 7, phone: 8,
+    createdAt: 9, updatedAt: 10, deletedAt: 11, version: 12, preparedBy: 13
+  },
+  'portcath-session-config': {
+    id: 0, date: 1, year: 2, month: 3, dayOfWeek: 4, isActive: 5, syncStatus: 6,
     createdAt: 7, updatedAt: 8, deletedAt: 9, version: 10, preparedBy: 11
+  },
+  'portcath-history': {
+    id: 0, patientId: 1, patientName: 2, fileNumber: 3, action: 4,
+    fromDate: 5, toDate: 6, reason: 7, note: 8, timestamp: 9, syncStatus: 10,
+    createdAt: 11, updatedAt: 12, deletedAt: 13, version: 14, preparedBy: 15
   },
   admissions: {
     id: 0, name: 1, fileNumber: 2, age: 3, triageScore: 4, primaryPhysician: 5,
@@ -239,6 +251,11 @@ function updateRecordHandler(payload) {
   const record = payload.record;
   const displayName = payload.displayName || 'Unknown';
 
+  // portcath-history is append-only — updates are not allowed
+  if (type === 'portcath-history') {
+    return errorResponse('NOT_ALLOWED', 'portcath-history is append-only and cannot be updated', 403);
+  }
+
   if (!type || !record || !record.id) {
     return errorResponse('MISSING_PARAMS', 'type, record, and record.id required', 400);
   }
@@ -295,6 +312,11 @@ function deleteRecordHandler(payload) {
   const type = payload.type;
   const id = payload.id !== undefined && payload.id !== null ? String(payload.id) : '';
   const displayName = payload.displayName || 'Unknown';
+
+  // portcath-history is append-only — deletes are not allowed
+  if (type === 'portcath-history') {
+    return errorResponse('NOT_ALLOWED', 'portcath-history is append-only and cannot be deleted', 403);
+  }
 
   if (!type || !id) {
     return errorResponse('MISSING_PARAMS', 'type and id required', 400);
@@ -517,7 +539,9 @@ function getAllData() {
     admissions: getSheetData('admissions'),
     followup: getSheetData('followup'),
     tumorboard: getSheetData('tumorboard'),
-    clinic: getSheetData('clinic')
+    clinic: getSheetData('clinic'),
+    portcathSessionConfig: getSheetData('portcath-session-config'),
+    portcathHistory: getSheetData('portcath-history')
   };
 }
 
@@ -580,9 +604,23 @@ function getSettings() {
 function initializeSpreadsheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Create PortCath sheet
+  // Create PortCath sheet (now includes status and phone columns)
   createSheetWithHeaders('PortCath', [
     'id', 'name', 'fileNumber', 'date', 'day', 'weight', 'notes',
+    'status', 'phone',
+    'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'
+  ]);
+
+  // Create PortCathSessionConfig sheet
+  createSheetWithHeaders('PortCathSessionConfig', [
+    'id', 'date', 'year', 'month', 'dayOfWeek', 'isActive', 'syncStatus',
+    'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'
+  ]);
+
+  // Create PortCathHistory sheet (append-only audit trail)
+  createSheetWithHeaders('PortCathHistory', [
+    'id', 'patientId', 'patientName', 'fileNumber', 'action',
+    'fromDate', 'toDate', 'reason', 'note', 'timestamp', 'syncStatus',
     'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'
   ]);
 
@@ -751,7 +789,14 @@ function recordToRow(type, record) {
       value = JSON.stringify(value);
     }
 
-    row[colIndex] = value || '';
+    // Boolean: store as TRUE/FALSE string for Google Sheets checkboxes
+    if (field === 'isActive') {
+      row[colIndex] = (value === true || value === 'true') ? 'TRUE' : 'FALSE';
+      continue;
+    }
+
+    // Null/undefined → empty string (handles toDate: null in history records)
+    row[colIndex] = (value === null || value === undefined) ? '' : value;
   }
 
   return row;
@@ -777,11 +822,26 @@ function rowToRecord(type, row) {
     }
 
     // Parse numeric fields
-    if ((field === 'weight' || field === 'age') && value) {
+    if ((field === 'weight' || field === 'age' || field === 'year' || field === 'month') && value) {
       value = parseFloat(value) || value;
     }
 
-    if ((field === 'id' || field === 'fileNumber') && value !== undefined && value !== null) {
+    // Parse timestamp back to number
+    if (field === 'timestamp' && value) {
+      value = Number(value) || value;
+    }
+
+    // Parse isActive back to boolean
+    if (field === 'isActive') {
+      value = value === 'TRUE' || value === true;
+    }
+
+    // toDate: empty string → null for history records
+    if (field === 'toDate' && value === '') {
+      value = null;
+    }
+
+    if ((field === 'id' || field === 'fileNumber' || field === 'patientId') && value !== undefined && value !== null) {
       value = String(value);
     }
 
@@ -789,6 +849,22 @@ function rowToRecord(type, row) {
   }
 
   return record;
+}
+
+/**
+ * Strip the phone field before writing to audit log (privacy protection)
+ */
+function sanitizeForAuditLog(jsonStr) {
+  if (!jsonStr) return jsonStr;
+  try {
+    const obj = JSON.parse(jsonStr);
+    if (obj && typeof obj === 'object') {
+      delete obj.phone;
+    }
+    return JSON.stringify(obj);
+  } catch (e) {
+    return jsonStr;
+  }
 }
 
 /**
@@ -806,8 +882,8 @@ function writeAuditLog(entry) {
     entry.module || '',
     entry.recordId || '',
     entry.displayName || '',
-    entry.beforeJson || '',
-    entry.afterJson || ''
+    sanitizeForAuditLog(entry.beforeJson) || '',
+    sanitizeForAuditLog(entry.afterJson) || ''
   ];
 
   sheet.appendRow(row);
