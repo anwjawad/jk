@@ -501,6 +501,7 @@ let _pcsActionType      = null;
 function _pcsActionOpen(patientId, action) {
   const patient = portCathList.find(p => p.id === patientId);
   if (!patient || !PCS_ACTION_LABELS[action]) return;
+  pcsCloseAllMoreMenus();
   _pcsActionPatientId = patientId;
   _pcsActionType      = action;
 
@@ -540,7 +541,7 @@ function pcsConfirmAction() {
     fileNumber:  patient.fileNumber,
     action:      _pcsActionType,
     fromDate:    patient.date,
-    toDate:      '',
+    toDate:      null, // null for non-move actions; fromDate = session date acted on
     reason,
     note:        '',
     timestamp:   Date.now(),
