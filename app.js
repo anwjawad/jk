@@ -727,6 +727,7 @@ function addPortCathPatient(event) {
     const date = document.getElementById('pc-date').value;
     const weight = parseFloat(document.getElementById('pc-weight').value);
     const notes = document.getElementById('pc-notes').value.trim();
+    const phone = document.getElementById('add-portcath-phone')?.value.trim() || '';
 
     const patient = {
         id: Date.now().toString(),
@@ -735,7 +736,9 @@ function addPortCathPatient(event) {
         date,
         day: getDayName(date),
         weight,
-        notes
+        notes,
+        status: 'confirmed',
+        ...(phone && { phone })
     };
 
     showAddConfirmModal({
@@ -752,6 +755,7 @@ function addPortCathPatient(event) {
             // Reset Form
             document.getElementById('form-portcath').reset();
             document.getElementById('pc-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('add-portcath-phone').value = '';
 
             // Close the Modal
             closeAddModal('portcath');
