@@ -1077,6 +1077,29 @@
       </div>
     </div>
 
+    <!-- Port Cath Studio: Move Modal -->
+    <div class="pcs-modal-overlay" id="pcs-move-overlay">
+      <div class="pcs-modal">
+        <h3>نقل مريض</h3>
+        <div class="pcs-modal-sub" id="pcs-move-patient-info"></div>
+        <div class="pcs-modal-field">
+          <label>نقل إلى تاريخ</label>
+          <select id="pcs-move-date-select">
+            <option value="">اختر يوم الجلسة</option>
+          </select>
+        </div>
+        <div class="pcs-modal-field">
+          <label>السبب <span style="color:var(--pcs-red)">*</span></label>
+          <input type="text" id="pcs-move-reason" placeholder="اكتب سبب النقل..." autocomplete="off" dir="rtl"/>
+          <div class="pcs-error-msg" id="pcs-move-reason-err">السبب مطلوب (3 أحرف على الأقل)</div>
+        </div>
+        <div class="pcs-modal-actions">
+          <button class="pcs-btn" onclick="pcsCloseMoveModal()">إلغاء</button>
+          <button class="pcs-btn pcs-btn-primary" onclick="pcsConfirmMove()">تأكيد النقل</button>
+        </div>
+      </div>
+    </div>
+
     <script src="portcath-studio.js"></script>
     <script src="sync.js"></script>
     <script src="app.js"></script>

@@ -255,7 +255,7 @@ function pcsCloseAllMoreMenus() {
 
 // ── Stubs for handlers defined in later tasks ─────────────────────────────────
 // pcsOpenConfig defined below in Session Config section
-function pcsOpenMoveModal(patientId)       { /* implemented in Task 5 */ }
+function pcsOpenMoveModal(patientId)       { _pcsMoveOpen(patientId); }
 function pcsOpenActionModal(patientId, a)  { /* implemented in Task 6 */ }
 function pcsEditPatient(patientId)         { openEditModal('portcath', patientId); }
 function pcsPrint()                        { /* implemented in Task 9 */ }
@@ -406,4 +406,83 @@ function pcsSaveConfig() {
   pcsCloseConfig();
   renderPortCathStudio();
   if (typeof showToast === 'function') showToast('تم حفظ أيام الجلسات ومزامنتها', 'success', 2600);
+}
+
+// ── Move Workflow ─────────────────────────────────────────────────────────────
+let _pcsMovePatientId = null;
+
+function _pcsMoveOpen(patientId) {
+  const patient = portCathList.find(p => p.id === patientId);
+  if (!patient) return;
+  _pcsMovePatientId = patientId;
+
+  document.getElementById('pcs-move-patient-info').textContent =
+    `${patient.name} · ملف ${patient.fileNumber}`;
+
+  const today  = new Date().toISOString().split('T')[0];
+  const select = document.getElementById('pcs-move-date-select');
+  select.innerHTML = `<option value="">اختر يوم الجلسة</option>`;
+  portCathSessionConfig
+    .filter(c => c.isActive && c.date !== patient.date && c.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.date;
+      opt.textContent = pcsFormatDate(c.date);
+      select.appendChild(opt);
+    });
+
+  document.getElementById('pcs-move-reason').value = '';
+  document.getElementById('pcs-move-reason-err').classList.remove('visible');
+  document.getElementById('pcs-move-overlay').classList.add('active');
+}
+
+function pcsCloseMoveModal() {
+  document.getElementById('pcs-move-overlay').classList.remove('active');
+  _pcsMovePatientId = null;
+}
+
+function pcsConfirmMove() {
+  const patient = portCathList.find(p => p.id === _pcsMovePatientId);
+  if (!patient) return;
+
+  const toDate = document.getElementById('pcs-move-date-select').value;
+  const reason = document.getElementById('pcs-move-reason').value.trim();
+
+  const errEl = document.getElementById('pcs-move-reason-err');
+  if (reason.length < 3) { errEl.classList.add('visible'); return; }
+  errEl.classList.remove('visible');
+  if (!toDate) { if (typeof showToast === 'function') showToast('يرجى اختيار تاريخ الوجهة', 'warning', 3000); return; }
+
+  const fromDate = patient.date;
+
+  // 1. Update patient record
+  patient.date = toDate;
+  patient.day  = pcsDayName(toDate);
+
+  // 2. Append history record
+  const histRecord = {
+    id:          Date.now().toString() + '_move',
+    patientId:   patient.id,
+    patientName: patient.name,
+    fileNumber:  patient.fileNumber,
+    action:      'move',
+    fromDate,
+    toDate,
+    reason,
+    note:        '',
+    timestamp:   Date.now(),
+    syncStatus:  'pending'
+  };
+  portCathActionHistory.push(histRecord);
+
+  // 3. Persist and sync
+  saveToLocalStorage();
+  syncAfterChange('update', 'portcath', patient);
+  syncAfterChange('create', 'portcath-history', histRecord);
+
+  pcsCloseMoveModal();
+  renderPortCathStudio();
+  if (typeof showToast === 'function')
+    showToast(`تم نقل ${patient.name} إلى ${pcsFormatDate(toDate)}`, 'success', 3000);
 }
