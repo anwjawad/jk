@@ -530,6 +530,13 @@ function updateDashboardDate() {
     }
 }
 
+function getFirstLastName(fullName) {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length <= 2) return fullName.trim();
+    return parts[0] + ' ' + parts[parts.length - 1];
+}
+
 function formatDateDisplay(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -1785,7 +1792,7 @@ function renderWorkspaceSection(type, dateStr) {
             if (type === 'portcath') {
                 rowHtml = `<td>${item.name}</td><td><code>${item.fileNumber}</code></td><td>${item.weight || '-'}</td><td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.notes || '-'}</td>`;
             } else if (type === 'admissions') {
-                rowHtml = `<td>${item.name}</td><td><code>${item.fileNumber}</code></td><td>${item.admissionDepartment || '-'}</td><td>${getTriageBadge(item.triageScore)}</td>`;
+                rowHtml = `<td>${getFirstLastName(item.name)}</td><td><code>${item.fileNumber}</code></td><td>${item.admissionDepartment || '-'}</td><td>${getTriageBadge(item.triageScore)}</td>`;
             } else if (type === 'followup') {
                 rowHtml = `<td>${item.name}</td><td>${item.task || '-'}</td><td>${item.phone || '-'}</td><td>${item.taskResult || '-'}</td>`;
             } else if (type === 'tumorboard') {
@@ -1938,7 +1945,7 @@ function printDayAllModules(dateStr, preparedBy, action) {
         } else if (type === 'admissions') {
             html += '<tr><th>Name</th><th>File #</th><th>Department</th><th>Triage</th></tr>';
             list.forEach(a => {
-                html += `<tr><td>${a.name}</td><td>${a.fileNumber}</td><td>${a.admissionDepartment}</td><td>${a.triageScore}</td></tr>`;
+                html += `<tr><td>${getFirstLastName(a.name)}</td><td>${a.fileNumber}</td><td>${a.admissionDepartment}</td><td>${a.triageScore}</td></tr>`;
             });
         } else if (type === 'followup') {
             html += '<tr><th>Name</th><th>Task</th><th>Phone</th><th>Result</th></tr>';
@@ -3204,7 +3211,7 @@ function generateAndPrintReport(type, dates, mode, preparerName, action = 'print
                 rowsHtml += `
                     <tr>
                         <td style="text-align: center;">${idx + 1}</td>
-                        <td style="font-weight: 700;">${patient.name}</td>
+                        <td style="font-weight: 700;">${getFirstLastName(patient.name)}</td>
                         <td><code>${patient.fileNumber}</code></td>
                         <td style="text-align: center;">${patient.age}</td>
                         <td>${triageStr}</td>
