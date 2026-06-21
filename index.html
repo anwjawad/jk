@@ -1066,14 +1066,14 @@
     <!-- MedSched Configuration - Google Apps Script Backend -->
     <script>
       window.MEDSCHED_CONFIG = {
-        gasUrl: 'https://script.google.com/macros/s/AKfycbxa2J7jW-uvf7YWvBF5LNmQVivW1w27ZhHHH4iIfo8Wuc9LUacZEw9zQxuPKyPeJsvU/exec',
+        gasUrl: 'https://script.google.com/macros/s/AKfycbyxuzwed0kHqZ3jPJKWKemX0huzKOFvm-1nooaTlo3NwEePG-ElI_9xkADLjTk-R6bK/exec',
         apiKey: 'medsched-2026-key-abc123',
-        jsonpReads: false
+        jsonpReads: true
       };
     </script>
 
     <!-- Port Cath Studio: Session Config Modal -->
-    <div class="pcs-modal-overlay" id="pcs-config-overlay" style="align-items:center;justify-content:center;">
+    <div class="pcs-modal-overlay" id="pcs-config-overlay" style="align-items:center;justify-content:center;" role="dialog" aria-modal="true" aria-label="Configure session days">
       <div class="pcs-root" style="background:transparent;padding:20px;width:100%;max-width:820px;">
         <div id="pcs-config-inner">
           <!-- rendered by pcsRenderConfigCalendar() -->
@@ -1082,9 +1082,9 @@
     </div>
 
     <!-- Port Cath Studio: Move Modal -->
-    <div class="pcs-modal-overlay" id="pcs-move-overlay">
+    <div class="pcs-modal-overlay" id="pcs-move-overlay" role="dialog" aria-modal="true" aria-labelledby="pcs-move-title">
       <div class="pcs-modal">
-        <h3>Move Patient</h3>
+        <h3 id="pcs-move-title">Move Patient</h3>
         <div class="pcs-modal-sub" id="pcs-move-patient-info"></div>
         <div class="pcs-modal-field">
           <label>Move to date</label>
@@ -1105,7 +1105,7 @@
     </div>
 
     <!-- Port Cath Studio: Action Modal (cancel/noshow/apologize/restore) -->
-    <div class="pcs-modal-overlay" id="pcs-action-overlay">
+    <div class="pcs-modal-overlay" id="pcs-action-overlay" role="dialog" aria-modal="true" aria-labelledby="pcs-action-title">
       <div class="pcs-modal">
         <h3 id="pcs-action-title">Confirm Action</h3>
         <div class="pcs-modal-sub" id="pcs-action-patient-info"></div>
@@ -1121,7 +1121,7 @@
       </div>
     </div>
 
-    <script src="portcath-studio.js"></script>
+    <script src="portcath-studio.js?v=5"></script>
     <script src="sync.js"></script>
     <script src="app.js"></script>
 

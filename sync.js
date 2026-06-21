@@ -238,25 +238,33 @@ async function initGoogleSheetsSync() {
     const stored = localStorage.getItem(PENDING_QUEUE_KEY);
     _pendingQueue = stored ? JSON.parse(stored) : [];
 
-    if (IS_LOCAL_PREVIEW && !ENABLE_JSONP_READS) {
+    const hasGasUrl = GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'PASTE_WEB_APP_URL_HERE';
+    if (IS_LOCAL_PREVIEW && !ENABLE_JSONP_READS && !hasGasUrl) {
         showSyncStatus(_pendingQueue.length > 0 ? 'pending' : 'offline');
         await syncAllLocalPendingChanges();
+        return;
+    }
+
+    if (!hasGasUrl) {
+        showSyncStatus('offline');
         return;
     }
 
     showSyncStatus('loading');
     try {
         const data = await loadFromGoogleSheets();
-        if (Array.isArray(data.portcath))   portCathList   = data.portcath;
-        if (Array.isArray(data.admissions)) admissionsList = data.admissions;
-        if (Array.isArray(data.followup))   followUpList   = data.followup;
-        if (Array.isArray(data.tumorboard)) tumorBoardList = data.tumorboard;
+        if (Array.isArray(data.portcath))              portCathList          = data.portcath;
+        if (Array.isArray(data.admissions))            admissionsList        = data.admissions;
+        if (Array.isArray(data.followup))              followUpList          = data.followup;
+        if (Array.isArray(data.tumorboard))            tumorBoardList        = data.tumorboard;
+        if (Array.isArray(data.portcathSessionConfig)) portCathSessionConfig = data.portcathSessionConfig;
+        if (Array.isArray(data.portcathHistory))       portCathActionHistory = data.portcathHistory;
         if (typeof sanitizeAllPatientLists === 'function') sanitizeAllPatientLists();
         saveToLocalStorage(); // update cache with fresh GAS data
         updateDateDropdown('portcath');
         updateDateDropdown('admissions');
         updateDateDropdown('followup');
-        renderPortCathTable();
+        renderPortCathStudio();
         renderAdmissionsTable();
         renderFollowUpTable();
         renderTumorBoardTable();

@@ -560,8 +560,8 @@ function getByDate(type, date) {
 
   for (const row of data) {
     const record = rowToRecord(type, row);
-    // Exclude soft-deleted records
-    if (record.deletedAt) continue;
+    // Exclude soft-deleted records — only if deletedAt is a real ISO timestamp
+    if (isRealTimestamp(record.deletedAt)) continue;
     // Match date
     if (record.date === date) {
       results.push(record);
@@ -743,13 +743,24 @@ function getSheetData(type) {
 
   for (const row of data) {
     const record = rowToRecord(type, row);
-    // Exclude soft-deleted records from normal queries
-    if (!record.deletedAt) {
+    // Exclude soft-deleted records — only if deletedAt is a real ISO timestamp
+    // (guard against old rows that have stale text like "Unknown" in that column)
+    if (!isRealTimestamp(record.deletedAt)) {
       results.push(record);
     }
   }
 
   return results;
+}
+
+/**
+ * Returns true only if value looks like a real ISO timestamp (YYYY-MM-DD...).
+ * Protects against old rows that have stale text (e.g. "Unknown") in the
+ * deletedAt column due to schema changes.
+ */
+function isRealTimestamp(value) {
+  if (!value) return false;
+  return /^\d{4}-\d{2}-\d{2}/.test(String(value));
 }
 
 /**
