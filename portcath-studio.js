@@ -256,6 +256,11 @@ function pcsOpenDayModal(dateStr) {
         </div>
         <div class="pcs-modal-header-right">
           <span class="pcs-modal-count-badge" id="pcs-modal-count-badge">${activeCount} patient${activeCount!==1?'s':''}</span>
+          <button class="pcs-modal-add-btn" onclick="pcsOpenAddPatientForDay('${dateStr}')" aria-label="Add patient" title="Add patient on this day">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
           <button class="pcs-modal-close" onclick="pcsCloseDayModal()" aria-label="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -291,6 +296,12 @@ function pcsOpenDayModal(dateStr) {
   overlay.addEventListener('click', (e) => { if (e.target === overlay) pcsCloseDayModal(); });
 
   requestAnimationFrame(() => overlay.classList.add('pcs-modal-open'));
+}
+
+function pcsOpenAddPatientForDay(dateStr) {
+  openAddModal('portcath');
+  const dateInput = document.getElementById('pc-date');
+  if (dateInput) dateInput.value = dateStr;
 }
 
 // Called after any action that mutates portCathList — refreshes open modal in-place
