@@ -93,6 +93,16 @@
   box-shadow: var(--shadow-teal);
 }
 
+.pcs-btn-waiting {
+  color: var(--warning);
+  border-color: var(--warning);
+  background: var(--warning-light);
+}
+.pcs-btn-waiting:hover {
+  background: var(--warning);
+  color: #fff;
+}
+
 .pcs-btn-danger {
   background: var(--danger);
   border-color: var(--danger);
@@ -187,6 +197,17 @@
 
 .pcs-card-header:hover {
   background: var(--bg-main);
+}
+
+.pcs-card-header-static {
+  cursor: default;
+}
+.pcs-card-header-static:hover {
+  background: transparent;
+}
+
+.pcs-waiting-card {
+  border-color: color-mix(in srgb, var(--warning) 35%, var(--border));
 }
 
 .pcs-card-day-actions {
@@ -986,6 +1007,7 @@ body.dark-mode .pcs-history-list {
 .pcs-status-dot.cancelled  { background: var(--danger-light);  color: var(--danger);  }
 .pcs-status-dot.noshow     { background: var(--warning-light); color: var(--warning); }
 .pcs-status-dot.apologized { background: var(--surface-subtle); color: var(--text-muted); }
+.pcs-status-dot.waiting    { background: var(--warning-light); color: var(--warning); }
 
 /* ── Patient row action buttons (P0 fix) ──────────────────────────────────── */
 .pcs-action-btn {
@@ -1026,6 +1048,17 @@ body.dark-mode .pcs-history-list {
 
 .pcs-action-btn.cancel:hover {
   background: var(--danger);
+  color: #fff;
+}
+
+.pcs-modal-btn-assign {
+  border-color: var(--warning);
+  color: var(--warning);
+  background: var(--warning-light);
+  font-weight: 700;
+}
+.pcs-modal-btn-assign:hover {
+  background: var(--warning);
   color: #fff;
 }
 

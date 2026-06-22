@@ -387,6 +387,10 @@ function renderPortCathStudio() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add Patient
             </button>
+            <button class="pcs-btn pcs-btn-waiting" onclick="pcsOpenWaitingAddModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+              Waiting List
+            </button>
             <button class="pcs-btn" onclick="pcsPrint()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
               Print
@@ -396,6 +400,13 @@ function renderPortCathStudio() {
               Export Word
             </button>
           </div>
+        </div>
+
+        <div class="pcs-section-divider pcs-section-divider-waiting">
+          <span class="pcs-section-label">Waiting List</span>
+        </div>
+        <div id="pcs-waiting-container">
+          ${pcsRenderWaitingList()}
         </div>
 
         <div class="pcs-month-nav">
@@ -598,6 +609,48 @@ function pcsRenderPatientRow(patient) {
           <button class="pcs-more-item" onclick="pcsOpenActionModal('${patient.id}','restore')">Restore</button>
           <button class="pcs-more-item" onclick="pcsEditPatient('${patient.id}')">Edit</button>
         </div>
+      </div>
+    </div>`;
+}
+
+// ── Waiting List ──────────────────────────────────────────────────────────────
+function pcsRenderWaitingList() {
+  const waiting = portCathList.filter(p => (p.status || '') === 'waiting');
+
+  return `
+    <div class="pcs-day-card pcs-waiting-card">
+      <div class="pcs-card-header pcs-card-header-static">
+        <div class="pcs-card-count">${waiting.length}</div>
+        <div class="pcs-card-info">
+          <div class="pcs-card-date">Pending Scheduling</div>
+          <div class="pcs-card-chips">
+            ${waiting.length === 0
+              ? `<span class="pcs-chip pcs-chip-grey">No patients waiting</span>`
+              : `<span class="pcs-chip pcs-chip-yellow">${waiting.length} awaiting date</span>`}
+          </div>
+        </div>
+      </div>
+      <div class="pcs-patient-list pcs-waiting-list" style="display:block">
+        ${waiting.length === 0
+          ? `<div style="padding:12px 16px;font-size:0.75rem;color:var(--text-muted)">No patients on the waiting list. Use "Waiting List" above to add one.</div>`
+          : waiting.map(p => pcsRenderWaitingRow(p)).join('')
+        }
+      </div>
+    </div>`;
+}
+
+function pcsRenderWaitingRow(patient) {
+  return `
+    <div class="pcs-patient-row pcs-patient-row-modal" data-patient-id="${patient.id}">
+      <div class="pcs-status-dot waiting">⏳</div>
+      <div class="pcs-modal-row-main">
+        <div class="pcs-patient-name">${patient.name}</div>
+        <div class="pcs-patient-meta">File # ${patient.fileNumber}${patient.weight ? ` · ${patient.weight} kg` : ''}${patient.notes ? ` · ${patient.notes}` : ''}</div>
+      </div>
+      <div class="pcs-modal-inline-actions">
+        <button class="pcs-action-btn pcs-modal-btn-assign" onclick="pcsOpenAssignDateModal('${patient.id}')">Assign Date</button>
+        <button class="pcs-action-btn pcs-modal-btn-edit" onclick="pcsEditWaitingPatient('${patient.id}')">Edit</button>
+        <button class="pcs-action-btn cancel" onclick="deletePatient('portcath','${patient.id}')">Remove</button>
       </div>
     </div>`;
 }
@@ -1170,6 +1223,142 @@ function pcsSaveConfig() {
   pcsCloseConfig();
   renderPortCathStudio();
   if (typeof showToast === 'function') showToast('Session days saved and synced.', 'success', 2600);
+}
+
+// ── Waiting List: Add / Edit ──────────────────────────────────────────────────
+let _pcsWaitingEditId = null;
+
+function pcsOpenWaitingAddModal() {
+  _pcsWaitingEditId = null;
+  document.getElementById('pcs-waiting-add-title').textContent = 'Add to Waiting List';
+  document.getElementById('pcs-waiting-name').value = '';
+  document.getElementById('pcs-waiting-file').value = '';
+  document.getElementById('pcs-waiting-weight').value = '';
+  document.getElementById('pcs-waiting-phone').value = '';
+  document.getElementById('pcs-waiting-notes').value = '';
+  document.getElementById('pcs-waiting-add-err').classList.remove('visible');
+  document.getElementById('pcs-waiting-add-overlay').classList.add('active');
+}
+
+function pcsEditWaitingPatient(patientId) {
+  const patient = portCathList.find(p => p.id === patientId);
+  if (!patient) return;
+  _pcsWaitingEditId = patientId;
+  document.getElementById('pcs-waiting-add-title').textContent = 'Edit Waiting List Patient';
+  document.getElementById('pcs-waiting-name').value = patient.name || '';
+  document.getElementById('pcs-waiting-file').value = patient.fileNumber || '';
+  document.getElementById('pcs-waiting-weight').value = patient.weight || '';
+  document.getElementById('pcs-waiting-phone').value = patient.phone || '';
+  document.getElementById('pcs-waiting-notes').value = patient.notes || '';
+  document.getElementById('pcs-waiting-add-err').classList.remove('visible');
+  document.getElementById('pcs-waiting-add-overlay').classList.add('active');
+}
+
+function pcsCloseWaitingAddModal() {
+  document.getElementById('pcs-waiting-add-overlay').classList.remove('active');
+  _pcsWaitingEditId = null;
+}
+
+function pcsConfirmWaitingAdd() {
+  const name       = document.getElementById('pcs-waiting-name').value.trim();
+  const fileNumber = document.getElementById('pcs-waiting-file').value.trim();
+  const weight     = parseFloat(document.getElementById('pcs-waiting-weight').value);
+  const phone      = document.getElementById('pcs-waiting-phone').value.trim();
+  const notes      = document.getElementById('pcs-waiting-notes').value.trim();
+  const errEl      = document.getElementById('pcs-waiting-add-err');
+
+  if (!name || !fileNumber || isNaN(weight)) {
+    errEl.classList.add('visible');
+    return;
+  }
+  errEl.classList.remove('visible');
+
+  if (_pcsWaitingEditId) {
+    const patient = portCathList.find(p => p.id === _pcsWaitingEditId);
+    if (patient) {
+      patient.name = name;
+      patient.fileNumber = fileNumber;
+      patient.weight = weight;
+      patient.notes = notes;
+      if (phone) patient.phone = phone;
+      syncAfterChange('update', 'portcath', patient);
+    }
+  } else {
+    const patient = {
+      id: Date.now().toString(),
+      name, fileNumber,
+      date: '', day: '',
+      weight, notes,
+      status: 'waiting',
+      ...(phone && { phone })
+    };
+    portCathList.push(patient);
+    syncAfterChange('create', 'portcath', patient);
+  }
+
+  pcsCloseWaitingAddModal();
+  renderPortCathStudio();
+  if (typeof showToast === 'function') showToast(`${name} saved to Waiting List`, 'success', 2600);
+}
+
+// ── Waiting List: Assign Date (moves patient out of the waiting list) ────────
+let _pcsWaitingAssignId = null;
+
+function pcsOpenAssignDateModal(patientId) {
+  const patient = portCathList.find(p => p.id === patientId);
+  if (!patient) return;
+  _pcsWaitingAssignId = patientId;
+  document.getElementById('pcs-waiting-assign-info').textContent =
+    `${patient.name} · File # ${patient.fileNumber}`;
+  document.getElementById('pcs-waiting-assign-date').value = '';
+  document.getElementById('pcs-waiting-assign-err').classList.remove('visible');
+  document.getElementById('pcs-waiting-assign-overlay').classList.add('active');
+}
+
+function pcsCloseAssignDateModal() {
+  document.getElementById('pcs-waiting-assign-overlay').classList.remove('active');
+  _pcsWaitingAssignId = null;
+}
+
+function pcsConfirmAssignDate() {
+  const patient = portCathList.find(p => p.id === _pcsWaitingAssignId);
+  if (!patient) return;
+
+  const dateVal = document.getElementById('pcs-waiting-assign-date').value;
+  const errEl   = document.getElementById('pcs-waiting-assign-err');
+  if (!dateVal) { errEl.classList.add('visible'); return; }
+  errEl.classList.remove('visible');
+
+  patient.date   = dateVal;
+  patient.day    = pcsDayName(dateVal);
+  patient.status = 'confirmed';
+
+  const histRecord = {
+    id:          Date.now().toString() + '_assign',
+    patientId:   patient.id,
+    patientName: patient.name,
+    fileNumber:  patient.fileNumber,
+    action:      'move',
+    fromDate:    '',
+    toDate:      dateVal,
+    reason:      'Assigned from Waiting List',
+    note:        '',
+    timestamp:   Date.now(),
+    syncStatus:  'pending'
+  };
+  portCathActionHistory.push(histRecord);
+
+  saveToLocalStorage();
+  syncAfterChange('update', 'portcath', patient);
+  syncAfterChange('create', 'portcath-history', histRecord);
+
+  pcsCloseAssignDateModal();
+  updateDateDropdown('portcath');
+  renderPortCathStudio();
+  renderDashboard();
+  renderCalendar();
+  if (typeof showToast === 'function')
+    showToast(`${patient.name} scheduled for ${pcsFormatDate(dateVal)}`, 'success', 3000);
 }
 
 // ── Move Workflow ─────────────────────────────────────────────────────────────
