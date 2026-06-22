@@ -3222,7 +3222,7 @@ function generateAndPrintReport(type, dates, mode, preparerName, action = 'print
                         <td>${patient.modeOfTransportation}</td>
                         <td>${patient.performanceStatus}</td>
                         <td>${patient.admissionDepartment}</td>
-                        <td>${formatDateDisplay(patient.date)}</td>
+                        <td>${patient.notes || '-'}</td>
                     </tr>
                 `;
             });
@@ -3249,18 +3249,18 @@ function generateAndPrintReport(type, dates, mode, preparerName, action = 'print
                         <thead>
                             <tr>
                                 <th style="width: 3%; text-align: center;">#</th>
-                                <th style="width: 15%;">Patient Name</th>
-                                <th style="width: 9%;">File No.</th>
+                                <th style="width: 14%;">Patient Name</th>
+                                <th style="width: 8%;">File No.</th>
                                 <th style="width: 3%; text-align: center;">Age</th>
-                                <th style="width: 10%;">Triage</th>
-                                <th style="width: 10%;">Physician</th>
-                                <th style="width: 12%;">Brief Case Summary</th>
-                                <th style="width: 12%;">Cause of Admission</th>
+                                <th style="width: 9%;">Triage</th>
+                                <th style="width: 9%;">Physician</th>
+                                <th style="width: 11%;">Brief Case Summary</th>
+                                <th style="width: 11%;">Cause of Admission</th>
                                 <th style="width: 6%;">Referral</th>
-                                <th style="width: 8%;">Transport</th>
+                                <th style="width: 7%;">Transport</th>
                                 <th style="width: 7%;">Performance</th>
-                                <th style="width: 8%;">Department</th>
-                                <th style="width: 7%;">Date</th>
+                                <th style="width: 7%;">Department</th>
+                                <th style="width: 8%;">Note</th>
                             </tr>
                         </thead>
                         <tbody>
