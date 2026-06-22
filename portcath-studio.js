@@ -402,6 +402,17 @@ function renderPortCathStudio() {
           </div>
         </div>
 
+        <div class="pcs-search-wrap">
+          <svg class="pcs-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="pcs-search-input" class="pcs-search-input"
+                 placeholder="Search patient by name, file #, or phone — anywhere in Port Cath..."
+                 autocomplete="off"
+                 oninput="pcsRenderSearchResults()"
+                 onkeydown="pcsHandleSearchKey(event)"
+                 onfocus="pcsRenderSearchResults()">
+          <div class="pcs-search-results" id="pcs-search-results"></div>
+        </div>
+
         <div class="pcs-section-divider pcs-section-divider-waiting">
           <span class="pcs-section-label">Waiting List</span>
         </div>
@@ -433,8 +444,118 @@ function renderPortCathStudio() {
   document.removeEventListener('click', pcsCloseAllMoreMenus);
   document.addEventListener('click', pcsCloseAllMoreMenus);
 
+  // Close patient search results when clicking outside the search box
+  document.removeEventListener('click', pcsCloseSearchOnOutsideClick);
+  document.addEventListener('click', pcsCloseSearchOnOutsideClick);
+
   // Keep the day modal in sync if it's open
   pcsRefreshDayModal();
+}
+
+// ── Patient Search ────────────────────────────────────────────────────────────
+function pcsSearchPatients(query) {
+  const q = (query || '').trim().toLowerCase();
+  if (!q) return [];
+  return portCathList.filter(p =>
+    (p.name && String(p.name).toLowerCase().includes(q)) ||
+    (p.fileNumber && String(p.fileNumber).toLowerCase().includes(q)) ||
+    (p.phone && String(p.phone).toLowerCase().includes(q))
+  ).slice(0, 10);
+}
+
+function pcsRenderSearchResults() {
+  const input     = document.getElementById('pcs-search-input');
+  const resultsEl = document.getElementById('pcs-search-results');
+  if (!input || !resultsEl) return;
+
+  const query = input.value.trim();
+  if (query.length === 0) {
+    resultsEl.classList.remove('active');
+    resultsEl.innerHTML = '';
+    return;
+  }
+
+  const matches = pcsSearchPatients(query);
+  resultsEl.classList.add('active');
+
+  if (matches.length === 0) {
+    resultsEl.innerHTML = `<div class="pcs-search-empty">No patient found for "${query}"</div>`;
+    return;
+  }
+
+  resultsEl.innerHTML = matches.map(p => {
+    const locationLabel = p.status === 'waiting' || !p.date
+      ? 'Waiting List'
+      : pcsFormatDate(p.date);
+    return `
+      <button type="button" class="pcs-search-result" onclick="pcsGoToSearchResult('${p.id}')">
+        <span class="pcs-search-result-main">
+          <strong>${p.name}</strong>
+          <small>File # ${p.fileNumber}${p.phone ? ` · ${p.phone}` : ''}</small>
+        </span>
+        <span class="pcs-search-result-loc ${p.status === 'waiting' || !p.date ? 'pcs-search-loc-waiting' : ''}">${locationLabel}</span>
+      </button>`;
+  }).join('');
+}
+
+function pcsCloseSearchResults() {
+  const resultsEl = document.getElementById('pcs-search-results');
+  if (resultsEl) { resultsEl.classList.remove('active'); resultsEl.innerHTML = ''; }
+}
+
+function pcsCloseSearchOnOutsideClick(e) {
+  const wrap = document.querySelector('.pcs-search-wrap');
+  if (wrap && !wrap.contains(e.target)) pcsCloseSearchResults();
+}
+
+function pcsHandleSearchKey(event) {
+  if (event.key === 'Escape') {
+    event.currentTarget.value = '';
+    pcsCloseSearchResults();
+  }
+  if (event.key === 'Enter') {
+    const first = pcsSearchPatients(event.currentTarget.value)[0];
+    if (first) pcsGoToSearchResult(first.id);
+  }
+}
+
+function pcsGoToSearchResult(patientId) {
+  const patient = portCathList.find(p => p.id === patientId);
+  if (!patient) return;
+
+  pcsCloseSearchResults();
+  const input = document.getElementById('pcs-search-input');
+  if (input) { input.value = ''; input.blur(); }
+
+  if (patient.status === 'waiting' || !patient.date) {
+    renderPortCathStudio();
+    window.setTimeout(() => {
+      const row = document.querySelector(`#pcs-waiting-container [data-patient-id="${patient.id}"]`);
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.add('pcs-search-flash');
+        setTimeout(() => row.classList.remove('pcs-search-flash'), 1800);
+      }
+    }, 80);
+    return;
+  }
+
+  const [y, m] = patient.date.split('-').map(Number);
+  pcStudioYear  = y;
+  pcStudioMonth = m - 1;
+  renderPortCathStudio();
+
+  window.setTimeout(() => {
+    pcsOpenDayModal(patient.date);
+    window.setTimeout(() => {
+      const row = document.querySelector(`#pcs-modal-body [data-patient-id="${patient.id}"]`);
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.add('pcs-search-flash');
+        setTimeout(() => row.classList.remove('pcs-search-flash'), 1800);
+      }
+    }, 120);
+  }, 80);
 }
 
 // ── Month navigation ──────────────────────────────────────────────────────────

@@ -48,6 +48,111 @@
   align-items: center;
 }
 
+/* ── Patient search (finds a patient anywhere in Port Cath: scheduled or waiting) ── */
+.pcs-search-wrap {
+  position: relative;
+  margin-bottom: 22px;
+}
+.pcs-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.pcs-search-input {
+  width: 100%;
+  padding: 11px 14px 11px 40px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-main);
+  transition: var(--transition-fast);
+}
+.pcs-search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+.pcs-search-results {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  max-height: 360px;
+  overflow-y: auto;
+}
+.pcs-search-results.active {
+  display: block;
+}
+.pcs-search-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+.pcs-search-result:last-child { border-bottom: none; }
+.pcs-search-result:hover,
+.pcs-search-result:focus-visible {
+  background: var(--bg-main);
+}
+.pcs-search-result-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pcs-search-result-main strong {
+  font-size: 0.86rem;
+  color: var(--text-main);
+}
+.pcs-search-result-main small {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+.pcs-search-result-loc {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pcs-search-loc-waiting {
+  color: var(--warning);
+}
+.pcs-search-empty {
+  padding: 16px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+@keyframes pcs-search-flash-anim {
+  0%, 100% { background: transparent; }
+  20%, 60% { background: color-mix(in srgb, var(--primary) 16%, transparent); }
+}
+.pcs-search-flash {
+  animation: pcs-search-flash-anim 1.6s ease-in-out;
+}
+
 /* ── Buttons (mirrors .btn / .btn-primary / .btn-secondary) ──────────────── */
 .pcs-btn {
   display: inline-flex;
