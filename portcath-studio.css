@@ -1167,17 +1167,6 @@ body.dark-mode .pcs-history-list {
   min-height: 26px;
 }
 
-.pcs-action-btn.move {
-  border-color: var(--primary);
-  color: var(--primary);
-  background: var(--primary-light);
-}
-
-.pcs-action-btn.move:hover {
-  background: var(--primary);
-  color: #fff;
-}
-
 .pcs-action-btn.cancel {
   border-color: var(--danger);
   color: var(--danger);
@@ -1549,6 +1538,12 @@ body.dark-mode .pcs-history-list {
   z-index: 1900 !important;
 }
 
+/* Stack the generic confirm dialog above the day modal too (used by
+   pcsMoveToWaitingList / deletePatient when triggered from inside it) */
+#modal-confirm.active {
+  z-index: 1900 !important;
+}
+
 /* Backdrop — scoped to the day modal ID only, never conflicts with .pcs-modal-overlay */
 #pcs-day-modal-overlay {
   position: fixed;
@@ -1846,9 +1841,8 @@ body.dark-mode .pcs-history-list {
   align-items: center;
   flex-shrink: 0;
 }
-.pcs-modal-btn-noshow    { color: #92400e !important; border-color: #fbbf24 !important; }
-.pcs-modal-btn-apologize { color: #6d28d9 !important; border-color: #c4b5fd !important; }
 .pcs-modal-btn-restore   { color: #065f46 !important; border-color: #6ee7b7 !important; }
+.pcs-modal-btn-waitlist  { color: #92400e !important; border-color: #fbbf24 !important; }
 .pcs-modal-btn-edit      { color: var(--text-muted) !important; }
 
 /* Override pcs-patient-row inside modal (non-modal variant kept for Session Days) */

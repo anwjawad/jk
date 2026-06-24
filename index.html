@@ -1081,30 +1081,7 @@
       </div>
     </div>
 
-    <!-- Port Cath Studio: Move Modal -->
-    <div class="pcs-modal-overlay" id="pcs-move-overlay" role="dialog" aria-modal="true" aria-labelledby="pcs-move-title">
-      <div class="pcs-modal">
-        <h3 id="pcs-move-title">Move Patient</h3>
-        <div class="pcs-modal-sub" id="pcs-move-patient-info"></div>
-        <div class="pcs-modal-field">
-          <label>Move to date</label>
-          <select id="pcs-move-date-select">
-            <option value="">Select session day</option>
-          </select>
-        </div>
-        <div class="pcs-modal-field">
-          <label>Reason <span style="color:var(--danger)">*</span></label>
-          <input type="text" id="pcs-move-reason" placeholder="Enter reason for moving..." autocomplete="off"/>
-          <div class="pcs-error-msg" id="pcs-move-reason-err">Reason is required (at least 3 characters)</div>
-        </div>
-        <div class="pcs-modal-actions">
-          <button class="pcs-btn" onclick="pcsCloseMoveModal()">Cancel</button>
-          <button class="pcs-btn pcs-btn-primary" onclick="pcsConfirmMove()">Confirm Move</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Port Cath Studio: Action Modal (cancel/noshow/apologize/restore) -->
+    <!-- Port Cath Studio: Action Modal (cancel/restore) -->
     <div class="pcs-modal-overlay" id="pcs-action-overlay" role="dialog" aria-modal="true" aria-labelledby="pcs-action-title">
       <div class="pcs-modal">
         <h3 id="pcs-action-title">Confirm Action</h3>
@@ -1203,7 +1180,7 @@
       </div>
     </div>
 
-    <script src="portcath-studio.js?v=9"></script>
+    <script src="portcath-studio.js?v=10"></script>
     <script src="sync.js"></script>
     <script src="app.js"></script>
 

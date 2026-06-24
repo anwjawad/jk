@@ -79,7 +79,7 @@ function pcsRenderCalendarDashboard() {
   const sessionDates = new Set(portCathSessionConfig.filter(c => c.date.startsWith(prefix) && c.isActive).map(c => c.date));
   const patientMap = {};
   portCathList.forEach(p => {
-    if (p.date && p.date.startsWith(prefix) && !['cancelled','noshow','apologized'].includes(p.status || '')) {
+    if (p.date && p.date.startsWith(prefix) && p.status !== 'cancelled') {
       patientMap[p.date] = (patientMap[p.date] || 0) + 1;
     }
   });
@@ -87,7 +87,7 @@ function pcsRenderCalendarDashboard() {
   // Stats
   const totalSessions = sessionDates.size || Object.keys(patientMap).length;
   const totalPats = Object.values(patientMap).reduce((a,b) => a+b, 0);
-  const confirmedPats = portCathList.filter(p => p.date && p.date.startsWith(prefix) && !['cancelled','noshow','apologized'].includes(p.status)).length;
+  const confirmedPats = portCathList.filter(p => p.date && p.date.startsWith(prefix) && p.status !== 'cancelled').length;
 
   // Day headers (Sun → Sat)
   const dayHeaders = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -184,14 +184,12 @@ function pcsRenderCalendarDashboard() {
 
 function _pcsDayModalBodyHTML(dateStr) {
   const patients  = portCathList.filter(p => p.date === dateStr);
-  const confirmed = patients.filter(p => !['cancelled','noshow','apologized'].includes(p.status || ''));
-  const inactive  = patients.filter(p => ['cancelled','noshow','apologized'].includes(p.status || ''));
+  const confirmed = patients.filter(p => p.status !== 'cancelled');
+  const inactive  = patients.filter(p => p.status === 'cancelled');
 
   const chips = [
     confirmed.length  > 0 ? `<span class="pcs-chip pcs-chip-green">${confirmed.length} Confirmed</span>` : '',
-    patients.filter(p => (p.status||'') === 'cancelled').length  > 0 ? `<span class="pcs-chip pcs-chip-red">${patients.filter(p=>(p.status||'')==='cancelled').length} Cancelled</span>` : '',
-    patients.filter(p => (p.status||'') === 'noshow').length     > 0 ? `<span class="pcs-chip pcs-chip-yellow">${patients.filter(p=>(p.status||'')==='noshow').length} No-Show</span>` : '',
-    patients.filter(p => (p.status||'') === 'apologized').length > 0 ? `<span class="pcs-chip pcs-chip-grey">${patients.filter(p=>(p.status||'')==='apologized').length} Apologized</span>` : '',
+    inactive.length   > 0 ? `<span class="pcs-chip pcs-chip-red">${inactive.length} Cancelled</span>` : '',
   ].filter(Boolean).join('');
 
   const historyItems = portCathActionHistory
@@ -222,7 +220,7 @@ function pcsOpenDayModal(dateStr) {
   pcsCloseDayModal(true);
 
   const patients = portCathList.filter(p => p.date === dateStr);
-  const activeCount = patients.filter(p => !['cancelled','noshow','apologized'].includes(p.status||'')).length;
+  const activeCount = patients.filter(p => p.status !== 'cancelled').length;
   const label = pcsFormatDate(dateStr);
 
   const overlay = document.createElement('div');
@@ -304,7 +302,7 @@ function pcsRefreshDayModal() {
   // Update patient count badge
   const badge = document.getElementById('pcs-modal-count-badge');
   if (badge) {
-    const ac = portCathList.filter(p => p.date === dateStr && !['cancelled','noshow','apologized'].includes(p.status||'')).length;
+    const ac = portCathList.filter(p => p.date === dateStr && p.status !== 'cancelled').length;
     badge.textContent = `${ac} patient${ac !== 1 ? 's' : ''}`;
   }
 }
@@ -543,8 +541,8 @@ function pcsNavigateMonth(delta) {
 // Modal variant — all actions shown inline, no dropdown (avoids overflow clipping)
 function pcsRenderPatientRowModal(patient) {
   const status    = patient.status || 'confirmed';
-  const dotSymbol = { confirmed: '✓', cancelled: '✕', noshow: '–', apologized: '~' }[status] || '?';
-  const isInactive = ['cancelled','noshow','apologized'].includes(status);
+  const dotSymbol = { confirmed: '✓', cancelled: '✕' }[status] || '?';
+  const isCancelled = status === 'cancelled';
   return `
     <div class="pcs-patient-row pcs-patient-row-modal" data-patient-id="${patient.id}">
       <div class="pcs-status-dot ${status}">${dotSymbol}</div>
@@ -553,11 +551,9 @@ function pcsRenderPatientRowModal(patient) {
         <div class="pcs-patient-meta">File # ${patient.fileNumber}${patient.weight ? ` · ${patient.weight} kg` : ''}${patient.notes ? ` · ${patient.notes}` : ''}</div>
       </div>
       <div class="pcs-modal-inline-actions">
-        <button class="pcs-action-btn move"      onclick="pcsOpenMoveModal('${patient.id}')">Move</button>
-        ${!isInactive ? `<button class="pcs-action-btn cancel"    onclick="pcsOpenActionModal('${patient.id}','cancel')">Cancel</button>` : ''}
-        ${!isInactive ? `<button class="pcs-action-btn pcs-modal-btn-noshow" onclick="pcsOpenActionModal('${patient.id}','noshow')">No-Show</button>` : ''}
-        ${!isInactive ? `<button class="pcs-action-btn pcs-modal-btn-apologize" onclick="pcsOpenActionModal('${patient.id}','apologize')">Apologize</button>` : ''}
-        ${isInactive  ? `<button class="pcs-action-btn pcs-modal-btn-restore"  onclick="pcsOpenActionModal('${patient.id}','restore')">Restore</button>` : ''}
+        ${!isCancelled ? `<button class="pcs-action-btn cancel"    onclick="pcsOpenActionModal('${patient.id}','cancel')">Cancel</button>` : ''}
+        ${!isCancelled ? `<button class="pcs-action-btn pcs-modal-btn-waitlist" onclick="pcsMoveToWaitingList('${patient.id}')">Move to Waiting List</button>` : ''}
+        ${isCancelled  ? `<button class="pcs-action-btn pcs-modal-btn-restore"  onclick="pcsOpenActionModal('${patient.id}','restore')">Restore</button>` : ''}
         <button class="pcs-action-btn pcs-modal-btn-edit" onclick="pcsEditPatient('${patient.id}')">Edit</button>
       </div>
     </div>`;
@@ -664,7 +660,6 @@ function pcsCloseAllMoreMenus() {
 
 // ── Stubs for handlers defined in later tasks ─────────────────────────────────
 // pcsOpenConfig defined below in Session Config section
-function pcsOpenMoveModal(patientId)       { _pcsMoveOpen(patientId); }
 function pcsOpenActionModal(patientId, action) { _pcsActionOpen(patientId, action); }
 function pcsEditPatient(patientId)         { openEditPatient('portcath', patientId); }
 // ── Print & Export helpers ────────────────────────────────────────────────────
@@ -699,7 +694,7 @@ function _pcsBuildPrintHTML(dateStr, preparedBy, forWord) {
       : `Port Cath Schedule — ${PCS_MONTHS_AR[pcStudioMonth]} ${pcStudioYear}`;
 
   const sections = days.map((sc, idx) => {
-    const patients = pcsPatientsOnDate(sc.date).filter(p => !['cancelled','noshow','apologized'].includes(p.status));
+    const patients = pcsPatientsOnDate(sc.date).filter(p => p.status !== 'cancelled');
     const count    = patients.length;
     const rows = count === 0
       ? `<tr><td colspan="5" class="empty-row">No patients scheduled for this day.</td></tr>`
@@ -895,7 +890,7 @@ function _pcsBuildWordHTML(dateStr, preparedBy) {
       : `Port Cath Schedule — ${PCS_MONTHS_AR[pcStudioMonth]} ${pcStudioYear}`;
 
   const sections = days.map(sc => {
-    const patients = pcsPatientsOnDate(sc.date).filter(p => !['cancelled','noshow','apologized'].includes(p.status));
+    const patients = pcsPatientsOnDate(sc.date).filter(p => p.status !== 'cancelled');
     const rows = patients.length === 0
       ? `<tr><td colspan="5" style="text-align:center;color:#888;font-style:italic">No patients</td></tr>`
       : patients.map((p, i) => `
@@ -1536,91 +1531,52 @@ function pcsConfirmAssignDate() {
     showToast(`${patient.name} scheduled for ${pcsFormatDate(dateVal)}`, 'success', 3000);
 }
 
-// ── Move Workflow ─────────────────────────────────────────────────────────────
-let _pcsMovePatientId = null;
-
-function _pcsMoveOpen(patientId) {
+// ── Move to Waiting List (reverse of Assign Date) ─────────────────────────────
+function pcsMoveToWaitingList(patientId) {
   const patient = portCathList.find(p => p.id === patientId);
   if (!patient) return;
-  _pcsMovePatientId = patientId;
 
-  document.getElementById('pcs-move-patient-info').textContent =
-    `${patient.name} · File # ${patient.fileNumber}`;
+  showConfirmModal({
+    title: 'Move to Waiting List?',
+    body: `<strong>${patient.name}</strong> (File # ${patient.fileNumber}) will be removed from ${pcsFormatDate(patient.date)} and placed back on the Waiting List with no date.`,
+    confirmLabel: 'Move to Waiting List',
+    onConfirm: () => {
+      const fromDate = patient.date;
 
-  const today  = new Date().toISOString().split('T')[0];
-  const select = document.getElementById('pcs-move-date-select');
-  select.innerHTML = `<option value="">Select session day</option>`;
-  portCathSessionConfig
-    .filter(c => c.isActive && c.date !== patient.date && c.date >= today)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.date;
-      opt.textContent = pcsFormatDate(c.date);
-      select.appendChild(opt);
-    });
+      patient.date   = '';
+      patient.day    = '';
+      patient.status = 'waiting';
 
-  document.getElementById('pcs-move-reason').value = '';
-  document.getElementById('pcs-move-reason-err').classList.remove('visible');
-  document.getElementById('pcs-move-overlay').classList.add('active');
+      const histRecord = {
+        id:          Date.now().toString() + '_waitlist',
+        patientId:   patient.id,
+        patientName: patient.name,
+        fileNumber:  patient.fileNumber,
+        action:      'move',
+        fromDate,
+        toDate:      '',
+        reason:      'Moved to Waiting List',
+        note:        '',
+        timestamp:   Date.now(),
+        syncStatus:  'pending'
+      };
+      portCathActionHistory.push(histRecord);
+
+      saveToLocalStorage();
+      syncAfterChange('update', 'portcath', patient);
+      syncAfterChange('create', 'portcath-history', histRecord);
+
+      renderPortCathStudio();
+      if (typeof showToast === 'function')
+        showToast(`${patient.name} moved to Waiting List`, 'success', 3000);
+    }
+  });
 }
 
-function pcsCloseMoveModal() {
-  document.getElementById('pcs-move-overlay').classList.remove('active');
-  _pcsMovePatientId = null;
-}
-
-function pcsConfirmMove() {
-  const patient = portCathList.find(p => p.id === _pcsMovePatientId);
-  if (!patient) return;
-
-  const toDate = document.getElementById('pcs-move-date-select').value;
-  const reason = document.getElementById('pcs-move-reason').value.trim();
-
-  const errEl = document.getElementById('pcs-move-reason-err');
-  if (reason.length < 3) { errEl.classList.add('visible'); return; }
-  errEl.classList.remove('visible');
-  if (!toDate) { if (typeof showToast === 'function') showToast('Please select a destination date.', 'warning', 3000); return; }
-
-  const fromDate = patient.date;
-
-  // 1. Update patient record
-  patient.date = toDate;
-  patient.day  = pcsDayName(toDate);
-
-  // 2. Append history record
-  const histRecord = {
-    id:          Date.now().toString() + '_move',
-    patientId:   patient.id,
-    patientName: patient.name,
-    fileNumber:  patient.fileNumber,
-    action:      'move',
-    fromDate,
-    toDate,
-    reason,
-    note:        '',
-    timestamp:   Date.now(),
-    syncStatus:  'pending'
-  };
-  portCathActionHistory.push(histRecord);
-
-  // 3. Persist and sync
-  saveToLocalStorage();
-  syncAfterChange('update', 'portcath', patient);
-  syncAfterChange('create', 'portcath-history', histRecord);
-
-  pcsCloseMoveModal();
-  renderPortCathStudio();
-  if (typeof showToast === 'function')
-    showToast(`${patient.name} moved to ${pcsFormatDate(toDate)}`, 'success', 3000);
-}
-
-// ── Status Actions (cancel / noshow / apologize / restore) ────────────────────
+// ── Status Actions (cancel / restore) ─────────────────────────────────────────
 const PCS_ACTION_LABELS = {
-  cancel:    { title: 'Cancel Appointment', newStatus: 'cancelled'  },
-  noshow:    { title: 'Record No-Show',     newStatus: 'noshow'     },
-  apologize: { title: 'Record Apology',     newStatus: 'apologized' },
-  restore:   { title: 'Restore Appointment',newStatus: 'confirmed'  }
+  cancel:    { title: 'Cancel Appointment',  newStatus: 'cancelled' },
+  restore:   { title: 'Restore Appointment', newStatus: 'confirmed' }
 };
 
 let _pcsActionPatientId = null;
