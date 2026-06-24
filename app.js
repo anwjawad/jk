@@ -242,6 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Switch Tabs
 function switchTab(tabId) {
+    // Pull the latest data from Google Sheets every time a tab is opened
+    if (typeof pullLatestFromGoogleSheets === 'function') pullLatestFromGoogleSheets();
+
     // Update active tab class
     document.querySelectorAll('.tab-view').forEach(tab => {
         tab.classList.remove('active');

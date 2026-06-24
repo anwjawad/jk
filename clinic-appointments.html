@@ -1399,7 +1399,11 @@
         _isSyncing = false;
     }
 
+    let _isPulling = false;
+
     async function initSync() {
+        if (_isPulling) return;
+        _isPulling = true;
         showSyncStatus(_pendingQueue.length > 0 ? 'pending' : 'loading');
         try {
             const url = `${GAS_URL}?action=getAll&key=${encodeURIComponent(API_KEY)}`;
@@ -1422,8 +1426,16 @@
         } catch (e) {
             console.warn('[Clinic Sync] Using local cache:', e.message);
             showSyncStatus(_pendingQueue.length > 0 ? 'pending' : 'offline');
+        } finally {
+            _isPulling = false;
         }
     }
+
+    // Re-sync every time this page/tab becomes visible again (e.g. switching
+    // back from another browser tab), so it never shows stale cached data.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') initSync();
+    });
 
     // ── Data Helpers ──────────────────────────────────────────────────────────
     function genId() {

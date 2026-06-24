@@ -232,24 +232,18 @@ function showSyncStatus(status) {
     if (status === 'synced') setTimeout(() => showSyncStatus('offline'), 3000);
 }
 
-// ── Boot initializer — called once from DOMContentLoaded in app.js ───────────
+// ── Pull latest data from Google Sheets ──────────────────────────────────────
+// Reusable by both the boot initializer and any "this tab just opened" hook
+// (see switchTab() in app.js) so navigating around the app always shows the
+// freshest data, not just whatever was cached at page load.
 
-async function initGoogleSheetsSync() {
-    const stored = localStorage.getItem(PENDING_QUEUE_KEY);
-    _pendingQueue = stored ? JSON.parse(stored) : [];
+let _isPulling = false;
 
+async function pullLatestFromGoogleSheets() {
     const hasGasUrl = GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'PASTE_WEB_APP_URL_HERE';
-    if (IS_LOCAL_PREVIEW && !ENABLE_JSONP_READS && !hasGasUrl) {
-        showSyncStatus(_pendingQueue.length > 0 ? 'pending' : 'offline');
-        await syncAllLocalPendingChanges();
-        return;
-    }
+    if (!hasGasUrl || _isPulling) return;
 
-    if (!hasGasUrl) {
-        showSyncStatus('offline');
-        return;
-    }
-
+    _isPulling = true;
     showSyncStatus('loading');
     try {
         const data = await loadFromGoogleSheets();
@@ -274,5 +268,28 @@ async function initGoogleSheetsSync() {
     } catch (e) {
         console.warn('[Sync] GAS load failed, using cache:', e.message);
         showSyncStatus('offline');
+    } finally {
+        _isPulling = false;
     }
+}
+
+// ── Boot initializer — called once from DOMContentLoaded in app.js ───────────
+
+async function initGoogleSheetsSync() {
+    const stored = localStorage.getItem(PENDING_QUEUE_KEY);
+    _pendingQueue = stored ? JSON.parse(stored) : [];
+
+    const hasGasUrl = GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'PASTE_WEB_APP_URL_HERE';
+    if (IS_LOCAL_PREVIEW && !ENABLE_JSONP_READS && !hasGasUrl) {
+        showSyncStatus(_pendingQueue.length > 0 ? 'pending' : 'offline');
+        await syncAllLocalPendingChanges();
+        return;
+    }
+
+    if (!hasGasUrl) {
+        showSyncStatus('offline');
+        return;
+    }
+
+    await pullLatestFromGoogleSheets();
 }
