@@ -768,6 +768,39 @@ body.dark-mode .pcs-history-list {
   display: block;
 }
 
+/* ── Print Options modal — scope radios + day checkboxes ─────────────────── */
+.pcs-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pcs-radio-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  cursor: pointer;
+}
+.pcs-checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius-sm);
+  padding: 10px 12px;
+}
+.pcs-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
 /* ── Session config modal — split layout ──────────────────────────────────── */
 #pcs-config-overlay .pcs-modal {
   max-width: 740px;

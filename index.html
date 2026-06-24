@@ -1121,6 +1121,39 @@
       </div>
     </div>
 
+    <!-- Port Cath Studio: Print / Export Options Modal -->
+    <div class="pcs-modal-overlay" id="pcs-print-options-overlay" role="dialog" aria-modal="true" aria-labelledby="pcs-print-options-title">
+      <div class="pcs-modal">
+        <h3 id="pcs-print-options-title">Print / Export Options</h3>
+        <div class="pcs-modal-field">
+          <label>Scope</label>
+          <div class="pcs-radio-group">
+            <label class="pcs-radio-row">
+              <input type="radio" name="pcs-print-scope" value="all" checked onchange="pcsUpdatePrintScope()">
+              All session days this month
+            </label>
+            <label class="pcs-radio-row">
+              <input type="radio" name="pcs-print-scope" value="specific" onchange="pcsUpdatePrintScope()">
+              Specific day(s)
+            </label>
+            <label class="pcs-radio-row">
+              <input type="radio" name="pcs-print-scope" value="waiting" onchange="pcsUpdatePrintScope()">
+              Waiting List
+            </label>
+          </div>
+        </div>
+        <div class="pcs-modal-field" id="pcs-print-day-picker-wrap" style="display:none">
+          <label>Select day(s)</label>
+          <div class="pcs-checkbox-list" id="pcs-print-day-list"></div>
+        </div>
+        <div class="pcs-modal-actions">
+          <button class="pcs-btn" onclick="pcsClosePrintOptionsModal()">Cancel</button>
+          <button class="pcs-btn" onclick="pcsConfirmPrintOptions('word')">Export Word</button>
+          <button class="pcs-btn pcs-btn-primary" onclick="pcsConfirmPrintOptions('print')">Print</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Port Cath Studio: Waiting List — Add/Edit Modal -->
     <div class="pcs-modal-overlay" id="pcs-waiting-add-overlay" role="dialog" aria-modal="true" aria-labelledby="pcs-waiting-add-title">
       <div class="pcs-modal">
@@ -1170,7 +1203,7 @@
       </div>
     </div>
 
-    <script src="portcath-studio.js?v=8"></script>
+    <script src="portcath-studio.js?v=9"></script>
     <script src="sync.js"></script>
     <script src="app.js"></script>
 

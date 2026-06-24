@@ -180,20 +180,6 @@ function pcsRenderCalendarDashboard() {
     </div>`;
 }
 
-function pcsCalJumpToDay(dateStr) {
-  // Open the card and scroll to it
-  const card = document.getElementById(`pcs-card-${dateStr}`);
-  if (!card) return;
-  if (!card.classList.contains('open')) {
-    card.classList.add('open');
-    const list = card.querySelector('.pcs-patient-list');
-    if (list) list.style.display = 'block';
-  }
-  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  card.classList.add('pcs-card-flash');
-  setTimeout(() => card.classList.remove('pcs-card-flash'), 900);
-}
-
 // ── Day Modal ─────────────────────────────────────────────────────────────────
 
 function _pcsDayModalBodyHTML(dateStr) {
@@ -391,13 +377,9 @@ function renderPortCathStudio() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
               Waiting List
             </button>
-            <button class="pcs-btn" onclick="pcsPrint()">
+            <button class="pcs-btn" onclick="pcsOpenPrintOptionsModal()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-              Print
-            </button>
-            <button class="pcs-btn" onclick="pcsExportWord()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-              Export Word
+              Print / Export
             </button>
           </div>
         </div>
@@ -427,14 +409,6 @@ function renderPortCathStudio() {
         </div>
 
         ${pcsRenderCalendarDashboard()}
-
-        <div class="pcs-section-divider">
-          <span class="pcs-section-label">Session Days</span>
-        </div>
-
-        <div id="pcs-cards-container">
-          ${pcsRenderDayCards()}
-        </div>
 
       </div>
     </div>
@@ -566,127 +540,6 @@ function pcsNavigateMonth(delta) {
   renderPortCathStudio();
 }
 
-// ── Day cards ─────────────────────────────────────────────────────────────────
-function pcsRenderDayCards() {
-  const m1 = pcStudioMonth + 1;
-  const prefix = `${pcStudioYear}-${String(m1).padStart(2,'0')}-`;
-
-  const configDays = portCathSessionConfig.filter(c => c.date.startsWith(prefix));
-  const configDateSet = new Set(configDays.map(c => c.date));
-
-  // Include any patient dates that have no session config entry (legacy/imported data)
-  const orphanDates = [
-    ...new Set(
-      portCathList
-        .filter(p => p.date && p.date.startsWith(prefix) && !configDateSet.has(p.date))
-        .map(p => p.date)
-    )
-  ].map(date => ({ date, isActive: true, _orphan: true }));
-
-  const allDays = [...configDays, ...orphanDates]
-    .sort((a, b) => a.date.localeCompare(b.date));
-
-  if (allDays.length === 0) {
-    const otherMonths = pcsGetAllDataMonths().filter(ym => {
-      const [y, m] = ym.split('-').map(Number);
-      return !(y === pcStudioYear && m === pcStudioMonth + 1);
-    });
-    const monthLinks = otherMonths.length
-      ? `<div style="margin-top:20px;">
-          <p style="font-size:0.8rem;font-weight:600;color:var(--text-muted);margin-bottom:10px;">Months with existing data:</p>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            ${otherMonths.map(ym => {
-              const [y, m] = ym.split('-').map(Number);
-              const label = `${PCS_MONTHS_AR[m - 1]} ${y}`;
-              return `<button class="pcs-btn" onclick="pcStudioYear=${y};pcStudioMonth=${m-1};renderPortCathStudio()">${label}</button>`;
-            }).join('')}
-          </div>
-        </div>`
-      : '';
-    return `
-      <div class="pcs-empty">
-        <h3>No session days this month</h3>
-        <p>Click "Configure Days" to set Port Cath session days for this month.</p>
-        <button class="pcs-btn pcs-btn-primary" onclick="pcsOpenConfig()">Configure Days</button>
-        ${monthLinks}
-      </div>`;
-  }
-
-  return allDays.map(sc => pcsRenderDayCard(sc)).join('');
-}
-
-function pcsRenderDayCard(sessionConfig) {
-  const { date, isActive } = sessionConfig;
-  const patients   = pcsPatientsOnDate(date);
-  const confirmed  = pcsCountStatus(patients, 'confirmed');
-  const cancelled  = pcsCountStatus(patients, 'cancelled');
-  const noshow     = pcsCountStatus(patients, 'noshow');
-  const apologized = pcsCountStatus(patients, 'apologized');
-  const isCancelled = !isActive;
-
-  const chips = [
-    confirmed  > 0 ? `<span class="pcs-chip pcs-chip-green">${confirmed} Confirmed</span>`  : '',
-    cancelled  > 0 ? `<span class="pcs-chip pcs-chip-red">${cancelled} Cancelled</span>`   : '',
-    noshow     > 0 ? `<span class="pcs-chip pcs-chip-yellow">${noshow} No-Show</span>`     : '',
-    apologized > 0 ? `<span class="pcs-chip pcs-chip-grey">${apologized} Apologized</span>`: '',
-    sessionConfig._orphan ? `<span class="pcs-chip pcs-chip-yellow" title="This date has patients but is not in your session schedule. Open Configure Days to add it.">Not in schedule</span>` : '',
-  ].filter(Boolean).join('');
-
-  const historyItems = portCathActionHistory
-    .filter(h => h.fromDate === date || h.toDate === date)
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .slice(0, 5);
-
-  return `
-    <div class="pcs-day-card ${isCancelled ? 'pcs-card-cancelled' : ''}" id="pcs-card-${date}">
-      <div class="pcs-card-header" role="button" tabindex="0"
-           aria-label="Toggle ${pcsFormatDate(date)}"
-           onclick="pcsToggleCard('${date}')"
-           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pcsToggleCard('${date}')}">
-        <div class="pcs-card-count">${isCancelled ? '✕' : patients.length}</div>
-        <div class="pcs-card-info">
-          <div class="pcs-card-date">${pcsFormatDate(date)}</div>
-          <div class="pcs-card-chips">
-            ${isCancelled
-              ? `<span class="pcs-chip pcs-chip-red">Day Cancelled</span>`
-              : (chips || `<span class="pcs-chip pcs-chip-grey">No patients</span>`)
-            }
-          </div>
-        </div>
-        <div class="pcs-card-toggle" aria-hidden="true">▼</div>
-        <div class="pcs-card-day-actions" onclick="event.stopPropagation()">
-          <button class="pcs-day-act-btn" title="Print this day" onclick="pcsPrint('${date}')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          </button>
-          <button class="pcs-day-act-btn" title="Export this day to Word" onclick="pcsExportWord('${date}')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="pcs-patient-list" style="display:none">
-        ${patients.length === 0
-          ? `<div style="padding:12px 16px;font-size:0.75rem;color:var(--text-muted)">No patients scheduled for this day.</div>`
-          : patients.map(p => pcsRenderPatientRow(p)).join('')
-        }
-      </div>
-
-      <div class="pcs-history-toggle" role="button" tabindex="0"
-           aria-label="Toggle history for ${date}"
-           onclick="pcsToggleHistory('${date}')"
-           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pcsToggleHistory('${date}')}">
-        <span>History (${historyItems.length} event${historyItems.length === 1 ? '' : 's'})</span>
-        <span aria-hidden="true">▼</span>
-      </div>
-      <div class="pcs-history-list" id="pcs-hist-${date}" style="display:none">
-        ${historyItems.length === 0
-          ? `<div style="font-size:0.7rem;color:var(--text-muted);padding:4px 0">No history recorded.</div>`
-          : historyItems.map(h => pcsRenderHistoryItem(h)).join('')
-        }
-      </div>
-    </div>`;
-}
-
 // Modal variant — all actions shown inline, no dropdown (avoids overflow clipping)
 function pcsRenderPatientRowModal(patient) {
   const status    = patient.status || 'confirmed';
@@ -710,30 +563,6 @@ function pcsRenderPatientRowModal(patient) {
     </div>`;
 }
 
-// Note: innerHTML interpolation of patient.name/fileNumber is consistent with
-// the existing app.js pattern throughout this codebase.
-function pcsRenderPatientRow(patient) {
-  const status = patient.status || 'confirmed';
-  const dotSymbol = { confirmed: '✓', cancelled: '✕', noshow: '–', apologized: '~' }[status] || '?';
-  return `
-    <div class="pcs-patient-row" data-patient-id="${patient.id}">
-      <div class="pcs-status-dot ${status}">${dotSymbol}</div>
-      <div class="pcs-patient-name">${patient.name}</div>
-      <div class="pcs-patient-meta">File # ${patient.fileNumber}</div>
-      <div class="pcs-patient-actions" style="position:relative">
-        <button class="pcs-action-btn move" onclick="pcsOpenMoveModal('${patient.id}')">Move</button>
-        <button class="pcs-action-btn cancel" onclick="pcsOpenActionModal('${patient.id}','cancel')">Cancel</button>
-        <button class="pcs-action-btn more" aria-label="More actions for ${patient.name}" onclick="pcsToggleMoreMenu(event,'${patient.id}')">⋯</button>
-        <div class="pcs-more-menu" id="pcs-more-${patient.id}">
-          <button class="pcs-more-item" onclick="pcsOpenActionModal('${patient.id}','noshow')">No-Show</button>
-          <button class="pcs-more-item" onclick="pcsOpenActionModal('${patient.id}','apologize')">Apologize</button>
-          <button class="pcs-more-item" onclick="pcsOpenActionModal('${patient.id}','restore')">Restore</button>
-          <button class="pcs-more-item" onclick="pcsEditPatient('${patient.id}')">Edit</button>
-        </div>
-      </div>
-    </div>`;
-}
-
 // ── Waiting List ──────────────────────────────────────────────────────────────
 function pcsRenderWaitingList() {
   const waiting = portCathList.filter(p => (p.status || '') === 'waiting');
@@ -749,6 +578,14 @@ function pcsRenderWaitingList() {
               ? `<span class="pcs-chip pcs-chip-grey">No patients waiting</span>`
               : `<span class="pcs-chip pcs-chip-yellow">${waiting.length} awaiting date</span>`}
           </div>
+        </div>
+        <div class="pcs-card-day-actions">
+          <button class="pcs-day-act-btn" title="Print Waiting List" onclick="pcsPrintWaitingList()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          </button>
+          <button class="pcs-day-act-btn" title="Export Waiting List to Word" onclick="pcsExportWaitingListWord()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+          </button>
         </div>
       </div>
       <div class="pcs-patient-list pcs-waiting-list" style="display:block">
@@ -791,19 +628,6 @@ function pcsRenderHistoryItem(h) {
 }
 
 // ── Toggle helpers ────────────────────────────────────────────────────────────
-function pcsToggleCard(date) {
-  const card = document.getElementById(`pcs-card-${date}`);
-  if (!card) return;
-  card.classList.toggle('open');
-  const list = card.querySelector('.pcs-patient-list');
-  if (list) list.style.display = card.classList.contains('open') ? 'block' : 'none';
-}
-
-function pcsToggleHistory(date) {
-  const hist = document.getElementById(`pcs-hist-${date}`);
-  if (hist) hist.style.display = hist.style.display === 'none' ? 'block' : 'none';
-}
-
 function pcsToggleMoreMenu(e, patientId) {
   e.stopPropagation();
   document.querySelectorAll('.pcs-more-menu.active').forEach(m => {
@@ -846,9 +670,11 @@ function pcsEditPatient(patientId)         { openEditPatient('portcath', patient
 // ── Print & Export helpers ────────────────────────────────────────────────────
 
 function _pcsBuildDaySections(dateStr) {
-  // If dateStr given: just that day. Otherwise: all days in current month view.
+  // Array: those specific days. String: just that day. Nothing: all days in current month view.
   let days;
-  if (dateStr) {
+  if (Array.isArray(dateStr)) {
+    days = dateStr.map(d => ({ date: d })).sort((a, b) => a.date.localeCompare(b.date));
+  } else if (dateStr) {
     days = [{ date: dateStr }];
   } else {
     const prefix = `${pcStudioYear}-${String(pcStudioMonth + 1).padStart(2,'0')}-`;
@@ -866,9 +692,11 @@ function _pcsBuildPrintHTML(dateStr, preparedBy, forWord) {
   const days      = _pcsBuildDaySections(dateStr);
   const baseHref  = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
   const printedAt = new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
-  const titleLine = dateStr
-    ? pcsFormatDate(dateStr)
-    : `Port Cath Schedule — ${PCS_MONTHS_AR[pcStudioMonth]} ${pcStudioYear}`;
+  const titleLine = Array.isArray(dateStr)
+    ? `Port Cath Schedule — Selected Days (${days.length})`
+    : dateStr
+      ? pcsFormatDate(dateStr)
+      : `Port Cath Schedule — ${PCS_MONTHS_AR[pcStudioMonth]} ${pcStudioYear}`;
 
   const sections = days.map((sc, idx) => {
     const patients = pcsPatientsOnDate(sc.date).filter(p => !['cancelled','noshow','apologized'].includes(p.status));
@@ -1060,9 +888,11 @@ function pcsPrint(dateStr) {
 
 function _pcsBuildWordHTML(dateStr, preparedBy) {
   const days  = _pcsBuildDaySections(dateStr);
-  const title = dateStr
-    ? `Port Cath — ${pcsFormatDate(dateStr)}`
-    : `Port Cath Schedule — ${PCS_MONTHS_AR[pcStudioMonth]} ${pcStudioYear}`;
+  const title = Array.isArray(dateStr)
+    ? `Port Cath Schedule — Selected Days (${days.length})`
+    : dateStr
+      ? `Port Cath — ${pcsFormatDate(dateStr)}`
+      : `Port Cath Schedule — ${PCS_MONTHS_AR[pcStudioMonth]} ${pcStudioYear}`;
 
   const sections = days.map(sc => {
     const patients = pcsPatientsOnDate(sc.date).filter(p => !['cancelled','noshow','apologized'].includes(p.status));
@@ -1184,7 +1014,11 @@ function pcsExportWord(dateStr) {
 }
 
 function _pcsDownloadDoc(html, dateStr) {
-  const label  = dateStr ? dateStr : `${PCS_MONTHS_AR[pcStudioMonth]}-${pcStudioYear}`;
+  const label  = Array.isArray(dateStr)
+    ? `Selected-${dateStr.length}-Days`
+    : dateStr
+      ? dateStr
+      : `${PCS_MONTHS_AR[pcStudioMonth]}-${pcStudioYear}`;
   const fname  = `PortCath-${label}.doc`;
   const blob   = new Blob(['﻿' + html], { type: 'application/msword' });
   const url    = URL.createObjectURL(blob);
@@ -1193,6 +1027,226 @@ function _pcsDownloadDoc(html, dateStr) {
   a.download   = fname;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ── Waiting List: Print / Export ─────────────────────────────────────────────
+function _pcsBuildWaitingListPrintHTML(preparedBy) {
+  const waiting   = portCathList.filter(p => (p.status || '') === 'waiting');
+  const baseHref  = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+  const printedAt = new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
+  const titleLine = 'Port Cath — Waiting List';
+
+  const rows = waiting.length === 0
+    ? `<tr><td colspan="5" class="empty-row">No patients on the waiting list.</td></tr>`
+    : waiting.map((p, i) => `
+        <tr class="${i % 2 === 0 ? 'row-even' : 'row-odd'}">
+          <td class="col-num">${i + 1}</td>
+          <td class="col-name">${p.name || '—'}</td>
+          <td class="col-file">${p.fileNumber || '—'}</td>
+          <td class="col-weight">${p.weight ? p.weight + ' kg' : '—'}</td>
+          <td class="col-notes">${p.notes || ''}</td>
+        </tr>`).join('');
+
+  const section = `
+    <div class="day-section">
+      <div class="day-header">
+        <div class="day-title">Waiting List</div>
+        <div class="patient-badge">${waiting.length} ${waiting.length === 1 ? 'Patient' : 'Patients'}</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th class="col-num">#</th>
+            <th class="col-name">Patient Name</th>
+            <th class="col-file">File #</th>
+            <th class="col-weight">Weight</th>
+            <th class="col-notes">Notes</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <base href="${baseHref}">
+  <title>${titleLine}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #0f172a; background: #fff; padding: 24px; }
+    .hospital-header { display: flex; align-items: center; gap: 18px; padding-bottom: 14px; border-bottom: 2.5px solid #0d9488; margin-bottom: 22px; }
+    .hospital-logo { width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; }
+    .hospital-info { flex: 1; }
+    .hospital-name { font-size: 15pt; font-weight: 700; color: #0d9488; letter-spacing: -0.3px; line-height: 1.2; }
+    .report-title { font-size: 11pt; font-weight: 600; color: #334155; margin-top: 4px; }
+    .report-meta { font-size: 8.5pt; color: #64748b; margin-top: 3px; }
+    .day-section { margin-bottom: 28px; }
+    .day-header { display: flex; align-items: center; justify-content: space-between; background: #fffbeb; border-left: 4px solid #f59e0b; padding: 8px 12px; border-radius: 0 6px 6px 0; margin-bottom: 8px; }
+    .day-title { font-size: 11pt; font-weight: 700; color: #0f172a; }
+    .patient-badge { background: #f59e0b; color: #fff; font-size: 8.5pt; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+    table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+    th { background: #0d9488; color: #fff; font-weight: 600; padding: 7px 9px; text-align: left; white-space: nowrap; }
+    td { padding: 6px 9px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    .row-even { background: #fff; }
+    .row-odd  { background: #f8fafc; }
+    .col-num   { width: 32px;  text-align: center; }
+    .col-name  { min-width: 130px; }
+    .col-file  { width: 90px; }
+    .col-weight{ width: 80px; text-align: center; }
+    .col-notes { }
+    .empty-row { text-align: center; color: #94a3b8; font-style: italic; padding: 14px; }
+    .print-footer { margin-top: 28px; padding-top: 10px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 8pt; color: #64748b; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="hospital-header">
+    <img class="hospital-logo" src="logo.png" alt="Hospital Logo" onerror="this.style.display='none'">
+    <div class="hospital-info">
+      <div class="hospital-name">Port Cath Scheduling</div>
+      <div class="report-title">${titleLine}</div>
+      <div class="report-meta">Printed: ${printedAt}</div>
+    </div>
+  </div>
+
+  ${section}
+
+  <div class="print-footer">
+    <span><strong>Prepared by:</strong> ${preparedBy || 'Port Cath Team'}</span>
+    <span>${printedAt}</span>
+  </div>
+</body>
+</html>`;
+}
+
+function pcsPrintWaitingList() {
+  const preparedBy = prompt('Prepared by (اسم المحضِّر):', '') ?? '';
+  const html = _pcsBuildWaitingListPrintHTML(preparedBy);
+  const printWin = window.open('', '_blank', 'width=900,height=700');
+  if (!printWin) { alert('Please allow pop-ups to print.'); return; }
+  printWin.document.write(html);
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => printWin.print(), 600);
+}
+
+function _pcsBuildWaitingListWordHTML(preparedBy) {
+  const waiting = portCathList.filter(p => (p.status || '') === 'waiting');
+  const rows = waiting.length === 0
+    ? `<tr><td colspan="5" style="text-align:center;color:#888;font-style:italic">No patients on the waiting list</td></tr>`
+    : waiting.map((p, i) => `
+        <tr>
+          <td style="text-align:center">${i + 1}</td>
+          <td>${p.name || ''}</td>
+          <td>${p.fileNumber || ''}</td>
+          <td>${p.weight ? p.weight + ' kg' : ''}</td>
+          <td>${p.notes || ''}</td>
+        </tr>`).join('');
+
+  const today = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; margin: 0.6in 1in 1in; color: #000; }
+  .header { text-align: center; border-bottom: 2px solid #0d9488; padding-bottom: 8px; margin-bottom: 16px; }
+  .header h1 { font-size: 15pt; font-weight: 700; margin: 0 0 3px; color: #0d9488; }
+  .header .subtitle { font-size: 9.5pt; color: #555; margin: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  th { text-align: left; padding: 6px 8px; font-weight: 700; border: 1px solid #000; background: none; color: #000; }
+  td { padding: 5px 8px; border: 1px solid #999; vertical-align: top; color: #000; }
+</style>
+</head><body>
+  <div class="header">
+    <h1>Port Cath — Waiting List</h1>
+    <p class="subtitle">${today}</p>
+  </div>
+  <table>
+    <thead>
+      <tr style="background:#e2e8f0">
+        <th style="width:30px">#</th>
+        <th>Patient Name</th>
+        <th style="width:80px">File #</th>
+        <th style="width:70px">Weight</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+</body></html>`;
+}
+
+function pcsExportWaitingListWord() {
+  const preparedBy = prompt('Prepared by (اسم المحضِّر):', '') ?? '';
+  const html = _pcsBuildWaitingListWordHTML(preparedBy);
+  _pcsDownloadDoc(html, 'Waiting-List');
+}
+
+// ── Print Options Modal (choose: all month / specific days / waiting list) ──
+function pcsOpenPrintOptionsModal() {
+  const overlay = document.getElementById('pcs-print-options-overlay');
+  if (!overlay) return;
+  const allRadio = overlay.querySelector('input[name="pcs-print-scope"][value="all"]');
+  if (allRadio) allRadio.checked = true;
+  pcsPopulatePrintDayList();
+  pcsUpdatePrintScope();
+  overlay.classList.add('active');
+}
+
+function pcsClosePrintOptionsModal() {
+  const overlay = document.getElementById('pcs-print-options-overlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+function pcsPopulatePrintDayList() {
+  const listEl = document.getElementById('pcs-print-day-list');
+  if (!listEl) return;
+  const days = _pcsBuildDaySections();
+  if (days.length === 0) {
+    listEl.innerHTML = `<div class="pcs-search-empty">No session days this month.</div>`;
+    return;
+  }
+  listEl.innerHTML = days.map(d => `
+    <label class="pcs-checkbox-row">
+      <input type="checkbox" class="pcs-print-day-cb" value="${d.date}">
+      ${pcsFormatDate(d.date)}
+    </label>
+  `).join('');
+}
+
+function pcsUpdatePrintScope() {
+  const scope = document.querySelector('input[name="pcs-print-scope"]:checked')?.value || 'all';
+  const wrap = document.getElementById('pcs-print-day-picker-wrap');
+  if (wrap) wrap.style.display = scope === 'specific' ? 'block' : 'none';
+}
+
+function pcsConfirmPrintOptions(mode) {
+  const scope = document.querySelector('input[name="pcs-print-scope"]:checked')?.value || 'all';
+
+  if (scope === 'waiting') {
+    pcsClosePrintOptionsModal();
+    if (mode === 'print') pcsPrintWaitingList();
+    else pcsExportWaitingListWord();
+    return;
+  }
+
+  let dateArg;
+  if (scope === 'specific') {
+    const checked = Array.from(document.querySelectorAll('.pcs-print-day-cb:checked')).map(cb => cb.value);
+    if (checked.length === 0) {
+      if (typeof showToast === 'function') showToast('Please select at least one day.', 'warning', 3000);
+      return;
+    }
+    dateArg = checked;
+  } else {
+    dateArg = undefined;
+  }
+
+  pcsClosePrintOptionsModal();
+  if (mode === 'print') pcsPrint(dateArg);
+  else pcsExportWord(dateArg);
 }
 
 // ── Session Config ────────────────────────────────────────────────────────────
