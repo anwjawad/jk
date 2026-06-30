@@ -765,7 +765,8 @@ function addPortCathPatient(event) {
             // Reset Form
             document.getElementById('form-portcath').reset();
             document.getElementById('pc-date').value = new Date().toISOString().split('T')[0];
-            document.getElementById('add-portcath-phone').value = '';
+            const _phoneEl = document.getElementById('add-portcath-phone');
+            if (_phoneEl) _phoneEl.value = '';
 
             // Close the Modal
             closeAddModal('portcath');
@@ -1835,10 +1836,10 @@ function goToToday() {
     document.getElementById('cal-day-workspace').style.display = 'block';
 }
 
-function setCalFilter(moduleType) {
+function setCalFilter(moduleType, triggerEl) {
     calModuleFilter = moduleType;
     document.querySelectorAll('.ws-filter-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    if (triggerEl) triggerEl.classList.add('active');
     renderWorkspaceSections();
 }
 
@@ -2186,7 +2187,7 @@ function renderFilesDatesConfig() {
         
         div.innerHTML = `
             <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); word-break: break-all;">
-                ðŸ“„ ${fileObj.name} (${fileObj.rows.length} rows)
+                ${fileObj.name} (${fileObj.rows.length} rows)
             </span>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <label class="form-label" style="margin: 0; font-size: 0.8rem; font-weight: 500;">Target Date:</label>

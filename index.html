@@ -157,11 +157,11 @@
                 <div class="workspace-header">
                     <h3 id="workspace-date-label"></h3>
                     <div class="workspace-module-filters">
-                        <button class="ws-filter-btn active" onclick="setCalFilter('all')">All</button>
-                        <button class="ws-filter-btn" onclick="setCalFilter('portcath')">Port Cath</button>
-                        <button class="ws-filter-btn" onclick="setCalFilter('admissions')">Admissions</button>
-                        <button class="ws-filter-btn" onclick="setCalFilter('followup')">Follow-up</button>
-                        <button class="ws-filter-btn" onclick="setCalFilter('tumorboard')">Tumor Board</button>
+                        <button class="ws-filter-btn active" onclick="setCalFilter('all', this)">All</button>
+                        <button class="ws-filter-btn" onclick="setCalFilter('portcath', this)">Port Cath</button>
+                        <button class="ws-filter-btn" onclick="setCalFilter('admissions', this)">Admissions</button>
+                        <button class="ws-filter-btn" onclick="setCalFilter('followup', this)">Follow-up</button>
+                        <button class="ws-filter-btn" onclick="setCalFilter('tumorboard', this)">Tumor Board</button>
                     </div>
                     <div class="workspace-print-actions">
                         <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('portcath')">Print Port</button>
@@ -1180,7 +1180,7 @@
       </div>
     </div>
 
-    <script src="portcath-studio.js?v=10"></script>
+    <script src="portcath-studio.js?v=11"></script>
     <script src="sync.js"></script>
     <script src="app.js"></script>
 
