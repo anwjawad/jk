@@ -1954,3 +1954,38 @@ body.dark-mode .pcs-history-list {
     border-radius: 16px 16px 0 0;
   }
 }
+
+/* ── Edit modal: must sit above PCS day modal (z-index 1610) ─────────────────
+   When openEditPatient() is triggered from inside a day modal, #modal-edit
+   would otherwise render at z-index 1000 (below the day modal overlay at 1600). */
+#modal-edit.active {
+  z-index: 1920 !important;
+}
+
+/* ── Patient meta chips (next chemo / notes inline tags) ─────────────────── */
+.pcs-meta-chip {
+  display: inline-block;
+  margin-top: 3px;
+  margin-right: 4px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--border) 60%, transparent);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.pcs-meta-next-chemo {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+body.dark-mode .pcs-meta-next-chemo {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+/* ── Waiting list header hover ───────────────────────────────────────────── */
+.pcs-waiting-header:hover {
+  background: color-mix(in srgb, var(--warning) 6%, var(--bg-card)) !important;
+}

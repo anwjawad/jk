@@ -586,6 +586,10 @@
                         <label class="form-label" for="add-portcath-phone">Phone (optional)</label>
                         <input type="tel" id="add-portcath-phone" class="form-control" dir="ltr" placeholder="+966XXXXXXXXX">
                     </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pc-next-chemo">Next Chemo Appt. (optional)</label>
+                        <input type="date" id="pc-next-chemo" class="form-control">
+                    </div>
                     <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">
                         <span>Add to Schedule</span>
                     </button>
@@ -1158,6 +1162,10 @@
           <label>Notes</label>
           <textarea id="pcs-waiting-notes" rows="2"></textarea>
         </div>
+        <div class="pcs-modal-field">
+          <label>Next Chemo Appt. (optional)</label>
+          <input type="date" id="pcs-waiting-next-chemo" autocomplete="off"/>
+        </div>
         <div class="pcs-error-msg" id="pcs-waiting-add-err">Please fill in Name, File Number, and Weight.</div>
         <div class="pcs-modal-actions">
           <button class="pcs-btn" onclick="pcsCloseWaitingAddModal()">Cancel</button>
@@ -1183,7 +1191,7 @@
       </div>
     </div>
 
-    <script src="portcath-studio.js?v=11"></script>
+    <script src="portcath-studio.js?v=12"></script>
     <script src="sync.js"></script>
     <script src="app.js"></script>
 

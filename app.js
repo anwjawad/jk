@@ -738,6 +738,7 @@ function addPortCathPatient(event) {
     const weight = parseFloat(document.getElementById('pc-weight').value);
     const notes = document.getElementById('pc-notes').value.trim();
     const phone = document.getElementById('add-portcath-phone')?.value.trim() || '';
+    const nextChemoAppt = document.getElementById('pc-next-chemo')?.value || '';
 
     const patient = {
         id: Date.now().toString(),
@@ -748,7 +749,8 @@ function addPortCathPatient(event) {
         weight,
         notes,
         status: 'confirmed',
-        ...(phone && { phone })
+        ...(phone && { phone }),
+        ...(nextChemoAppt && { nextChemoAppt })
     };
 
     showAddConfirmModal({
@@ -837,6 +839,7 @@ function renderPortCathTable() {
                     <div class="portcath-card-meta">
                         <span class="badge badge-info">${patient.day}</span>
                         <span style="font-size:0.75rem;font-weight:600;color:var(--text-main);">${patient.weight} kg</span>
+                        ${patient.nextChemoAppt ? `<span style="font-size:0.72rem;color:var(--text-muted);">Next chemo: <strong style="color:var(--primary)">${formatDateDisplay(patient.nextChemoAppt)}</strong></span>` : ''}
                     </div>
                     <div class="portcath-card-notes${!patient.notes ? ' is-empty' : ''}">
                         <span>Notes</span>
@@ -1310,6 +1313,14 @@ function openEditPatient(type, id) {
                 <label class="form-label" for="edit-notes">Notes</label>
                 <textarea id="edit-notes" class="form-control">${patient.notes || ''}</textarea>
             </div>
+            <div class="form-group">
+                <label class="form-label" for="edit-phone-pc">Phone (optional)</label>
+                <input type="tel" id="edit-phone-pc" class="form-control" dir="ltr" value="${patient.phone || ''}" placeholder="+966XXXXXXXXX">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="edit-next-chemo">Next Chemo Appt. (optional)</label>
+                <input type="date" id="edit-next-chemo" class="form-control" value="${patient.nextChemoAppt || ''}">
+            </div>
         `;
     } else if (type === 'admissions') {
         const patient = admissionsList.find(p => idsMatch(p.id, id));
@@ -1464,6 +1475,10 @@ function saveEditedPatient() {
             portCathList[idx].day = getDayName(date);
             portCathList[idx].weight = weight;
             portCathList[idx].notes = document.getElementById('edit-notes').value.trim();
+            const _pcPhoneEl = document.getElementById('edit-phone-pc');
+            if (_pcPhoneEl) portCathList[idx].phone = _pcPhoneEl.value.trim();
+            const _pcNextChemoEl = document.getElementById('edit-next-chemo');
+            if (_pcNextChemoEl) portCathList[idx].nextChemoAppt = _pcNextChemoEl.value || '';
         }
         updateDateDropdown('portcath');
         renderPortCathStudio();

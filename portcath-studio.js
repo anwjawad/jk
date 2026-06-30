@@ -548,7 +548,11 @@ function pcsRenderPatientRowModal(patient) {
       <div class="pcs-status-dot ${status}">${dotSymbol}</div>
       <div class="pcs-modal-row-main">
         <div class="pcs-patient-name">${patient.name}</div>
-        <div class="pcs-patient-meta">File # ${patient.fileNumber}${patient.weight ? ` · ${patient.weight} kg` : ''}${patient.notes ? ` · ${patient.notes}` : ''}</div>
+        <div class="pcs-patient-meta">
+          File # ${patient.fileNumber}${patient.weight ? ` · <strong>${patient.weight} kg</strong>` : ''}
+          ${patient.nextChemoAppt ? `<span class="pcs-meta-chip pcs-meta-next-chemo">Next chemo: <strong>${pcsFormatDate(patient.nextChemoAppt)}</strong></span>` : ''}
+          ${patient.notes ? `<span class="pcs-meta-chip">${patient.notes}</span>` : ''}
+        </div>
       </div>
       <div class="pcs-modal-inline-actions">
         ${!isCancelled ? `<button class="pcs-action-btn cancel"    onclick="pcsOpenActionModal('${patient.id}','cancel')">Cancel</button>` : ''}
@@ -561,30 +565,35 @@ function pcsRenderPatientRowModal(patient) {
 
 // ── Waiting List ──────────────────────────────────────────────────────────────
 function pcsRenderWaitingList() {
-  const waiting = portCathList.filter(p => (p.status || '') === 'waiting');
+  const waiting    = portCathList.filter(p => (p.status || '') === 'waiting');
+  const bodyStyle  = _pcsWaitingExpanded ? 'display:block' : 'display:none';
+  const chevronRot = _pcsWaitingExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
 
   return `
     <div class="pcs-day-card pcs-waiting-card">
-      <div class="pcs-card-header pcs-card-header-static">
+      <div class="pcs-card-header pcs-card-header-static pcs-waiting-header" onclick="pcsToggleWaiting()" style="cursor:pointer" title="${_pcsWaitingExpanded ? 'Collapse' : 'Expand'} Waiting List">
         <div class="pcs-card-count">${waiting.length}</div>
         <div class="pcs-card-info">
-          <div class="pcs-card-date">Pending Scheduling</div>
+          <div class="pcs-card-date">Waiting List</div>
           <div class="pcs-card-chips">
             ${waiting.length === 0
               ? `<span class="pcs-chip pcs-chip-grey">No patients waiting</span>`
               : `<span class="pcs-chip pcs-chip-yellow">${waiting.length} awaiting date</span>`}
           </div>
         </div>
-        <div class="pcs-card-day-actions">
+        <div class="pcs-card-day-actions" onclick="event.stopPropagation()">
           <button class="pcs-day-act-btn" title="Print Waiting List" onclick="pcsPrintWaitingList()">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           </button>
           <button class="pcs-day-act-btn" title="Export Waiting List to Word" onclick="pcsExportWaitingListWord()">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
           </button>
+          <span id="pcs-waiting-chevron" style="display:inline-flex;align-items:center;margin-left:4px;transition:transform 0.2s;transform:${chevronRot};pointer-events:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
         </div>
       </div>
-      <div class="pcs-patient-list pcs-waiting-list" style="display:block">
+      <div class="pcs-patient-list pcs-waiting-list" id="pcs-waiting-body" style="${bodyStyle}">
         ${waiting.length === 0
           ? `<div style="padding:12px 16px;font-size:0.75rem;color:var(--text-muted)">No patients on the waiting list. Use "Waiting List" above to add one.</div>`
           : waiting.map(p => pcsRenderWaitingRow(p)).join('')
@@ -599,7 +608,11 @@ function pcsRenderWaitingRow(patient) {
       <div class="pcs-status-dot waiting">⏳</div>
       <div class="pcs-modal-row-main">
         <div class="pcs-patient-name">${patient.name}</div>
-        <div class="pcs-patient-meta">File # ${patient.fileNumber}${patient.weight ? ` · ${patient.weight} kg` : ''}${patient.notes ? ` · ${patient.notes}` : ''}</div>
+        <div class="pcs-patient-meta">
+          File # ${patient.fileNumber}${patient.weight ? ` · <strong>${patient.weight} kg</strong>` : ''}
+          ${patient.nextChemoAppt ? `<span class="pcs-meta-chip pcs-meta-next-chemo">Next chemo: <strong>${pcsFormatDate(patient.nextChemoAppt)}</strong></span>` : ''}
+          ${patient.notes ? `<span class="pcs-meta-chip">${patient.notes}</span>` : ''}
+        </div>
       </div>
       <div class="pcs-modal-inline-actions">
         <button class="pcs-action-btn pcs-modal-btn-assign" onclick="pcsOpenAssignDateModal('${patient.id}')">Assign Date</button>
@@ -1395,6 +1408,23 @@ function pcsSaveConfig() {
   if (typeof showToast === 'function') showToast('Session days saved and synced.', 'success', 2600);
 }
 
+// ── Waiting List collapse state ───────────────────────────────────────────────
+let _pcsWaitingExpanded = false;
+
+function pcsToggleWaiting() {
+  _pcsWaitingExpanded = !_pcsWaitingExpanded;
+  const container = document.getElementById('pcs-waiting-body');
+  const chevron   = document.getElementById('pcs-waiting-chevron');
+  if (!container) return;
+  if (_pcsWaitingExpanded) {
+    container.style.display = 'block';
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+  } else {
+    container.style.display = 'none';
+    if (chevron) chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
 // ── Waiting List: Add / Edit ──────────────────────────────────────────────────
 let _pcsWaitingEditId = null;
 
@@ -1406,6 +1436,7 @@ function pcsOpenWaitingAddModal() {
   document.getElementById('pcs-waiting-weight').value = '';
   document.getElementById('pcs-waiting-phone').value = '';
   document.getElementById('pcs-waiting-notes').value = '';
+  document.getElementById('pcs-waiting-next-chemo').value = '';
   document.getElementById('pcs-waiting-add-err').classList.remove('visible');
   document.getElementById('pcs-waiting-add-overlay').classList.add('active');
 }
@@ -1420,6 +1451,7 @@ function pcsEditWaitingPatient(patientId) {
   document.getElementById('pcs-waiting-weight').value = patient.weight || '';
   document.getElementById('pcs-waiting-phone').value = patient.phone || '';
   document.getElementById('pcs-waiting-notes').value = patient.notes || '';
+  document.getElementById('pcs-waiting-next-chemo').value = patient.nextChemoAppt || '';
   document.getElementById('pcs-waiting-add-err').classList.remove('visible');
   document.getElementById('pcs-waiting-add-overlay').classList.add('active');
 }
@@ -1430,12 +1462,13 @@ function pcsCloseWaitingAddModal() {
 }
 
 function pcsConfirmWaitingAdd() {
-  const name       = document.getElementById('pcs-waiting-name').value.trim();
-  const fileNumber = document.getElementById('pcs-waiting-file').value.trim();
-  const weight     = parseFloat(document.getElementById('pcs-waiting-weight').value);
-  const phone      = document.getElementById('pcs-waiting-phone').value.trim();
-  const notes      = document.getElementById('pcs-waiting-notes').value.trim();
-  const errEl      = document.getElementById('pcs-waiting-add-err');
+  const name          = document.getElementById('pcs-waiting-name').value.trim();
+  const fileNumber    = document.getElementById('pcs-waiting-file').value.trim();
+  const weight        = parseFloat(document.getElementById('pcs-waiting-weight').value);
+  const phone         = document.getElementById('pcs-waiting-phone').value.trim();
+  const notes         = document.getElementById('pcs-waiting-notes').value.trim();
+  const nextChemoAppt = document.getElementById('pcs-waiting-next-chemo').value || '';
+  const errEl         = document.getElementById('pcs-waiting-add-err');
 
   if (!name || !fileNumber || isNaN(weight)) {
     errEl.classList.add('visible');
@@ -1446,10 +1479,11 @@ function pcsConfirmWaitingAdd() {
   if (_pcsWaitingEditId) {
     const patient = portCathList.find(p => p.id === _pcsWaitingEditId);
     if (patient) {
-      patient.name = name;
-      patient.fileNumber = fileNumber;
-      patient.weight = weight;
-      patient.notes = notes;
+      patient.name          = name;
+      patient.fileNumber    = fileNumber;
+      patient.weight        = weight;
+      patient.notes         = notes;
+      patient.nextChemoAppt = nextChemoAppt;
       if (phone) patient.phone = phone;
       syncAfterChange('update', 'portcath', patient);
     }
@@ -1460,7 +1494,8 @@ function pcsConfirmWaitingAdd() {
       date: '', day: '',
       weight, notes,
       status: 'waiting',
-      ...(phone && { phone })
+      ...(phone         && { phone }),
+      ...(nextChemoAppt && { nextChemoAppt })
     };
     portCathList.push(patient);
     syncAfterChange('create', 'portcath', patient);
