@@ -550,6 +550,7 @@ function pcsRenderPatientRowModal(patient) {
         <div class="pcs-patient-name">${patient.name}</div>
         <div class="pcs-patient-meta">
           File # ${patient.fileNumber}${patient.weight ? ` · <strong>${patient.weight} kg</strong>` : ''}
+          ${patient.phone ? `<span class="pcs-meta-chip pcs-meta-phone">📞 ${patient.phone}</span>` : ''}
           ${patient.nextChemoAppt ? `<span class="pcs-meta-chip pcs-meta-next-chemo">Next chemo: <strong>${pcsFormatDate(patient.nextChemoAppt)}</strong></span>` : ''}
           ${patient.notes ? `<span class="pcs-meta-chip">${patient.notes}</span>` : ''}
         </div>
@@ -610,6 +611,7 @@ function pcsRenderWaitingRow(patient) {
         <div class="pcs-patient-name">${patient.name}</div>
         <div class="pcs-patient-meta">
           File # ${patient.fileNumber}${patient.weight ? ` · <strong>${patient.weight} kg</strong>` : ''}
+          ${patient.phone ? `<span class="pcs-meta-chip pcs-meta-phone">📞 ${patient.phone}</span>` : ''}
           ${patient.nextChemoAppt ? `<span class="pcs-meta-chip pcs-meta-next-chemo">Next chemo: <strong>${pcsFormatDate(patient.nextChemoAppt)}</strong></span>` : ''}
           ${patient.notes ? `<span class="pcs-meta-chip">${patient.notes}</span>` : ''}
         </div>
