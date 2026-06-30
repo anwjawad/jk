@@ -25,8 +25,14 @@ function pcsDayName(dateStr) {
 }
 
 function pcsFormatDate(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
-  return `${pcsDayName(dateStr)}, ${PCS_MONTHS_AR[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  if (!dateStr) return '';
+  // Handle full ISO timestamps and date-only strings
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+    ? new Date(dateStr + 'T00:00:00')
+    : new Date(dateStr);
+  if (isNaN(d)) return String(dateStr);
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  return `${days[d.getDay()]}, ${PCS_MONTHS_AR[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 function pcsPatientsOnDate(dateStr) {
