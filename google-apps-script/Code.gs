@@ -28,11 +28,15 @@ const SHEET_NAMES = {
 };
 
 // Column indices (A=0, B=1, etc.)
+// PortCath final schema (15 columns):
+//   A   B     C           D     E    F       G       H       I      J          K          L          M        N            O
+//   id  name  fileNumber  date  day  weight  notes  status  phone  createdAt  updatedAt  deletedAt  version  preparedBy  nextChemoAppt
 const COLUMN_MAP = {
   portcath: {
     id: 0, name: 1, fileNumber: 2, date: 3, day: 4, weight: 5, notes: 6,
     status: 7, phone: 8,
-    createdAt: 9, updatedAt: 10, deletedAt: 11, version: 12, preparedBy: 13
+    createdAt: 9, updatedAt: 10, deletedAt: 11, version: 12, preparedBy: 13,
+    nextChemoAppt: 14
   },
   'portcath-session-config': {
     id: 0, date: 1, year: 2, month: 3, dayOfWeek: 4, isActive: 5, syncStatus: 6,
@@ -65,22 +69,14 @@ const COLUMN_MAP = {
 };
 
 const AUDIT_LOG_COLUMNS = {
-  timestamp: 0,
-  action: 1,
-  module: 2,
-  recordId: 3,
-  displayName: 4,
-  beforeJson: 5,
-  afterJson: 6
+  timestamp: 0, action: 1, module: 2, recordId: 3,
+  displayName: 4, beforeJson: 5, afterJson: 6
 };
 
 // ============================================================================
 // HTTP HANDLERS
 // ============================================================================
 
-/**
- * Handle GET requests (read operations)
- */
 function doGet(e) {
   const callback = e.parameter.callback;
   try {
@@ -95,14 +91,18 @@ function doGet(e) {
 
     switch (action) {
       case 'setup':
-        // Initialize/create all sheets and headers
         initializeSpreadsheet();
         return callback
           ? jsonpResponse({ status: 'ok', message: 'Spreadsheet initialized' }, callback)
           : successResponse({ status: 'ok', message: 'Spreadsheet initialized' });
 
+      case 'migrate':
+        const result = migratePortCathSchemaFull();
+        return callback
+          ? jsonpResponse({ status: 'ok', message: 'Migration complete', result }, callback)
+          : successResponse({ status: 'ok', message: 'Migration complete', result });
+
       case 'getAll':
-        // Auto-initialize if needed
         ensureSheetsExist();
         const allData = { status: 'ok' };
         Object.assign(allData, getAllData());
@@ -139,9 +139,6 @@ function doGet(e) {
   }
 }
 
-/**
- * Handle POST requests (write operations)
- */
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
@@ -154,29 +151,14 @@ function doPost(e) {
     const action = payload.action;
 
     switch (action) {
-      case 'createRecord':
-        return createRecordHandler(payload);
-
-      case 'updateRecord':
-        return updateRecordHandler(payload);
-
-      case 'deleteRecord':
-        return deleteRecordHandler(payload);
-
-      case 'syncBatch':
-        return syncBatchHandler(payload);
-
-      case 'writeAuditLog':
-        return writeAuditLogHandler(payload);
-
-      case 'writeSetting':
-        return writeSettingHandler(payload);
-
-      case 'clearType':
-        return clearTypeHandler(payload);
-
-      default:
-        return errorResponse('INVALID_ACTION', `Unknown action: ${action}`, 400);
+      case 'createRecord':  return createRecordHandler(payload);
+      case 'updateRecord':  return updateRecordHandler(payload);
+      case 'deleteRecord':  return deleteRecordHandler(payload);
+      case 'syncBatch':     return syncBatchHandler(payload);
+      case 'writeAuditLog': return writeAuditLogHandler(payload);
+      case 'writeSetting':  return writeSettingHandler(payload);
+      case 'clearType':     return clearTypeHandler(payload);
+      default:              return errorResponse('INVALID_ACTION', `Unknown action: ${action}`, 400);
     }
   } catch (err) {
     return errorResponse('INTERNAL_ERROR', err.toString(), 500);
@@ -187,10 +169,6 @@ function doPost(e) {
 // ACTION HANDLERS (POST)
 // ============================================================================
 
-/**
- * Create a new record
- * Payload: { type, record, displayName }
- */
 function createRecordHandler(payload) {
   const type = payload.type;
   const record = payload.record;
@@ -206,17 +184,11 @@ function createRecordHandler(payload) {
   }
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES[type]);
-  if (!sheet) {
-    return errorResponse('SHEET_NOT_FOUND', `Sheet ${type} not found`, 404);
-  }
+  if (!sheet) return errorResponse('SHEET_NOT_FOUND', `Sheet ${type} not found`, 404);
 
-  // Check for duplicate
   const existingRow = findRowByIdInSheet(sheet, COLUMN_MAP[type], record.id);
-  if (existingRow > 0) {
-    return errorResponse('DUPLICATE_RECORD', `Record ${record.id} already exists`, 409);
-  }
+  if (existingRow > 0) return errorResponse('DUPLICATE_RECORD', `Record ${record.id} already exists`, 409);
 
-  // Add timestamps
   const now = new Date().toISOString();
   record.createdAt = record.createdAt || now;
   record.updatedAt = now;
@@ -224,34 +196,21 @@ function createRecordHandler(payload) {
   record.version = 1;
   record.preparedBy = displayName;
 
-  // Convert to row and append
-  const row = recordToRow(type, record);
-  sheet.appendRow(row);
+  sheet.appendRow(recordToRow(type, record));
 
-  // Audit log
   writeAuditLog({
-    timestamp: now,
-    action: 'CREATE',
-    module: type,
-    recordId: record.id,
-    displayName: displayName,
-    beforeJson: null,
-    afterJson: JSON.stringify(record)
+    timestamp: now, action: 'CREATE', module: type, recordId: record.id,
+    displayName, beforeJson: null, afterJson: JSON.stringify(record)
   });
 
   return successResponse({ status: 'ok', id: record.id });
 }
 
-/**
- * Update an existing record
- * Payload: { type, record, displayName }
- */
 function updateRecordHandler(payload) {
   const type = payload.type;
   const record = payload.record;
   const displayName = payload.displayName || 'Unknown';
 
-  // portcath-history is append-only — updates are not allowed
   if (type === 'portcath-history') {
     return errorResponse('NOT_ALLOWED', 'portcath-history is append-only and cannot be updated', 403);
   }
@@ -266,77 +225,51 @@ function updateRecordHandler(payload) {
   }
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES[type]);
-  if (!sheet) {
-    return errorResponse('SHEET_NOT_FOUND', `Sheet ${type} not found`, 404);
-  }
+  if (!sheet) return errorResponse('SHEET_NOT_FOUND', `Sheet ${type} not found`, 404);
 
   const rowIndex = findRowByIdInSheet(sheet, COLUMN_MAP[type], record.id);
-  if (rowIndex <= 0) {
-    return errorResponse('NOT_FOUND', `Record ${record.id} not found`, 404);
-  }
+  if (rowIndex <= 0) return errorResponse('NOT_FOUND', `Record ${record.id} not found`, 404);
 
-  // Get before state
   const beforeRow = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
   const beforeRecord = rowToRecord(type, beforeRow);
 
-  // Update timestamps
   const now = new Date().toISOString();
   record.updatedAt = now;
   record.createdAt = record.createdAt || beforeRecord.createdAt;
   record.version = (record.version || 0) + 1;
   record.preparedBy = displayName;
 
-  // Convert to row and overwrite
   const newRow = recordToRow(type, record);
   sheet.getRange(rowIndex, 1, 1, newRow.length).setValues([newRow]);
 
-  // Audit log
   writeAuditLog({
-    timestamp: now,
-    action: 'UPDATE',
-    module: type,
-    recordId: record.id,
-    displayName: displayName,
-    beforeJson: JSON.stringify(beforeRecord),
-    afterJson: JSON.stringify(record)
+    timestamp: now, action: 'UPDATE', module: type, recordId: record.id,
+    displayName, beforeJson: JSON.stringify(beforeRecord), afterJson: JSON.stringify(record)
   });
 
   return successResponse({ status: 'ok', updated: true });
 }
 
-/**
- * Soft delete a record (set deletedAt timestamp)
- * Payload: { type, id, displayName }
- */
 function deleteRecordHandler(payload) {
   const type = payload.type;
   const id = payload.id !== undefined && payload.id !== null ? String(payload.id) : '';
   const displayName = payload.displayName || 'Unknown';
 
-  // portcath-history is append-only — deletes are not allowed
   if (type === 'portcath-history') {
     return errorResponse('NOT_ALLOWED', 'portcath-history is append-only and cannot be deleted', 403);
   }
 
-  if (!type || !id) {
-    return errorResponse('MISSING_PARAMS', 'type and id required', 400);
-  }
+  if (!type || !id) return errorResponse('MISSING_PARAMS', 'type and id required', 400);
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES[type]);
-  if (!sheet) {
-    return errorResponse('SHEET_NOT_FOUND', `Sheet ${type} not found`, 404);
-  }
+  if (!sheet) return errorResponse('SHEET_NOT_FOUND', `Sheet ${type} not found`, 404);
 
   const rowIndex = findRowByIdInSheet(sheet, COLUMN_MAP[type], id);
-  if (rowIndex <= 0) {
-    return errorResponse('NOT_FOUND', `Record ${id} not found`, 404);
-  }
+  if (rowIndex <= 0) return errorResponse('NOT_FOUND', `Record ${id} not found`, 404);
 
-  // Get before state
   const beforeRow = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
   const beforeRecord = rowToRecord(type, beforeRow);
 
-  // Soft delete: set deletedAt
   const now = new Date().toISOString();
   beforeRecord.deletedAt = now;
   beforeRecord.updatedAt = now;
@@ -346,40 +279,29 @@ function deleteRecordHandler(payload) {
   const newRow = recordToRow(type, beforeRecord);
   sheet.getRange(rowIndex, 1, 1, newRow.length).setValues([newRow]);
 
-  // Audit log
   writeAuditLog({
-    timestamp: now,
-    action: 'DELETE',
-    module: type,
-    recordId: id,
-    displayName: displayName,
-    beforeJson: JSON.stringify(beforeRecord),
-    afterJson: JSON.stringify(beforeRecord)
+    timestamp: now, action: 'DELETE', module: type, recordId: id,
+    displayName, beforeJson: JSON.stringify(beforeRecord), afterJson: JSON.stringify(beforeRecord)
   });
 
   return successResponse({ status: 'ok', deleted: true });
 }
 
-/**
- * Clear all records in a type (soft delete with timestamp)
- * Payload: { type }
- */
 function clearTypeHandler(payload) {
   const type = payload.type;
-  if (!type || !SHEET_NAMES[type]) {
-    return errorResponse('MISSING_PARAMS', 'valid type required', 400);
-  }
+  if (!type || !SHEET_NAMES[type]) return errorResponse('MISSING_PARAMS', 'valid type required', 400);
+
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES[type]);
   if (!sheet) return errorResponse('SHEET_NOT_FOUND', `Sheet ${type} not found`, 404);
 
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return successResponse({ cleared: 0 });
 
-  const now      = new Date().toISOString();
-  const colMap   = COLUMN_MAP[type];
-  const numCols  = sheet.getLastColumn();
-  const data     = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
-  let cleared    = 0;
+  const now     = new Date().toISOString();
+  const colMap  = COLUMN_MAP[type];
+  const numCols = sheet.getLastColumn();
+  const data    = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+  let cleared   = 0;
 
   data.forEach((row, i) => {
     if (row[colMap.id] && !row[colMap.deletedAt]) {
@@ -392,11 +314,6 @@ function clearTypeHandler(payload) {
   return successResponse({ cleared });
 }
 
-/**
- * Batch sync operation (bulk create/update multiple records)
- * Payload: { type, operations: [{op, record}], displayName }
- * op: 'create' | 'update'
- */
 function syncBatchHandler(payload) {
   const type = payload.type;
   const operations = payload.operations || [];
@@ -407,21 +324,14 @@ function syncBatchHandler(payload) {
   }
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES[type]);
-  if (!sheet) {
-    return errorResponse('SHEET_NOT_FOUND', `Sheet ${type} not found`, 404);
-  }
+  if (!sheet) return errorResponse('SHEET_NOT_FOUND', `Sheet ${type} not found`, 404);
 
-  let inserted = 0;
-  let updated = 0;
-  let skipped = 0;
+  let inserted = 0, updated = 0, skipped = 0;
   const now = new Date().toISOString();
 
   for (const op of operations) {
     const record = op.record;
-    if (!record.id) {
-      skipped++;
-      continue;
-    }
+    if (!record.id) { skipped++; continue; }
 
     record.id = String(record.id);
     if (record.fileNumber !== undefined && record.fileNumber !== null) {
@@ -436,41 +346,25 @@ function syncBatchHandler(payload) {
       record.deletedAt = null;
       record.version = 1;
       record.preparedBy = displayName;
-
-      const row = recordToRow(type, record);
-      sheet.appendRow(row);
+      sheet.appendRow(recordToRow(type, record));
       inserted++;
-
       writeAuditLog({
-        timestamp: now,
-        action: 'BATCH_CREATE',
-        module: type,
-        recordId: record.id,
-        displayName: displayName,
-        beforeJson: null,
-        afterJson: JSON.stringify(record)
+        timestamp: now, action: 'BATCH_CREATE', module: type, recordId: record.id,
+        displayName, beforeJson: null, afterJson: JSON.stringify(record)
       });
     } else if (op.op === 'update' && existingRow > 0) {
       const beforeRow = sheet.getRange(existingRow, 1, 1, sheet.getLastColumn()).getValues()[0];
       const beforeRecord = rowToRecord(type, beforeRow);
-
       record.updatedAt = now;
       record.createdAt = record.createdAt || beforeRecord.createdAt;
       record.version = (record.version || 0) + 1;
       record.preparedBy = displayName;
-
       const newRow = recordToRow(type, record);
       sheet.getRange(existingRow, 1, 1, newRow.length).setValues([newRow]);
       updated++;
-
       writeAuditLog({
-        timestamp: now,
-        action: 'BATCH_UPDATE',
-        module: type,
-        recordId: record.id,
-        displayName: displayName,
-        beforeJson: JSON.stringify(beforeRecord),
-        afterJson: JSON.stringify(record)
+        timestamp: now, action: 'BATCH_UPDATE', module: type, recordId: record.id,
+        displayName, beforeJson: JSON.stringify(beforeRecord), afterJson: JSON.stringify(record)
       });
     } else {
       skipped++;
@@ -480,48 +374,32 @@ function syncBatchHandler(payload) {
   return successResponse({ status: 'ok', inserted, updated, skipped });
 }
 
-/**
- * Write audit log entry
- * Payload: { timestamp, action, module, recordId, displayName, beforeJson, afterJson }
- */
 function writeAuditLogHandler(payload) {
   writeAuditLog(payload);
   return successResponse({ status: 'ok' });
 }
 
-/**
- * Write or update a setting
- * Payload: { key, value } or { settingKey, value }
- */
 function writeSettingHandler(payload) {
   const key = payload.settingKey || payload.key;
   const value = payload.value;
-
-  if (!key) {
-    return errorResponse('MISSING_PARAMS', 'key required', 400);
-  }
+  if (!key) return errorResponse('MISSING_PARAMS', 'key required', 400);
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.settings);
-  if (!sheet) {
-    return errorResponse('SHEET_NOT_FOUND', 'Settings sheet not found', 404);
-  }
+  if (!sheet) return errorResponse('SHEET_NOT_FOUND', 'Settings sheet not found', 404);
 
   const data = sheet.getRange('A:B').getValues();
   let found = false;
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === key) {
-      const now = new Date().toISOString();
       sheet.getRange(i + 1, 2).setValue(value);
-      sheet.getRange(i + 1, 3).setValue(now);
+      sheet.getRange(i + 1, 3).setValue(new Date().toISOString());
       found = true;
       break;
     }
   }
 
-  if (!found) {
-    sheet.appendRow([key, value, new Date().toISOString()]);
-  }
+  if (!found) sheet.appendRow([key, value, new Date().toISOString()]);
 
   return successResponse({ status: 'ok', key, value });
 }
@@ -530,9 +408,6 @@ function writeSettingHandler(payload) {
 // ACTION HANDLERS (GET)
 // ============================================================================
 
-/**
- * Get all data from all four data sheets (excluding soft-deleted records)
- */
 function getAllData() {
   return {
     portcath: getSheetData('portcath'),
@@ -545,245 +420,298 @@ function getAllData() {
   };
 }
 
-/**
- * Get records by date (for a specific module)
- */
 function getByDate(type, date) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES[type]);
-  if (!sheet) {
-    throw new Error(`Sheet ${type} not found`);
-  }
+  if (!sheet) throw new Error(`Sheet ${type} not found`);
 
-  const data = sheet.getRange('A2:' + String.fromCharCode(65 + sheet.getLastColumn() - 1) + sheet.getLastRow()).getValues();
-  const colMap = COLUMN_MAP[type];
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2) return [];
+
+  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   const results = [];
 
   for (const row of data) {
     const record = rowToRecord(type, row);
-    // Exclude soft-deleted records — only if deletedAt is a real ISO timestamp
     if (isRealTimestamp(record.deletedAt)) continue;
-    // Match date
-    if (record.date === date) {
-      results.push(record);
-    }
+    if (record.date === date) results.push(record);
   }
 
   return results;
 }
 
-/**
- * Get all settings
- */
 function getSettings() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.settings);
-  if (!sheet) {
-    return {};
-  }
+  if (!sheet) return {};
 
   const data = sheet.getRange('A2:B' + sheet.getLastRow()).getValues();
   const result = {};
-
   for (const row of data) {
-    if (row[0]) {
-      result[row[0]] = row[1];
-    }
+    if (row[0]) result[row[0]] = row[1];
   }
-
   return result;
 }
 
 // ============================================================================
-// INITIALIZATION FUNCTIONS
+// INITIALIZATION
 // ============================================================================
 
 /**
- * Initialize the spreadsheet by creating all required sheets and headers
- * Call this manually via: ?action=setup&key=YOUR_KEY
- * Or it runs automatically on first data access
+ * Create all sheets with correct headers.
+ * Trigger via: ?action=setup&key=YOUR_KEY
+ * Only creates sheets that don't exist yet — does NOT migrate existing data.
  */
 function initializeSpreadsheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  // Create PortCath sheet (now includes status and phone columns)
   createSheetWithHeaders('PortCath', [
     'id', 'name', 'fileNumber', 'date', 'day', 'weight', 'notes',
     'status', 'phone',
-    'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'
+    'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy',
+    'nextChemoAppt'
   ]);
-
-  // Create PortCathSessionConfig sheet
   createSheetWithHeaders('PortCathSessionConfig', [
     'id', 'date', 'year', 'month', 'dayOfWeek', 'isActive', 'syncStatus',
     'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'
   ]);
-
-  // Create PortCathHistory sheet (append-only audit trail)
   createSheetWithHeaders('PortCathHistory', [
     'id', 'patientId', 'patientName', 'fileNumber', 'action',
     'fromDate', 'toDate', 'reason', 'note', 'timestamp', 'syncStatus',
     'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'
   ]);
-
-  // Create Admissions sheet
   createSheetWithHeaders('Admissions', [
     'id', 'name', 'fileNumber', 'age', 'triageScore', 'primaryPhysician',
     'placeOfReferral', 'modeOfTransportation', 'performanceStatus',
     'admissionDepartment', 'date', 'summary', 'causeOfAdmission', 'notes',
     'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'
   ]);
-
-  // Create FollowUp sheet
   createSheetWithHeaders('FollowUp', [
     'id', 'name', 'phone', 'fileNumber', 'date', 'task', 'taskResult',
     'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'
   ]);
-
-  // Create TumorBoard sheet
   createSheetWithHeaders('TumorBoard', [
     'id', 'name', 'fileNumber', 'age', 'physician', 'diagnosis', 'notes',
     'tasks', 'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'
   ]);
-
-  // Create ClinicAppointments sheet
   createSheetWithHeaders('ClinicAppointments', [
     'id', 'name', 'fileNumber', 'age', 'date', 'primaryPhysician',
     'case', 'causeOfAdmission', 'note',
     'createdAt', 'updatedAt', 'deletedAt', 'version'
   ]);
-
-  // Create AuditLog sheet
   createSheetWithHeaders('AuditLog', [
     'timestamp', 'action', 'module', 'recordId', 'displayName', 'beforeJson', 'afterJson'
   ]);
+  createSheetWithHeaders('Settings', ['key', 'value', 'updatedAt']);
 
-  // Create Settings sheet
-  createSheetWithHeaders('Settings', [
-    'key', 'value', 'updatedAt'
-  ]);
-
-  // Add initial settings
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const settingsSheet = ss.getSheetByName('Settings');
   const settingsData = settingsSheet.getRange('A2:A').getValues();
   let hasSchemaVersion = false;
-
   for (const row of settingsData) {
-    if (row[0] === 'schemaVersion') {
-      hasSchemaVersion = true;
-      break;
-    }
+    if (row[0] === 'schemaVersion') { hasSchemaVersion = true; break; }
   }
-
   if (!hasSchemaVersion) {
-    settingsSheet.appendRow(['schemaVersion', '1.0.0', new Date().toISOString()]);
+    settingsSheet.appendRow(['schemaVersion', '1.1.0', new Date().toISOString()]);
     settingsSheet.appendRow(['appName', 'MedSched Panel', new Date().toISOString()]);
   }
 }
 
-/**
- * Create a sheet with headers if it doesn't exist
- */
-function createSheetWithHeaders(sheetName, headers) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(sheetName);
-
-  if (!sheet) {
-    // Sheet doesn't exist, create it
-    sheet = ss.insertSheet(sheetName);
-    sheet.appendRow(headers);
-  } else {
-    // Sheet exists, check if it has headers
-    const existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const hasHeaders = existingHeaders.some(h => h !== '');
-
-    if (!hasHeaders) {
-      // No headers, add them
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    }
-  }
-}
+// ============================================================================
+// MIGRATION — Run once to fix existing PortCath sheet schema
+// ============================================================================
 
 /**
- * Ensure all required sheets exist (called on every data access)
+ * Migrates the PortCath sheet to match the current COLUMN_MAP.
+ *
+ * Handles two historical schema versions that may exist in the sheet:
+ *
+ *   OLD schema (no status/phone columns):
+ *     id name fileNumber date day weight notes | createdAt updatedAt deletedAt version preparedBy
+ *
+ *   NEW schema (status+phone added to GAS but sheet not updated — data in wrong columns):
+ *     id name fileNumber date day weight notes | <status value here> <phone value here> ...
+ *
+ * Detection: inspects col index 7 per row.
+ *   — Known status value ('waiting','scheduled',etc.) → new-schema row → preserve as-is
+ *   — ISO timestamp or empty                          → old-schema row → shift fields right
+ *
+ * TARGET schema (15 columns, matches COLUMN_MAP exactly):
+ *   id name fileNumber date day weight notes status phone createdAt updatedAt deletedAt version preparedBy nextChemoAppt
+ *
+ * Safe to run multiple times (idempotent).
+ * Trigger via GAS editor: Run → migratePortCathSchemaFull
+ * Or via URL: ?action=migrate&key=YOUR_KEY
  */
-function ensureSheetsExist() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const requiredSheets = Object.values(SHEET_NAMES);
+function migratePortCathSchemaFull() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('PortCath');
+  if (!sheet) { Logger.log('ERROR: PortCath sheet not found'); return { error: 'sheet not found' }; }
 
-  for (const sheetName of requiredSheets) {
-    if (!ss.getSheetByName(sheetName)) {
-      // Missing sheet, trigger full initialization
-      initializeSpreadsheet();
-      return;
-    }
+  const TARGET_HEADERS = [
+    'id', 'name', 'fileNumber', 'date', 'day', 'weight', 'notes',
+    'status', 'phone',
+    'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy',
+    'nextChemoAppt'
+  ];
+
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  const currentHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(h => String(h || '').trim());
+
+  Logger.log('BEFORE — headers: ' + currentHeaders.join(' | '));
+  Logger.log('BEFORE — col count: ' + currentHeaders.length);
+
+  // Already correct?
+  const alreadyCorrect = TARGET_HEADERS.length === currentHeaders.length
+    && TARGET_HEADERS.every((h, i) => currentHeaders[i] === h);
+  if (alreadyCorrect) {
+    Logger.log('✓ Schema already correct — nothing to do.');
+    return { success: true, skipped: true };
   }
+
+  // Read all data
+  let allRows = [];
+  if (lastRow > 1) {
+    allRows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  }
+  Logger.log('Data rows to migrate: ' + allRows.length);
+
+  // Status values that can ONLY appear in the status field — never in a timestamp
+  const KNOWN_STATUS = new Set(['waiting', 'scheduled', 'done', 'cancelled', 'no-show', 'apologized']);
+
+  let newSchemaCount = 0, oldSchemaCount = 0;
+
+  const mappedRows = allRows.map(row => {
+    const newRow = new Array(TARGET_HEADERS.length).fill('');
+
+    // Columns 0–6 are identical in all schema versions
+    for (let i = 0; i <= 6; i++) {
+      newRow[i] = (row[i] !== undefined && row[i] !== null) ? row[i] : '';
+    }
+
+    const col7 = String(row[7] || '');
+    const isNewSchema = KNOWN_STATUS.has(col7);
+
+    if (isNewSchema) {
+      // Row was written with the new GAS (status at 7, phone at 8, createdAt at 9…)
+      newRow[7]  = row[7]  || 'scheduled'; // status
+      newRow[8]  = row[8]  || '';          // phone
+      newRow[9]  = row[9]  || '';          // createdAt
+      newRow[10] = row[10] || '';          // updatedAt
+      newRow[11] = row[11] || '';          // deletedAt
+      newRow[12] = row[12] || '';          // version
+      newRow[13] = row[13] || '';          // preparedBy
+      newRow[14] = row[14] || '';          // nextChemoAppt
+      newSchemaCount++;
+    } else {
+      // Row was written with the old GAS (no status/phone — createdAt was at index 7)
+      newRow[7]  = 'scheduled';            // status   → default for old records
+      newRow[8]  = '';                     // phone    → cannot recover, was never stored
+      newRow[9]  = row[7]  || '';          // createdAt  (was at index 7)
+      newRow[10] = row[8]  || '';          // updatedAt  (was at index 8)
+      newRow[11] = row[9]  || '';          // deletedAt  (was at index 9)
+      newRow[12] = row[10] || '';          // version    (was at index 10)
+      newRow[13] = row[11] || '';          // preparedBy (was at index 11)
+      newRow[14] = row[14] || '';          // nextChemoAppt (same position in both)
+      oldSchemaCount++;
+    }
+
+    return newRow;
+  });
+
+  Logger.log('Rows detected as new-schema: ' + newSchemaCount);
+  Logger.log('Rows detected as old-schema: ' + oldSchemaCount);
+
+  // Rewrite sheet
+  sheet.clearContents();
+  sheet.getRange(1, 1, 1, TARGET_HEADERS.length).setValues([TARGET_HEADERS]);
+  if (mappedRows.length > 0) {
+    sheet.getRange(2, 1, mappedRows.length, TARGET_HEADERS.length).setValues(mappedRows);
+  }
+
+  // Validate
+  const finalHeaders = sheet.getRange(1, 1, 1, TARGET_HEADERS.length).getValues()[0];
+  const valid = TARGET_HEADERS.every((h, i) => finalHeaders[i] === h);
+
+  Logger.log('AFTER  — headers: ' + finalHeaders.join(' | '));
+  Logger.log('AFTER  — col count: ' + finalHeaders.length);
+  Logger.log(valid
+    ? '✓ Migration complete — schema validated successfully.'
+    : '✗ Migration complete — but schema validation FAILED. Manual review required.');
+
+  return { success: true, rows: mappedRows.length, newSchemaCount, oldSchemaCount, validated: valid };
 }
 
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Validate API key
- */
 function validateApiKey(key) {
   return VALID_API_KEYS.includes(key);
 }
 
-/**
- * Get all data from a sheet (excluding soft-deleted records)
- */
+function createSheetWithHeaders(sheetName, headers) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(headers);
+  } else {
+    const existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const hasHeaders = existingHeaders.some(h => h !== '');
+    if (!hasHeaders) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
+  }
+}
+
+function ensureSheetsExist() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  for (const sheetName of Object.values(SHEET_NAMES)) {
+    if (!ss.getSheetByName(sheetName)) {
+      initializeSpreadsheet();
+      return;
+    }
+  }
+}
+
 function getSheetData(type) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES[type]);
-  if (!sheet) {
-    return [];
-  }
+  if (!sheet) return [];
 
-  const data = sheet.getRange('A2:' + String.fromCharCode(65 + sheet.getLastColumn() - 1) + sheet.getLastRow()).getValues();
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2) return [];
+
+  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   const results = [];
 
   for (const row of data) {
     const record = rowToRecord(type, row);
-    // Exclude soft-deleted records — only if deletedAt is a real ISO timestamp
-    // (guard against old rows that have stale text like "Unknown" in that column)
-    if (!isRealTimestamp(record.deletedAt)) {
-      results.push(record);
-    }
+    if (!isRealTimestamp(record.deletedAt)) results.push(record);
   }
 
   return results;
 }
 
-/**
- * Returns true only if value looks like a real ISO timestamp (YYYY-MM-DD...).
- * Protects against old rows that have stale text (e.g. "Unknown") in the
- * deletedAt column due to schema changes.
- */
 function isRealTimestamp(value) {
   if (!value) return false;
   return /^\d{4}-\d{2}-\d{2}/.test(String(value));
 }
 
-/**
- * Find row index by ID in a sheet
- * Returns row number (1-based, including header), or -1 if not found
- */
 function findRowByIdInSheet(sheet, colMap, id) {
-  const data = sheet.getRange('A1:' + String.fromCharCode(65 + sheet.getLastColumn() - 1) + sheet.getLastRow()).getValues();
-  const idColIndex = colMap.id;
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 1) return -1;
+
+  const data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
   const targetId = String(id);
 
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][idColIndex]) === targetId) {
-      return i + 1; // Return 1-based row number
-    }
+    if (String(data[i][colMap.id]) === targetId) return i + 1;
   }
-
   return -1;
 }
 
-/**
- * Convert a record object to a row array
- */
 function recordToRow(type, record) {
   const colMap = COLUMN_MAP[type];
   const row = new Array(Object.keys(colMap).length);
@@ -794,64 +722,42 @@ function recordToRow(type, record) {
     if ((field === 'id' || field === 'fileNumber') && value !== undefined && value !== null) {
       value = String(value);
     }
-
-    // Special handling for tasks (JSON string for tumorboard)
     if (field === 'tasks' && Array.isArray(value)) {
       value = JSON.stringify(value);
     }
-
-    // Boolean: store as TRUE/FALSE string for Google Sheets checkboxes
     if (field === 'isActive') {
       row[colIndex] = (value === true || value === 'true') ? 'TRUE' : 'FALSE';
       continue;
     }
 
-    // Null/undefined → empty string (handles toDate: null in history records)
     row[colIndex] = (value === null || value === undefined) ? '' : value;
   }
 
   return row;
 }
 
-/**
- * Convert a row array to a record object
- */
 function rowToRecord(type, row) {
   const colMap = COLUMN_MAP[type];
   const record = {};
 
   for (const [field, colIndex] of Object.entries(colMap)) {
-    let value = row[colIndex] || '';
+    let value = (row[colIndex] !== undefined && row[colIndex] !== null) ? row[colIndex] : '';
 
-    // Special handling for tasks (parse JSON string)
     if (field === 'tasks') {
-      try {
-        value = value ? JSON.parse(value) : [];
-      } catch (e) {
-        value = [];
-      }
+      try { value = value ? JSON.parse(value) : []; } catch (e) { value = []; }
     }
-
-    // Parse numeric fields
     if ((field === 'weight' || field === 'age' || field === 'year' || field === 'month') && value) {
       value = parseFloat(value) || value;
     }
-
-    // Parse timestamp back to number
     if (field === 'timestamp' && value) {
       value = Number(value) || value;
     }
-
-    // Parse isActive back to boolean
     if (field === 'isActive') {
       value = value === 'TRUE' || value === true;
     }
-
-    // toDate: empty string → null for history records
     if (field === 'toDate' && value === '') {
       value = null;
     }
-
     if ((field === 'id' || field === 'fileNumber' || field === 'patientId') && value !== undefined && value !== null) {
       value = String(value);
     }
@@ -862,32 +768,22 @@ function rowToRecord(type, row) {
   return record;
 }
 
-/**
- * Strip the phone field before writing to audit log (privacy protection)
- */
 function sanitizeForAuditLog(jsonStr) {
   if (!jsonStr) return jsonStr;
   try {
     const obj = JSON.parse(jsonStr);
-    if (obj && typeof obj === 'object') {
-      delete obj.phone;
-    }
+    if (obj && typeof obj === 'object') delete obj.phone;
     return JSON.stringify(obj);
   } catch (e) {
     return jsonStr;
   }
 }
 
-/**
- * Write an entry to the audit log
- */
 function writeAuditLog(entry) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.audit_log);
-  if (!sheet) {
-    return;
-  }
+  if (!sheet) return;
 
-  const row = [
+  sheet.appendRow([
     entry.timestamp || new Date().toISOString(),
     entry.action || '',
     entry.module || '',
@@ -895,49 +791,30 @@ function writeAuditLog(entry) {
     entry.displayName || '',
     sanitizeForAuditLog(entry.beforeJson) || '',
     sanitizeForAuditLog(entry.afterJson) || ''
-  ];
-
-  sheet.appendRow(row);
+  ]);
 }
 
 // ============================================================================
 // RESPONSE HELPERS
 // ============================================================================
 
-/**
- * Generate success response
- */
 function successResponse(data) {
   const result = { status: 'ok' };
-  if (data) {
-    Object.assign(result, typeof data === 'object' ? data : { data });
-  }
+  if (data) Object.assign(result, typeof data === 'object' ? data : { data });
   return ContentService.createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/**
- * Generate JSONP response for browser reads from localhost without CORS.
- */
 function jsonpResponse(data, callback) {
   const safeCallback = /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(callback || '')
-    ? callback
-    : 'callback';
+    ? callback : 'callback';
   return ContentService
     .createTextOutput(`${safeCallback}(${JSON.stringify(data)});`)
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
-/**
- * Generate error response
- */
 function errorResponse(code, message, httpCode = 500) {
-  const result = {
-    status: 'error',
-    code: code,
-    message: message
-  };
-  return ContentService.createTextOutput(JSON.stringify(result))
+  return ContentService.createTextOutput(JSON.stringify({ status: 'error', code, message }))
     .setMimeType(ContentService.MimeType.JSON)
     .setHttpCode(httpCode);
 }
