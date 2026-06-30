@@ -3,9 +3,11 @@
    Clinical Teal and Dark Slate Premium Theme
 */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+/* Google Fonts loaded via <link> in HTML for non-blocking font delivery */
 
 :root {
+    color-scheme: light;
+
     /* Color Palette */
     --primary: #0d9488;       /* Clinical Teal */
     --primary-hover: #0f766e; /* Deep Teal */
@@ -45,6 +47,11 @@
     --shadow-teal: 0 4px 12px rgba(13, 148, 136, 0.20);
     --tb-color: #8b5cf6;
 
+    /* Accessible badge text tokens (WCAG AA on their *-light backgrounds) */
+    --warning-text: #92400e;   /* Amber 900  — ~7:1 on #fffbeb */
+    --success-text: #065f46;   /* Emerald 900 — ~7:1 on #ecfdf5 */
+    --danger-text:  #b91c1c;   /* Red 700    — ~5:1 on #fef2f2 */
+
     /* Phase 7 screen design tokens */
     --surface-glass: rgba(255, 255, 255, 0.78);
     --surface-subtle: #f1f5f9;
@@ -60,6 +67,10 @@
 
 /* Dark Mode Variables */
 body.dark-mode {
+    color-scheme: dark;
+    --warning-text: #fbbf24;
+    --success-text: #34d399;
+    --danger-text:  #f87171;
     --bg-main: #0b0f19;
     --bg-card: #151c2c;
     --border: #222d44;
@@ -91,6 +102,12 @@ body.dark-mode {
     padding: 0;
     box-sizing: border-box;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Browsers override font-family on form controls; re-apply explicitly */
+input, select, textarea, button {
+    font-family: inherit;
+    font-size: inherit;
 }
 
 body {
@@ -313,6 +330,16 @@ body {
     background-color: var(--primary-hover);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
+}
+
+.btn:active {
+    transform: scale(0.97) translateY(0);
+    transition-duration: 0.08s;
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 .btn-secondary {
@@ -1291,9 +1318,9 @@ body.dark-mode .app-table tbody tr:hover {
     text-transform: capitalize;
 }
 
-.badge-success { background-color: var(--success-light); color: var(--success); }
-.badge-warning { background-color: var(--warning-light); color: var(--warning); }
-.badge-danger { background-color: var(--danger-light); color: var(--danger); }
+.badge-success { background-color: var(--success-light); color: var(--success-text, #065f46); }
+.badge-warning { background-color: var(--warning-light); color: var(--warning-text, #92400e); }
+.badge-danger  { background-color: var(--danger-light);  color: var(--danger-text,  #b91c1c); }
 .badge-info { background-color: var(--info-light); color: var(--info); }
 .badge-neutral { background-color: var(--border); color: var(--text-muted); }
 .badge-orange { background-color: #ffedd5; color: #ea580c; }
@@ -1533,7 +1560,10 @@ body.dark-mode .app-table tbody tr:hover {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    padding: 4px;
+    padding: 6px;
+    min-width: 36px;
+    min-height: 36px;
+    touch-action: manipulation;
     transition: var(--transition);
 }
 
@@ -2898,5 +2928,39 @@ body.dark-mode .cal-loading .cal-cell::after {
     .pwa-install-btn {
         padding: 7px 12px;
         font-size: 0.8rem;
+    }
+}
+
+/* ── Reduced Motion ─────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    /* Kill transform-based entrance animations; keep colour/opacity transitions */
+    .tab-view {
+        animation: none;
+    }
+    .widget-card:hover {
+        transform: none;
+    }
+    .btn-primary:hover,
+    .btn:active {
+        transform: none;
+    }
+    .admission-card,
+    .portcath-card,
+    .tumorboard-card {
+        transition: border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+    .admission-card:hover,
+    .portcath-card:hover,
+    .tumorboard-card:hover {
+        transform: none;
+    }
+    .modal-content {
+        transition: none;
+    }
+    .sidebar-menu li::before {
+        transition: none;
+    }
+    .upload-card:hover .upload-icon {
+        transform: none;
     }
 }
