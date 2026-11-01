@@ -24,7 +24,7 @@ const API_VERSION = 2;
 // Column order used when a sheet is created. Existing sheets keep their order;
 // missing columns are appended at the end.
 const SHEETS = {
-  portcath: { name: 'PortCath', cols: ['id', 'name', 'fileNumber', 'date', 'day', 'weight', 'notes', 'status', 'phone', 'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy', 'nextChemoAppt', 'doneAt', 'outcomeNote'] },
+  portcath: { name: 'PortCath', cols: ['id', 'name', 'fileNumber', 'date', 'day', 'weight', 'notes', 'status', 'phone', 'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy', 'nextChemoAppt', 'doneAt', 'outcomeNote', 'source'] },
   'portcath-session-config': { name: 'PortCathSessionConfig', cols: ['id', 'date', 'year', 'month', 'dayOfWeek', 'isActive', 'syncStatus', 'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'] },
   'portcath-history': { name: 'PortCathHistory', appendOnly: true, cols: ['id', 'patientId', 'patientName', 'fileNumber', 'action', 'fromDate', 'toDate', 'reason', 'note', 'timestamp', 'syncStatus', 'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'] },
   admissions: { name: 'Admissions', cols: ['id', 'name', 'fileNumber', 'age', 'triageScore', 'primaryPhysician', 'placeOfReferral', 'modeOfTransportation', 'performanceStatus', 'admissionDepartment', 'date', 'summary', 'causeOfAdmission', 'notes', 'createdAt', 'updatedAt', 'deletedAt', 'version', 'preparedBy'] },

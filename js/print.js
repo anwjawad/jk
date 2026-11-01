@@ -2,6 +2,7 @@
 import { esc, html, fmtDate, todayISO, downloadFile } from './util.js';
 import { settings } from './settings.js';
 import { modal, toast, icon } from './ui.js';
+import { buildDocx } from './docx.js';
 
 const cell = (v) => esc(v ?? '').replace(/\n/g, '<br>');
 
@@ -68,21 +69,27 @@ function docHTML({ title, subtitle = '', when = '', whenSub = '', summary = [], 
     ${word ? '' : '<script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script>'}</body></html>`;
 }
 
-let logoData = null;
-async function logoDataURL() {
-  if (logoData) return logoData;
+let logoCache;
+async function logoImage() {
+  if (logoCache !== undefined) return logoCache;
   try {
-    const blob = await (await fetch('logo.png')).blob();
-    logoData = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
-  } catch { logoData = ''; }
-  return logoData;
+    const bytes = new Uint8Array(await (await fetch('logo.png')).arrayBuffer());
+    const size = await new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = rej;
+      img.src = URL.createObjectURL(new Blob([bytes], { type: 'image/png' }));
+    });
+    logoCache = { bytes, ...size };
+  } catch { logoCache = null; }
+  return logoCache;
 }
 
 export async function output(doc, action) {
   if (action === 'word') {
-    const content = docHTML(doc, { word: true, logo: await logoDataURL() });
-    const name = `${doc.title.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-')}-${doc.fileDate || todayISO()}.doc`;
-    downloadFile(name, '﻿' + content, 'application/msword');
+    const blob = buildDocx(doc, { logo: await logoImage(), hospital: settings.get('hospital') || '' });
+    const name = `${doc.title.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-')}-${doc.fileDate || todayISO()}.docx`;
+    downloadFile(name, blob);
     toast(`Saved ${name}`);
     return;
   }
@@ -104,7 +111,7 @@ export async function printDialog(build, { title = 'Print', extra = '', note = '
       ${note ? html`<p class="hint">${note}</p>` : ''}
       <p class="hint">${icon('print', 14)} To save a PDF, choose “Save as PDF” in the print window.</p>`,
     primary: 'Print',
-    extraButtons: '<button type="submit" class="btn" value="word">Export Word</button>',
+    extraButtons: '<button type="submit" class="btn" value="word">Export Word (.docx)</button>',
   });
   if (!r) return;
   if (r.preparedBy && !settings.get('userName')) settings.set({ userName: r.preparedBy });

@@ -18,8 +18,10 @@ that don't shift by a day, and file/phone numbers that keep their leading zeros.
    Editing the existing deployment keeps the same `/exec` link, so the app needs no change.
 5. Open the app → **Settings → Google Sheet**. The chip should say **Connected · new script**.
 
-The first save after deploying adds two columns at the end of the `PortCath` sheet
-(`doneAt`, `outcomeNote`) for the “Port done” confirmation. Nothing else changes.
+The first save after deploying adds three columns at the end of the `PortCath` sheet:
+`doneAt` and `outcomeNote` (the “Port done” confirmation) and `source` (who asked to
+book the patient). Nothing else changes. The old script ignores these fields, so the
+**Source** you type is only kept once the new script is deployed.
 
 ## Fresh start (new sheet)
 

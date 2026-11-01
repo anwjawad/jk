@@ -5,7 +5,7 @@ import { html, esc, $, $$, todayISO, addDays, fmtDate, fmtMonth, monthKey, addMo
 import { registerActions, registerChanges, ui } from '../registry.js';
 import { get, remove, restore, upsert, batch } from '../store.js';
 import { lists, pc, pcStatus, isBooked, patientsOn, isSessionDay, sessionDaysInMonth, upcomingSessions, setSessionDay, historyOf, HISTORY_LABEL, samePatient } from '../model.js';
-import { icon, modal, confirmBox, toast, menu, chip, empty, telLinks } from '../ui.js';
+import { icon, modal, confirmBox, toast, menu, chip, empty, telLinks, datalist } from '../ui.js';
 import { printDialog } from '../print.js';
 
 export const title = () => 'Port Cath';
@@ -227,6 +227,7 @@ function ptRow(p, { showDate = false } = {}) {
           ${p.weight ? html`<span><b>${p.weight}</b> kg</span>` : html`<span class="warn-text">No weight</span>`}
           ${p.phone ? telLinks(p.phone) : ''}
           ${p.nextChemoAppt ? html`<span>Next chemo <b>${fmtDate(p.nextChemoAppt, 'med')}</b></span>` : ''}
+          ${p.source ? html`<span>Source <b>${p.source}</b></span>` : ''}
         </div>
         ${p.notes ? html`<div class="note rtl-text">${p.notes}</div>` : ''}
         ${p.outcomeNote ? html`<div class="note">${p.outcomeNote}</div>` : ''}
@@ -295,7 +296,7 @@ function renderRegister() {
       </div>
       ${rows.length ? html`
         <div class="table-wrap"><table class="data">
-          <thead><tr><th>Patient</th><th>Status</th><th>Date</th><th>Weight</th><th>Phone</th><th>Next chemo</th><th>Notes</th><th><span class="sr-only">Actions</span></th></tr></thead>
+          <thead><tr><th>Patient</th><th>Status</th><th>Date</th><th>Weight</th><th>Phone</th><th>Next chemo</th><th>Source</th><th>Notes</th><th><span class="sr-only">Actions</span></th></tr></thead>
           <tbody>${shown.map((p) => { const st = pcStatus(p); return html`<tr data-row="${p.id}">
             <td><button type="button" class="name-btn" data-action="pc-edit" data-id="${p.id}">${p.name}</button><div class="file">${p.fileNumber}</div></td>
             <td>${chip(st.label, st.tone)}</td>
@@ -303,6 +304,7 @@ function renderRegister() {
             <td>${p.weight || '—'}</td>
             <td class="nowrap">${p.phone ? telLinks(p.phone) : '—'}</td>
             <td class="nowrap">${p.nextChemoAppt ? fmtDate(p.nextChemoAppt) : '—'}</td>
+            <td>${p.source || '—'}</td>
             <td class="rtl-text" style="max-width:260px">${p.notes}</td>
             <td><button type="button" class="icon-btn sm" data-action="pc-history" data-id="${p.id}" aria-label="History of ${p.name}">${icon('history', 16)}</button></td>
           </tr>`; })}</tbody>
@@ -319,7 +321,7 @@ function dateChooser({ value = '', allowWaiting = false, from = todayISO(), excl
   const isCustom = value && value !== 'waiting' && !days.includes(value);
   return html`
     <div class="field" data-date-chooser>
-      <span>Date <span class="req">*</span></span>
+      <span>Date${allowWaiting ? html` <span class="muted">— leave empty for the waiting list</span>` : html` <span class="req">*</span>`}</span>
       <input type="hidden" name="date" value="${value}">
       <div class="date-chips" role="group" aria-label="Upcoming session days">
         ${allowWaiting ? html`<button type="button" class="date-chip ${value === 'waiting' ? 'on' : ''}" data-pick="waiting"><b>Waiting list</b><small>no date yet</small></button>` : ''}
@@ -358,10 +360,12 @@ async function editPatient(p, preset = '') {
     body: html`
       <div class="grid-2">
         <label class="field span-2"><span>Patient name <span class="req">*</span></span><input name="name" value="${p.name || ''}" autocomplete="off" required></label>
-        <label class="field"><span>File number <span class="req">*</span></span><input name="fileNumber" class="ltr" value="${p.fileNumber || ''}" autocomplete="off" inputmode="numeric" spellcheck="false"></label>
-        <label class="field"><span>Weight (kg) <span class="req">*</span></span><input name="weight" type="number" step="0.1" min="1" max="300" value="${p.weight || ''}" inputmode="decimal"></label>
+        <label class="field"><span>File number</span><input name="fileNumber" class="ltr" value="${p.fileNumber || ''}" autocomplete="off" inputmode="numeric" spellcheck="false"></label>
+        <label class="field"><span>Weight (kg)</span><input name="weight" type="number" step="0.1" min="1" max="300" value="${p.weight || ''}" inputmode="decimal"></label>
         <label class="field"><span>Phone</span><input name="phone" type="tel" class="ltr" value="${p.phone || ''}" autocomplete="off" placeholder="059…"></label>
         <label class="field"><span>Next chemo appointment</span><input name="nextChemoAppt" type="date" value="${p.nextChemoAppt || ''}"></label>
+        <label class="field span-2"><span>Source <span class="muted">— who asked to book this patient</span></span><input name="source" list="pc-sources" value="${isNew ? '' : p.source || ''}" autocomplete="off" placeholder="e.g. Dr. Hanna, clinic nurse, patient called…"></label>
+        ${datalist('pc-sources', sources())}
         <div class="span-2" data-dup></div>
         ${isNew || isBooked(p) || p.status === 'waiting' ? html`<div class="span-2">${dateChooser({ value, allowWaiting: true })}</div>` : ''}
         <label class="field span-2"><span>Notes</span><textarea name="notes" rows="2">${p.notes || ''}</textarea></label>
@@ -379,14 +383,14 @@ async function editPatient(p, preset = '') {
     },
     validate: (d) => {
       if (!cleanText(d.name)) return { field: 'name', message: 'Enter the patient’s name.' };
-      if (!cleanText(d.fileNumber)) return { field: 'fileNumber', message: 'Enter the file number.' };
-      if (!(Number(d.weight) > 0)) return { field: 'weight', message: 'Enter the weight in kg.' };
-      if ('date' in d && !d.date) return 'Choose a session day, another date, or “Waiting list”.';
+      if (d.weight && !(Number(d.weight) > 0)) return { field: 'weight', message: 'The weight should be a number in kg, or left empty.' };
       return null;
     },
   });
   if (!r) return;
-  const fields = { name: cleanText(r.name), fileNumber: cleanText(r.fileNumber), weight: r.weight, phone: cleanText(r.phone), nextChemoAppt: r.nextChemoAppt, notes: r.notes };
+  // No date chosen → waiting list.
+  if ('date' in r && !r.date) r.date = isNew ? 'waiting' : value;
+  const fields = { name: cleanText(r.name), fileNumber: cleanText(r.fileNumber), weight: r.weight, phone: cleanText(r.phone), nextChemoAppt: r.nextChemoAppt, source: cleanText(r.source), notes: r.notes };
   const date = r.date === 'waiting' ? '' : r.date;
   if (isNew) {
     const row = pc.add({ ...fields, date: date || '' });
@@ -522,8 +526,15 @@ function historyDialog(p) {
 }
 
 // ---------- printing ----------
-const COLS = [{ label: 'Patient name', width: '30%' }, { label: 'File #', width: '12%' }, { label: 'Weight', width: '8%', align: 'c' }, { label: 'Phone', width: '14%' }, { label: 'Next chemo', width: '12%' }, { label: 'Notes' }];
-const pcRow = (p) => [p.name, p.fileNumber, p.weight ? `${p.weight} kg` : '', p.phone, p.nextChemoAppt ? fmtDate(p.nextChemoAppt, 'full') : '', p.notes];
+const COLS = [{ label: 'Patient name', width: '24%' }, { label: 'File #', width: '10%' }, { label: 'Weight', width: '8%', align: 'c' }, { label: 'Phone', width: '13%' }, { label: 'Next chemo', width: '11%' }, { label: 'Source', width: '13%' }, { label: 'Notes' }];
+const pcRow = (p) => [p.name, p.fileNumber, p.weight ? `${p.weight} kg` : '', p.phone, p.nextChemoAppt ? fmtDate(p.nextChemoAppt, 'full') : '', p.source, p.notes];
+
+// Earlier sources, most used first, to pick from while typing.
+function sources() {
+  const n = new Map();
+  for (const p of lists().portcath) if (p.source) n.set(p.source, (n.get(p.source) || 0) + 1);
+  return [...n].sort((a, b) => b[1] - a[1]).map(([s]) => s);
+}
 const daySection = (date) => {
   const pts = patientsOn(date).filter((p) => p.status !== 'cancelled');
   return { heading: `${fmtDate(date, 'long')}`, badge: plural(pts.length, 'patient'), columns: COLS, rows: pts.map(pcRow), empty: 'No patients booked.' };
@@ -574,9 +585,9 @@ function waitingDoc() {
 
 function csv() {
   const rows = regRows();
-  const head = ['Name', 'File number', 'Status', 'Date', 'Weight', 'Phone', 'Next chemo', 'Done on', 'Notes'];
+  const head = ['Name', 'File number', 'Status', 'Date', 'Weight', 'Phone', 'Next chemo', 'Source', 'Done on', 'Notes'];
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const body = rows.map((p) => [p.name, p.fileNumber, pcStatus(p).label, p.date, p.weight, p.phone, p.nextChemoAppt, p.doneAt, p.notes].map(q).join(','));
+  const body = rows.map((p) => [p.name, p.fileNumber, pcStatus(p).label, p.date, p.weight, p.phone, p.nextChemoAppt, p.source, p.doneAt, p.notes].map(q).join(','));
   downloadFile(`port-cath-${todayISO()}.csv`, '﻿' + [head.join(','), ...body].join('\r\n'), 'text/csv');
 }
 
