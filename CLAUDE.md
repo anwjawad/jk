@@ -27,7 +27,7 @@ Vanilla ES modules, no framework or bundler. GitHub Pages serves the repo root.
 | `js/ui.js`, `js/print.js` | Dialogs, toasts, menus, icons; printable reports and Word export |
 | `js/views/*.js` | One module per screen, each exports `title`, `render`, optional `onRoute`, `mount`, `focusRecord` |
 | `google-apps-script/Code.gs` | Backend (v2). Same sheets/columns as v1; see `SETUP.md` |
-| `backup/v1/` | The previous version of the app, untouched |
+| `backup/` | The previous version of the app, untouched (opens at `/backup/`) |
 
 Rules of thumb:
 - Views render HTML with the `html` tagged template (auto-escapes); handlers are registered with `registerActions` / `registerChanges` and referenced by `data-action` / `data-change` / `data-input`.
