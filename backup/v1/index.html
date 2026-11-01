@@ -1,0 +1,1333 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedSched Panel</title>
+    <meta name="description" content="AVH / LWF Clinical Scheduler & Patient Admissions">
+    <meta name="theme-color" content="#0d9488">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MedSched">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="style.css">
+    <!-- SheetJS for Smart Excel Importing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Mammoth.js for Word Document Parsing -->
+    <script src="mammoth.browser.min.js"></script>
+    <!-- html2pdf.js for exporting reports as PDF files -->
+    <script src="html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="portcath-studio.css"/>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar no-print">
+        <div class="sidebar-brand">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+            </svg>
+            <div>
+                <h1>MedSched Panel</h1>
+                <span>AVH / LWF Coordination</span>
+            </div>
+        </div>
+        <div class="sidebar-search">
+            <div class="global-patient-search" role="search">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input id="global-patient-search" type="search" placeholder="Search patient..." autocomplete="off" oninput="renderGlobalPatientSearch()" onfocus="renderGlobalPatientSearch()" onkeydown="handleGlobalSearchKey(event)">
+                <div id="global-search-results" class="global-search-results" aria-label="Patient search results"></div>
+            </div>
+        </div>
+        <ul class="sidebar-menu">
+            <li id="menu-dashboard" class="active">
+                <a href="javascript:;" onclick="switchTab('dashboard')" tabindex="0" aria-label="Dashboard">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="9" rx="1"/>
+                        <rect x="14" y="3" width="7" height="5" rx="1"/>
+                        <rect x="14" y="12" width="7" height="9" rx="1"/>
+                        <rect x="3" y="16" width="7" height="5" rx="1"/>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li id="menu-portcath">
+                <a href="javascript:;" onclick="switchTab('portcath')" tabindex="0" aria-label="Port Cath List">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    <span>Port Cath List</span>
+                </a>
+            </li>
+            <li id="menu-admissions">
+                <a href="javascript:;" onclick="switchTab('admissions')" tabindex="0" aria-label="Planned Admissions">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <span>Planned Admissions</span>
+                </a>
+            </li>
+            <li id="menu-followup">
+                <a href="javascript:;" onclick="switchTab('followup')" tabindex="0" aria-label="WhatsApp and Call Follow-up">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" aria-hidden="true">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                    </svg>
+                    <span>WhatsApp & Call</span>
+                </a>
+            </li>
+            <li id="menu-tumorboard">
+                <a href="javascript:;" onclick="switchTab('tumorboard')" tabindex="0" aria-label="Tumor Board Follow-up">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" aria-hidden="true">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                    <span>Tumor Board Follow-up</span>
+                </a>
+            </li>
+            <li id="menu-import">
+                <a href="javascript:;" onclick="switchTab('import')" tabindex="0" aria-label="Smart Import">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                    <span>Smart Import</span>
+                </a>
+            </li>
+        </ul>
+
+        <!-- Clinic Appointments subtle link -->
+        <div style="padding: 4px 12px 12px;">
+            <a href="clinic-appointments.html" class="sidebar-clinic-link" aria-label="Clinic Appointments Calendar (opens in same tab)">
+                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg>
+                <span>Clinic Appointments</span>
+                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" class="ext-icon" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+            </a>
+        </div>
+
+        <div class="sidebar-footer">
+            <span class="app-version">v1.0.0</span>
+            <div id="sync-status-indicator" class="sync-status-pill" title="Google Sheets sync status">Offline</div>
+            <button class="theme-toggle-btn" onclick="toggleDarkMode()" title="Toggle Dark/Light Mode" aria-label="Toggle dark/light mode">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.46 5.05L5.75 4.343a1 1 0 10-1.414 1.414l.707.707zm1.414 8.486a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 011.414-1.414l.707.707zM6 11a1 1 0 100-2H5a1 1 0 100 2h1z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Workspace Container -->
+    <main class="main-content no-print">
+        
+        <!-- DASHBOARD TAB - CALENDAR VIEW (Phase 4) -->
+        <section id="tab-dashboard" class="tab-view active">
+            <div class="app-header">
+                <div class="header-left">
+                    <h2>Clinical Calendar</h2>
+                    <p class="header-sub" id="cal-stats-bar">Loading…</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="goToToday()">Today</button>
+                    <button class="btn btn-primary" onclick="switchTab('import')">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                        <span>Import Excel</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Calendar Card -->
+            <div class="card cal-card">
+                <div class="cal-nav">
+                    <button class="btn btn-icon" onclick="navigateCalendar(-1)">&#8249;</button>
+                    <h3 id="cal-month-label"></h3>
+                    <button class="btn btn-icon" onclick="navigateCalendar(1)">&#8250;</button>
+                </div>
+                <div class="cal-weekdays">
+                    <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
+                    <span>Thu</span><span>Fri</span><span>Sat</span>
+                </div>
+                <div class="cal-grid" id="cal-grid"></div>
+            </div>
+
+            <!-- Daily Workspace -->
+            <div id="cal-day-workspace" class="card" style="display:none; margin-top:16px;">
+                <div class="workspace-header">
+                    <h3 id="workspace-date-label"></h3>
+                    <div class="workspace-module-filters">
+                        <button class="ws-filter-btn active" onclick="setCalFilter('all', this)">All</button>
+                        <button class="ws-filter-btn" onclick="setCalFilter('portcath', this)">Port Cath</button>
+                        <button class="ws-filter-btn" onclick="setCalFilter('admissions', this)">Admissions</button>
+                        <button class="ws-filter-btn" onclick="setCalFilter('followup', this)">Follow-up</button>
+                        <button class="ws-filter-btn" onclick="setCalFilter('tumorboard', this)">Tumor Board</button>
+                    </div>
+                    <div class="workspace-print-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('portcath')">Print Port</button>
+                        <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('admissions')">Print Admissions</button>
+                        <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('followup')">Print Follow-up</button>
+                        <button class="btn btn-secondary btn-sm" onclick="openDashboardPrint('tumorboard')">Print Tumor Board</button>
+                        <button class="btn btn-icon" onclick="closeDayWorkspace()" aria-label="Close day workspace">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px;height:16px;stroke-width:2.5;" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="workspace-body"></div>
+            </div>
+        </section>
+
+
+        <!-- PORT CATH PLACEMENT TAB -->
+        <section id="tab-portcath" class="tab-view">
+            <div class="app-header">
+                <div>
+                    <h2>Port Cath Placement List</h2>
+                    <p>Manage patients scheduled for Port Cath placement procedures.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openPrintModal('portcath')">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                        <span>Print Report (Portrait)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Port Cath Patients Table -->
+            <div class="list-panel">
+                <div class="list-header-bar">
+                    <div class="list-title">
+                        <span>Scheduled Patients</span>
+                        <span class="list-counter" id="counter-portcath">0</span>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleAllPortCathCards()" id="expand-all-portcath-btn">Expand All</button>
+                    </div>
+                    <div class="list-actions">
+                        <div class="date-filter-wrap" id="portcath-date-filter-wrap">
+                            <input type="date" id="filter-date-portcath" class="form-control date-filter-control" onchange="handlePortCathDateFilterChange()" title="Filter Port Cath by date">
+                            <button class="btn btn-secondary btn-sm" onclick="clearPortCathDateFilter()" title="Show all Port Cath dates">Clear</button>
+                            <span class="saturday-hint" id="portcath-saturday-hint">Saturday</span>
+                        </div>
+                        <div class="search-input-wrapper">
+                            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="search-portcath" class="search-control" placeholder="Search by name or file..." oninput="filterPortCathTable()">
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="clearList('portcath')" style="color: var(--danger)">Clear All</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="app-table portcath-table" id="table-portcath">
+                        <tbody>
+                            <!-- Managed dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- DAILY PLANNED ADMISSIONS TAB -->
+        <section id="tab-admissions" class="tab-view">
+            <div class="app-header">
+                <div>
+                    <h2>Daily Planned Admissions</h2>
+                    <p>Manage and organize standard planned admissions and triage details.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openPrintModal('admissions')">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                        <span>Print Report (Landscape)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admissions Patients Table -->
+            <div class="list-panel">
+                <div class="list-header-bar">
+                    <div class="list-title">
+                        <span>Planned Admissions List</span>
+                        <span class="list-counter" id="counter-admissions">0</span>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleAllAdmissionCards()" id="expand-all-btn">Expand All</button>
+                    </div>
+                    <div class="list-actions">
+                        <div class="date-filter-wrap" id="admissions-date-filter-wrap">
+                            <input type="date" id="filter-date-admissions" class="form-control date-filter-control" onchange="handleAdmissionsDateFilterChange()" title="Filter Admissions by date">
+                            <button class="btn btn-secondary btn-sm" onclick="clearAdmissionsDateFilter()" title="Show all Admission dates">Clear</button>
+                        </div>
+                        <div class="search-input-wrapper">
+                            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="search-admissions" class="search-control" placeholder="Search admissions..." oninput="filterAdmissionsTable()">
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="clearList('admissions')" style="color: var(--danger)">Clear All</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="app-table admissions-table" id="table-admissions">
+                        <tbody>
+                            <!-- Managed dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- WHATSAPP & CALL FOLLOW-UP TAB -->
+        <section id="tab-followup" class="tab-view">
+            <div class="app-header">
+                <div>
+                    <h2>WhatsApp & Call Follow-up</h2>
+                    <p>Track patient communication, requested tasks, and call outcomes.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="copyFollowUpList()" title="Copy list to clipboard as a table">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        <span>Copy List</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="openPrintModal('followup')">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                        <span>Print Follow-ups</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Follow-up Table -->
+            <div class="list-panel">
+                <div class="list-header-bar">
+                    <div class="list-title">
+                        <span>Follow-up Patients List</span>
+                        <span class="list-counter" id="counter-followup">0</span>
+                    </div>
+                    <div class="list-actions">
+                        <div class="date-filter-wrap" id="followup-date-filter-wrap">
+                            <input type="date" id="filter-date-followup" class="form-control date-filter-control" onchange="renderFollowUpTable()" title="Filter Follow-ups by date">
+                            <button class="btn btn-secondary btn-sm" onclick="clearFollowUpDateFilter()" title="Show all Follow-up dates">Clear</button>
+                        </div>
+                        <div class="search-input-wrapper">
+                            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="search-followup" class="search-control" placeholder="Search follow-ups..." oninput="filterFollowUpTable()">
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="clearList('followup')" style="color: var(--danger)">Clear All</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="app-table" id="table-followup">
+                        <thead>
+                            <tr>
+                                <th>Patient Name</th>
+                                <th>Phone Number</th>
+                                <th>File / ID No.</th>
+                                <th>Date</th>
+                                <th style="width: 25%;">Requested Task</th>
+                                <th style="width: 25%;">Task Result</th>
+                                <th class="no-print" style="width: 100px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Managed dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- TUMOR BOARD FOLLOW-UP TAB -->
+        <section id="tab-tumorboard" class="tab-view">
+            <div class="app-header">
+                <div>
+                    <h2>Tumor Board Patient Follow-up</h2>
+                    <p>Track multi-task clinical workflows, referrals, bookings, and imaging for oncology patients.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="openImportWordModal()" title="Import patients from Tumor Board Word File">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                        <span>Import Word File</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tumor Board Table -->
+            <div class="list-panel">
+                <div class="list-header-bar">
+                    <div class="list-title">
+                        <span>Oncology Patients List</span>
+                        <span class="list-counter" id="counter-tumorboard">0</span>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleAllTumorBoardCards()" id="expand-all-tumorboard-btn">Expand All</button>
+                    </div>
+                    <div class="list-actions">
+                        <div class="search-input-wrapper">
+                            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="search-tumorboard" class="search-control" placeholder="Search by name, file, physician..." oninput="filterTumorBoardTable()">
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="clearList('tumorboard')" style="color: var(--danger)">Clear All</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="app-table tumorboard-table" id="table-tumorboard">
+                        <tbody>
+                            <!-- Managed dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- SMART EXCEL IMPORT TAB -->
+        <section id="tab-import" class="tab-view">
+            <div class="app-header">
+                <div>
+                    <h2>Smart Excel Importer</h2>
+                    <p>Upload your appointment spreadsheet and selectively parse patient info using smart columns matching.</p>
+                </div>
+            </div>
+
+            <!-- Upload Box -->
+            <div class="upload-card" id="dropzone">
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                </div>
+                <h3>Drag & Drop Excel Files here</h3>
+                <p>or click to browse from your device (accepts multiple .xlsx, .xls)</p>
+                <input type="file" id="excel-file-input" accept=".xlsx, .xls" multiple onchange="handleExcelUpload(event)">
+            </div>
+
+            <!-- Smart Mapping & Preview Area -->
+            <div class="excel-preview-panel" id="excel-preview-section" style="display: none;">
+                <h3 class="panel-title" style="justify-content: space-between; flex-wrap: wrap;">
+                    <span>Smart Mapping Configurations</span>
+                    <div>
+                        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-right: 10px;">Select Target List:</span>
+                        <select id="import-target-select" class="form-control" style="display: inline-block; width: 220px; padding: 6px 12px; font-size: 0.85rem;">
+                            <option value="portcath">Port Cath Placement List</option>
+                            <option value="admissions" selected>Planned Admissions List</option>
+                            <option value="followup">WhatsApp / Call Follow-up</option>
+                        </select>
+                    </div>
+                </h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; background-color: var(--bg-main); padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid var(--border); width: 100%;">
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
+                        <div id="import-default-dept-container">
+                            <label class="form-label" for="import-default-dept" style="display: inline-block; margin-right: 8px;">Default Admission Dept</label>
+                            <select id="import-default-dept" class="form-control" style="width: 200px; display: inline-block; padding: 6px 10px;">
+                                <option value="Treatment room">Treatment room</option>
+                                <option value="Day care">Day care</option>
+                                <option value="Hospital Admission">Hospital Admission</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="import-files-list-section" style="border-top: 1px solid var(--border); padding-top: 12px; width: 100%;">
+                        <label class="form-label" style="font-weight: 700; margin-bottom: 8px;">Assign Target Date for Each Uploaded File:</label>
+                        <div id="import-files-dates-container" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                            <!-- Dynamically generated list of files with their date pickers -->
+                        </div>
+                    </div>
+                </div>
+                
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">
+                    We automatically mapped fields based on column headers. Adjust selections if columns need correction:
+                </p>
+
+                <!-- Mapping Selectors -->
+                <div class="mapping-container" id="mapping-fields-wrapper">
+                    <!-- Dynamic column selector dropdowns mapped to standard columns -->
+                </div>
+
+                <!-- Excel Row Selector Table -->
+                <div class="list-panel" style="margin-top: 20px;">
+                    <div class="list-header-bar">
+                        <div class="list-title">
+                            <span>Detected Patients Row Preview</span>
+                            <span class="list-counter" id="import-rows-count">0</span>
+                        </div>
+                        <div class="list-actions">
+                            <button class="btn btn-secondary btn-sm" onclick="toggleSelectAllImport(true)">Select All</button>
+                            <button class="btn btn-secondary btn-sm" onclick="toggleSelectAllImport(false)">Deselect All</button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="app-table" id="table-import-preview">
+                            <thead>
+                                <tr id="table-import-preview-headers">
+                                    <th style="width: 50px;">Import?</th>
+                                    <!-- Dynamic headers -->
+                                </tr>
+                            </thead>
+                            <tbody id="table-import-preview-body">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="resetImportTab()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitSmartImport()">
+                        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span id="btn-import-text">Import Selected Patients</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- EDIT PATIENT MODAL -->
+    <div class="modal-overlay no-print" id="modal-edit">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-edit-title">Edit Patient Information</h3>
+                <button class="modal-close" onclick="closeEditModal()" aria-label="Close dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-edit-body">
+                <!-- Dynamically injected fields based on edit type -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEditedPatient()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRINT SETTINGS MODAL -->
+    <div class="modal-overlay no-print" id="modal-print">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Print Settings</h3>
+                <button class="modal-close" onclick="closePrintModal()" aria-label="Close print options">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 700; margin-bottom: 12px;">Choose Print Mode:</label>
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+                        <label class="checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95rem;">
+                            <input type="radio" name="print-mode" id="print-mode-selected" value="selected" checked style="width:18px; height:18px; accent-color: var(--primary);">
+                            <span id="print-mode-selected-text">Print Selected Date Only</span>
+                        </label>
+                        <label class="checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95rem;">
+                            <input type="radio" name="print-mode" id="print-mode-all" value="all" style="width:18px; height:18px; accent-color: var(--primary);">
+                            <span>Print All Dates (Each date on a separate page)</span>
+                        </label>
+                        <label class="checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95rem;">
+                            <input type="radio" name="print-mode" id="print-mode-custom" value="custom" style="width:18px; height:18px; accent-color: var(--primary);">
+                            <span>Select Specific Dates to Print</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div id="print-custom-dates-section" style="display: none; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px;">
+                    <label class="form-label" style="margin-bottom: 8px; font-weight: 700;">Select Dates:</label>
+                    <div id="print-checkboxes-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-height: 150px; overflow-y: auto; padding: 10px; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--border-radius-sm);">
+                        <!-- Dynamically filled with date checkboxes -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closePrintModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitPrintReport('print')">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px; height:16px;"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                    <span>Print</span>
+                </button>
+                <button class="btn btn-primary" onclick="submitPrintReport('pdf')" style="background-color: var(--primary-light); color: var(--primary); border-color: var(--primary);">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px; height:16px; stroke-width: 2.5;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    <span>Export PDF</span>
+                </button>
+                <button class="btn btn-primary" onclick="submitPrintReport('word')" style="background-color: #1e4d8c; border-color: #1e4d8c;">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px; height:16px;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/><path d="M8 7h1.5l1.5 6 1.5-6H14l-2 10h-2L8 7z" fill="currentColor" stroke="none"/></svg>
+                    <span>Export Word</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD PORT CATH PATIENT MODAL -->
+    <div class="modal-overlay no-print" id="modal-add-portcath">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Add New Port Cath Patient</h3>
+                <button class="modal-close" onclick="closeAddModal('portcath')" aria-label="Close add patient dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="form-portcath" onsubmit="addPortCathPatient(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="pc-name">Patient Name *</label>
+                        <input type="text" id="pc-name" class="form-control" placeholder="e.g. John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pc-file">File Number *</label>
+                        <input type="text" id="pc-file" class="form-control" placeholder="e.g. PAT123456" required>
+                    </div>
+                    <div class="form-group double">
+                        <div>
+                            <label class="form-label" for="pc-date">Procedure Date *</label>
+                            <input type="date" id="pc-date" class="form-control" required>
+                        </div>
+                        <div>
+                            <label class="form-label" for="pc-weight">Weight (kg) *</label>
+                            <input type="number" step="0.1" id="pc-weight" class="form-control" placeholder="e.g. 75.5" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pc-notes">Notes / Instructions</label>
+                        <textarea id="pc-notes" class="form-control" placeholder="folfox, chemotherapy preparation, etc."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="add-portcath-phone">Phone (optional)</label>
+                        <input type="tel" id="add-portcath-phone" class="form-control" dir="ltr" placeholder="+966XXXXXXXXX">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pc-next-chemo">Next Chemo Appt. (optional)</label>
+                        <input type="date" id="pc-next-chemo" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">
+                        <span>Add to Schedule</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD PLANNED ADMISSION MODAL -->
+    <div class="modal-overlay no-print" id="modal-add-admissions">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>Add Admission Details</h3>
+                <button class="modal-close" onclick="closeAddModal('admissions')" aria-label="Close add admission dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="form-admissions" onsubmit="addAdmissionPatient(event)">
+                    <div class="form-group double">
+                        <div>
+                            <label class="form-label" for="adm-name">Patient Name *</label>
+                            <input type="text" id="adm-name" class="form-control" placeholder="Full Name" required>
+                        </div>
+                        <div>
+                            <label class="form-label" for="adm-file">File Number *</label>
+                            <input type="text" id="adm-file" class="form-control" placeholder="PAT123456" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group double">
+                        <div>
+                            <label class="form-label" for="adm-age">Age *</label>
+                            <input type="number" id="adm-age" class="form-control" min="0" max="150" placeholder="e.g. 45" required>
+                        </div>
+                        <div>
+                            <label class="form-label" for="adm-triage">Triage Score *</label>
+                            <select id="adm-triage" class="form-control" required>
+                                <option value="1">1 - Resuscitation (Red)</option>
+                                <option value="2">2 - Emergent (Orange)</option>
+                                <option value="3" selected>3 - Urgent (Yellow)</option>
+                                <option value="4">4 - Less Urgent (Green)</option>
+                                <option value="5">5 - Non-Urgent (Blue)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="adm-physician">Primary Physician *</label>
+                        <input type="text" id="adm-physician" class="form-control" placeholder="Dr. Name" required>
+                    </div>
+
+                    <div class="form-group double">
+                        <div>
+                            <label class="form-label" for="adm-referral">Place of Referral</label>
+                            <select id="adm-referral" class="form-control">
+                                <option value="Home">Home</option>
+                                <option value="Hospital">Hospital</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="adm-transport">Transportation</label>
+                            <select id="adm-transport" class="form-control">
+                                <option value="Private Car">Private Car</option>
+                                <option value="Taxi">Taxi</option>
+                                <option value="Hospital Bus">Hospital Bus</option>
+                                <option value="Ambulance">Ambulance</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group double">
+                        <div>
+                            <label class="form-label" for="adm-performance">Performance Status</label>
+                            <select id="adm-performance" class="form-control">
+                                <option value="Walking">Walking</option>
+                                <option value="Bedridden">Bedridden</option>
+                                <option value="Wheelchair">Wheelchair</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="adm-department">Admission Dept *</label>
+                            <select id="adm-department" class="form-control" required>
+                                <option value="Treatment room">Treatment room</option>
+                                <option value="Day care">Day care</option>
+                                <option value="Hospital Admission">Hospital Admission</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="adm-date">Date of Admission *</label>
+                        <input type="date" id="adm-date" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="adm-summary">Brief Summary of the Case</label>
+                        <input type="text" id="adm-summary" class="form-control" placeholder="e.g. Stage IV Colon Cancer">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="adm-cause">Cause of Admission</label>
+                        <input type="text" id="adm-cause" class="form-control" placeholder="e.g. Chemotherapy Cycle 3">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="adm-notes">Notes</label>
+                        <textarea id="adm-notes" class="form-control" placeholder="Additional observations..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">
+                        <span>Add Admission</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD FOLLOW-UP MODAL -->
+    <div class="modal-overlay no-print" id="modal-add-followup">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Add Follow-up Case</h3>
+                <button class="modal-close" onclick="closeAddModal('followup')" aria-label="Close add follow-up dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="form-followup" onsubmit="addFollowUpPatient(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="f-name">Patient Name *</label>
+                        <input type="text" id="f-name" class="form-control" placeholder="Patient Full Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="f-phone">Phone Number *</label>
+                        <input type="text" id="f-phone" class="form-control" placeholder="e.g. 059XXXXXXX" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="f-file">File Number / ID Number *</label>
+                        <input type="text" id="f-file" class="form-control" placeholder="e.g. PAT123456 or ID" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="f-date">Follow-up Date *</label>
+                        <input type="date" id="f-date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="f-task">Requested Task *</label>
+                        <textarea id="f-task" class="form-control" placeholder="Enter requested task/action..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">
+                        <span>Add Follow-up</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD TUMOR BOARD PATIENT MODAL -->
+    <div class="modal-overlay no-print" id="modal-add-tumorboard">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Add Tumor Board Patient</h3>
+                <button class="modal-close" onclick="closeAddModal('tumorboard')" aria-label="Close add tumor board dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="form-tumorboard" onsubmit="addTumorBoardPatient(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="tb-name">Patient Name *</label>
+                        <input type="text" id="tb-name" class="form-control" placeholder="Patient Full Name" required>
+                    </div>
+                    <div class="form-group double">
+                        <div>
+                            <label class="form-label" for="tb-file">File Number (MRN)</label>
+                            <input type="text" id="tb-file" class="form-control" placeholder="e.g. 110995">
+                        </div>
+                        <div>
+                            <label class="form-label" for="tb-age">Age *</label>
+                            <input type="number" id="tb-age" class="form-control" placeholder="e.g. 45" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="tb-physician">Responsible Physician *</label>
+                        <input type="text" id="tb-physician" class="form-control" placeholder="Dr. Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="tb-diagnosis">Diagnosis / Brief History *</label>
+                        <textarea id="tb-diagnosis" class="form-control" placeholder="e.g. Breast cancer staging..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">
+                        <span>Add Patient</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- IMPORT WORD FILE MODAL -->
+    <div class="modal-overlay no-print" id="modal-import-word">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3>Import Patients from Word Document (Tumor Board)</h3>
+                <button class="modal-close" onclick="closeImportWordModal()" aria-label="Close import dialog">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <!-- Option A: File Upload -->
+                    <div style="border: 2px dashed var(--border); padding: 20px; text-align: center; border-radius: var(--border-radius-sm); background: var(--bg-main); position: relative;">
+                        <svg viewBox="0 0 24 24" style="width: 40px; height: 40px; stroke: var(--primary); fill: none; margin-bottom: 10px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                        <h4>Select Word Document (.docx)</h4>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Choose the Tumor Board report file</p>
+                        <input type="file" id="word-file-input" accept=".docx" onchange="handleWordFileUpload(event)" style="position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
+                    </div>
+                    <!-- Option B: Paste Text -->
+                    <div style="border: 1px solid var(--border); padding: 15px; border-radius: var(--border-radius-sm); display: flex; flex-direction: column; gap: 10px;">
+                        <h4 style="margin: 0;">Or Paste Copied Word Text:</h4>
+                        <textarea id="word-paste-text" class="form-control" style="flex-grow:1; min-height: 90px; font-size: 0.8rem;" placeholder="Paste the rows or paragraph content from Word here..."></textarea>
+                        <button class="btn btn-secondary btn-sm" onclick="parseWordPastedText()">Parse Text</button>
+                    </div>
+                </div>
+
+                <!-- Preview Area -->
+                <div id="word-preview-section" style="display: none; border-top: 1px solid var(--border); padding-top: 20px;">
+                    <h4 style="margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Detected Patients (Fill names manually if blank)</span>
+                        <span class="list-counter" id="word-detected-count">0</span>
+                    </h4>
+                    <div class="table-responsive" style="max-height: 280px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--border-radius-sm);">
+                        <table class="app-table" style="font-size: 0.85rem;" id="table-word-preview">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">Import?</th>
+                                    <th style="width: 22%;">Patient Name *</th>
+                                    <th style="width: 15%;">File No. (MRN)</th>
+                                    <th style="width: 10%;">Age *</th>
+                                    <th style="width: 18%;">Physician *</th>
+                                    <th>Diagnosis / Case Summary *</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-word-preview-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeImportWordModal()">Cancel</button>
+                <button class="btn btn-primary" id="btn-submit-word-import" onclick="submitWordImport()" disabled>Import Selected Patients</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PATIENT CLINICAL PROFILE MODAL -->
+    <div class="modal-overlay no-print" id="modal-patient-profile">
+        <div class="modal-content" style="max-width: 1050px; width: 95%;">
+            <div class="modal-header">
+                <h3>Patient Clinical Profile & Task Follow-ups</h3>
+                <button class="modal-close" onclick="closePatientProfileModal()" aria-label="Close patient profile">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-grid">
+                    <!-- Left: Demographics Form -->
+                    <div class="profile-card">
+                        <h4 style="margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 6px;">Patient Demographics</h4>
+                        <form id="form-profile-demographics" onsubmit="saveProfileDemographics(event)">
+                            <div class="form-group">
+                                <label class="form-label" for="prof-name">Patient Name *</label>
+                                <input type="text" id="prof-name" class="form-control" required style="padding: 8px 12px; font-size: 0.85rem;">
+                            </div>
+                            <div class="form-group double">
+                                <div>
+                                    <label class="form-label" for="prof-file">File No. (MRN)</label>
+                                    <input type="text" id="prof-file" class="form-control" style="padding: 8px 12px; font-size: 0.85rem;">
+                                </div>
+                                <div>
+                                    <label class="form-label" for="prof-age">Age *</label>
+                                    <input type="number" id="prof-age" class="form-control" required style="padding: 8px 12px; font-size: 0.85rem;">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="prof-physician">Physician *</label>
+                                <input type="text" id="prof-physician" class="form-control" required style="padding: 8px 12px; font-size: 0.85rem;">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="prof-diagnosis">Diagnosis / Brief History *</label>
+                                <textarea id="prof-diagnosis" class="form-control" required style="min-height: 100px; font-size: 0.85rem;"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="prof-notes">Discussion Points / Notes</label>
+                                <textarea id="prof-notes" class="form-control" style="min-height: 80px; font-size: 0.85rem;"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm" style="width: 100%; margin-top: 10px;">
+                                <span>Save Patient Info</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Right: Follow-up Tasks Grid -->
+                    <div class="tasks-section">
+                        <!-- Tasks Checklist List -->
+                        <div class="profile-card" style="flex-grow: 1;">
+                            <h4 style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Follow-up Checklist</span>
+                                <span class="list-counter" id="prof-tasks-count">0 Tasks</span>
+                            </h4>
+                            <div class="tasks-list" id="prof-tasks-list">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Add Task Form -->
+                        <div class="profile-card">
+                            <h4 style="margin-bottom: 10px;">Add New Follow-up Task</h4>
+                            <div style="display: grid; grid-template-columns: 200px 1fr auto; gap: 12px; align-items: end; flex-wrap: wrap;">
+                                <div class="form-group" style="margin: 0;">
+                                    <label class="form-label" for="prof-add-task-type">Task Type *</label>
+                                    <select id="prof-add-task-type" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;" onchange="toggleProfileTaskFields()">
+                                        <option value="referral_followup" selected>متابعة تحويلة (Referral Follow-up)</option>
+                                        <option value="referral_submit">تقديم تحويلة (Submit Referral)</option>
+                                        <option value="permit_submit">تقديم تصريح (Submit Permit)</option>
+                                        <option value="clinic_booking">حجز عيادة (Clinic Booking)</option>
+                                        <option value="imaging_request">طلب صور طبية (Request Imaging)</option>
+                                        <option value="lab_request">طلب فحوصات طبية (Request Lab)</option>
+                                        <option value="other">أخرى (Other Follow-up)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Clinic Booking Fields -->
+                                <div id="prof-task-clinic-fields" style="display: none; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" for="prof-task-clinic-type">Clinic Type</label>
+                                        <input type="text" id="prof-task-clinic-type" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;" placeholder="e.g. Oncology">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label class="form-label" for="prof-task-clinic-date">Clinic Date</label>
+                                        <input type="date" id="prof-task-clinic-date" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;">
+                                    </div>
+                                </div>
+
+                                <!-- Other custom follow-up field -->
+                                <div id="prof-task-other-fields" style="display: none; margin: 0;" class="form-group">
+                                    <label class="form-label" for="prof-task-other-title">Follow-up Title</label>
+                                    <input type="text" id="prof-task-other-title" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;" placeholder="Enter custom follow-up...">
+                                </div>
+
+                                <div class="form-group" style="margin: 0; flex-grow: 1;">
+                                    <label class="form-label" for="prof-add-task-notes">Notes / Instructions</label>
+                                    <input type="text" id="prof-add-task-notes" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;" placeholder="Add specific task notes...">
+                                </div>
+
+                                <button class="btn btn-primary" onclick="addProfileTask()" style="padding: 8px 16px; height: 35px;">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="openPrintProfileSettingsModal()" style="margin-right: auto; background-color: var(--primary-light); color: var(--primary); border-color: var(--primary);">
+                    <svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke:currentColor;"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                    <span>Print Patient Profile</span>
+                </button>
+                <button class="btn btn-secondary" onclick="closePatientProfileModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRINT PROFILE SETTINGS MODAL -->
+    <div class="modal-overlay no-print" id="modal-print-profile-settings">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Select Follow-ups to Print</h3>
+                <button class="modal-close" onclick="closePrintProfileSettingsModal()" aria-label="Close print settings">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 12px; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+                    <input type="checkbox" id="print-prof-select-all" checked onchange="toggleSelectAllPrintProfile(this.checked)" style="width: 18px; height: 18px;">
+                    <span>Select All Tasks</span>
+                </label>
+                <div id="print-profile-tasks-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding: 10px; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--border-radius-sm);">
+                    <!-- Checkboxes populated dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closePrintProfileSettingsModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitPrintPatientProfile('print')">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px; height:16px;"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                    <span>Print Profile</span>
+                </button>
+                <button class="btn btn-primary" onclick="submitPrintPatientProfile('pdf')" style="background-color: var(--primary-light); color: var(--primary); border-color: var(--primary);">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px; height:16px; stroke-width: 2.5;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    <span>Export PDF</span>
+                </button>
+                <button class="btn btn-primary" onclick="submitPrintPatientProfile('word')">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:16px; height:16px;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/><path d="M7 7h2v6H7zm4 0h2v6h-2zm4 0h2v6h-2z" fill="currentColor"/></svg>
+                    <span>Export Word</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING ACTION BUTTON (FAB) -->
+    <button class="fab no-print" id="global-fab" onclick="openAddModalForCurrentTab()" title="Add New Record">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+
+    <div id="toast-container" class="toast-container no-print" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- HIDDEN CONTAINER FOR PRINTING (window.print() targets this) -->
+    <div id="print-container">
+        <!-- Rendered dynamically by javascript report printer -->
+    </div>
+
+    <!-- MODALS FOR PHASES 3 & 6 -->
+    <!-- Generic confirm modal (delete/clear operations) -->
+    <div id="modal-confirm" class="modal">
+        <div class="modal-content" style="max-width:440px">
+            <div class="modal-header">
+                <h3 id="confirm-modal-title">Confirm</h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-modal-body"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirm-modal-btn" onclick="">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/edit confirmation modal -->
+    <div id="modal-add-confirm" class="modal">
+        <div class="modal-content" style="max-width:440px">
+            <div class="modal-header">
+                <h3 id="add-confirm-title">Confirm Record</h3>
+            </div>
+            <div class="modal-body">
+                <div id="add-confirm-summary"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAddConfirmModal()">Back</button>
+                <button class="btn btn-primary" id="add-confirm-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export / Prepared By modal (Phase 6) -->
+    <div id="modal-prepared-by" class="modal">
+        <div class="modal-content" style="max-width:420px">
+            <div class="modal-header">
+                <h3>Export Report</h3>
+                <button class="modal-close-btn modal-close" onclick="closePreparedByModal()" aria-label="Close export dialog">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style="width:20px;height:20px;stroke-width:2;" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="prepared-by-input" class="form-label">Prepared By (Coordinator Name)</label>
+                    <input id="prepared-by-input" type="text" class="form-control" placeholder="Enter your name" autocomplete="name">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePreparedByModal()">Cancel</button>
+                <button class="btn btn-secondary" onclick="submitReportExport('print')">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                    Print
+                </button>
+                <button class="btn btn-primary" onclick="submitReportExport('pdf')">Export PDF</button>
+                <button class="btn btn-primary" onclick="submitReportExport('word')">Export Word (.doc)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MedSched Configuration - Google Apps Script Backend -->
+    <script>
+      window.MEDSCHED_CONFIG = {
+        gasUrl: 'https://script.google.com/macros/s/AKfycbw0K-FmJxZKhWhzQnGZQ_BLA7wRBtt70i2YadtaE9A6AgElnlXeTE8G7ZxkhXeHV-Vq/exec',
+        apiKey: 'medsched-2026-key-abc123',
+        jsonpReads: true
+      };
+    </script>
+
+    <!-- Port Cath Studio: Session Config Modal -->
+    <div class="pcs-modal-overlay" id="pcs-config-overlay" style="align-items:center;justify-content:center;" role="dialog" aria-modal="true" aria-label="Configure session days">
+      <div class="pcs-root" style="background:transparent;padding:20px;width:100%;max-width:820px;">
+        <div id="pcs-config-inner">
+          <!-- rendered by pcsRenderConfigCalendar() -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Port Cath Studio: Action Modal (cancel/restore) -->
+    <div class="pcs-modal-overlay" id="pcs-action-overlay" role="dialog" aria-modal="true" aria-labelledby="pcs-action-title">
+      <div class="pcs-modal">
+        <h3 id="pcs-action-title">Confirm Action</h3>
+        <div class="pcs-modal-sub" id="pcs-action-patient-info"></div>
+        <div class="pcs-modal-field">
+          <label>Reason <span style="color:var(--danger)">*</span></label>
+          <textarea id="pcs-action-reason" rows="2" placeholder="Enter reason..."></textarea>
+          <div class="pcs-error-msg" id="pcs-action-reason-err">Reason is required (at least 3 characters)</div>
+        </div>
+        <div class="pcs-modal-actions">
+          <button class="pcs-btn" onclick="pcsCloseActionModal()">Cancel</button>
+          <button class="pcs-btn pcs-btn-primary" id="pcs-action-confirm-btn" onclick="pcsConfirmAction()">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Port Cath Studio: Print / Export Options Modal -->
+    <div class="pcs-modal-overlay" id="pcs-print-options-overlay" role="dialog" aria-modal="true" aria-labelledby="pcs-print-options-title">
+      <div class="pcs-modal">
+        <h3 id="pcs-print-options-title">Print / Export Options</h3>
+        <div class="pcs-modal-field">
+          <label>Scope</label>
+          <div class="pcs-radio-group">
+            <label class="pcs-radio-row">
+              <input type="radio" name="pcs-print-scope" value="all" checked onchange="pcsUpdatePrintScope()">
+              All session days this month
+            </label>
+            <label class="pcs-radio-row">
+              <input type="radio" name="pcs-print-scope" value="specific" onchange="pcsUpdatePrintScope()">
+              Specific day(s)
+            </label>
+            <label class="pcs-radio-row">
+              <input type="radio" name="pcs-print-scope" value="waiting" onchange="pcsUpdatePrintScope()">
+              Waiting List
+            </label>
+          </div>
+        </div>
+        <div class="pcs-modal-field" id="pcs-print-day-picker-wrap" style="display:none">
+          <label>Select day(s)</label>
+          <div class="pcs-checkbox-list" id="pcs-print-day-list"></div>
+        </div>
+        <div class="pcs-modal-actions">
+          <button class="pcs-btn" onclick="pcsClosePrintOptionsModal()">Cancel</button>
+          <button class="pcs-btn" onclick="pcsConfirmPrintOptions('word')">Export Word</button>
+          <button class="pcs-btn pcs-btn-primary" onclick="pcsConfirmPrintOptions('print')">Print</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Port Cath Studio: Waiting List — Add/Edit Modal -->
+    <div class="pcs-modal-overlay" id="pcs-waiting-add-overlay" role="dialog" aria-modal="true" aria-labelledby="pcs-waiting-add-title">
+      <div class="pcs-modal">
+        <h3 id="pcs-waiting-add-title">Add to Waiting List</h3>
+        <div class="pcs-modal-field">
+          <label>Patient Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="pcs-waiting-name" autocomplete="off"/>
+        </div>
+        <div class="pcs-modal-field">
+          <label>File Number <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="pcs-waiting-file" autocomplete="off"/>
+        </div>
+        <div class="pcs-modal-field">
+          <label>Weight (kg) <span style="color:var(--danger)">*</span></label>
+          <input type="number" step="0.1" id="pcs-waiting-weight" autocomplete="off"/>
+        </div>
+        <div class="pcs-modal-field">
+          <label>Phone Number</label>
+          <input type="tel" id="pcs-waiting-phone" autocomplete="off"/>
+        </div>
+        <div class="pcs-modal-field">
+          <label>Notes</label>
+          <textarea id="pcs-waiting-notes" rows="2"></textarea>
+        </div>
+        <div class="pcs-modal-field">
+          <label>Next Chemo Appt. (optional)</label>
+          <input type="date" id="pcs-waiting-next-chemo" autocomplete="off"/>
+        </div>
+        <div class="pcs-error-msg" id="pcs-waiting-add-err">Please fill in Name, File Number, and Weight.</div>
+        <div class="pcs-modal-actions">
+          <button class="pcs-btn" onclick="pcsCloseWaitingAddModal()">Cancel</button>
+          <button class="pcs-btn pcs-btn-primary" onclick="pcsConfirmWaitingAdd()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Port Cath Studio: Waiting List — Assign Date Modal -->
+    <div class="pcs-modal-overlay" id="pcs-waiting-assign-overlay" role="dialog" aria-modal="true" aria-labelledby="pcs-waiting-assign-title">
+      <div class="pcs-modal">
+        <h3 id="pcs-waiting-assign-title">Assign Date</h3>
+        <div class="pcs-modal-sub" id="pcs-waiting-assign-info"></div>
+        <div class="pcs-modal-field">
+          <label>Procedure Date <span style="color:var(--danger)">*</span></label>
+          <input type="date" id="pcs-waiting-assign-date"/>
+        </div>
+        <div class="pcs-error-msg" id="pcs-waiting-assign-err">Please select a date.</div>
+        <div class="pcs-modal-actions">
+          <button class="pcs-btn" onclick="pcsCloseAssignDateModal()">Cancel</button>
+          <button class="pcs-btn pcs-btn-primary" onclick="pcsConfirmAssignDate()">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="portcath-studio.js?v=12"></script>
+    <script src="sync.js"></script>
+    <script src="app.js"></script>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" role="complementary" aria-label="Install MedSched app">
+        <div class="pwa-banner-icon">
+            <img src="icons/icon-192.png" alt="MedSched icon" width="52" height="52">
+        </div>
+        <div class="pwa-banner-text">
+            <div class="pwa-banner-title">Install MedSched Panel</div>
+            <div class="pwa-banner-sub">Works offline &bull; Fast &bull; No browser bar</div>
+            <div class="pwa-device-chips">
+                <span class="pwa-chip">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+                    Mobile
+                </span>
+                <span class="pwa-chip">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                    Desktop
+                </span>
+                <span class="pwa-chip">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+                    Tablet
+                </span>
+            </div>
+        </div>
+        <div class="pwa-banner-actions">
+            <button class="pwa-install-btn" id="pwa-install-btn" aria-label="Install MedSched as an app">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Install
+            </button>
+            <button class="pwa-dismiss-btn" id="pwa-dismiss-btn" aria-label="Dismiss install prompt">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- PWA & Service Worker Script -->
+    <script>
+    (function () {
+        'use strict';
+
+        // ── Service Worker registration ──────────────────────────────────────
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .catch(err => console.warn('SW registration failed:', err));
+            });
+        }
+
+        // ── Install banner logic ─────────────────────────────────────────────
+        const DISMISSED_KEY = 'medsched_pwa_dismissed';
+        const INSTALLED_KEY = 'medsched_pwa_installed';
+        let deferredPrompt = null;
+        const banner  = document.getElementById('pwa-install-banner');
+        const installBtn = document.getElementById('pwa-install-btn');
+        const dismissBtn = document.getElementById('pwa-dismiss-btn');
+
+        function showBanner() {
+            if (!banner) return;
+            // Don't show if already dismissed within 7 days or already installed
+            const dismissed = localStorage.getItem(DISMISSED_KEY);
+            if (dismissed && (Date.now() - Number(dismissed)) < 7 * 24 * 60 * 60 * 1000) return;
+            if (localStorage.getItem(INSTALLED_KEY)) return;
+            // Don't show if already running as standalone (installed)
+            if (window.matchMedia('(display-mode: standalone)').matches) return;
+            if (window.navigator.standalone === true) return;
+
+            setTimeout(() => {
+                banner.classList.add('visible');
+                banner.removeAttribute('aria-hidden');
+            }, 3000);
+        }
+
+        function hideBanner() {
+            if (!banner) return;
+            banner.classList.remove('visible');
+            banner.setAttribute('aria-hidden', 'true');
+        }
+
+        // Capture the beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showBanner();
+        });
+
+        // On iOS/Safari (no beforeinstallprompt), still show banner after delay
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        if (isIOS && isSafari) {
+            showBanner();
+        }
+
+        // Install button click
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                    if (outcome === 'accepted') {
+                        localStorage.setItem(INSTALLED_KEY, '1');
+                        hideBanner();
+                    }
+                } else if (isIOS) {
+                    // Show iOS instructions toast
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(
+                            'On iOS: tap the Share button (↗) then "Add to Home Screen"',
+                            'info', 6000
+                        );
+                    }
+                    hideBanner();
+                }
+            });
+        }
+
+        // Dismiss button
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+                localStorage.setItem(DISMISSED_KEY, String(Date.now()));
+                hideBanner();
+            });
+        }
+
+        // Hide if app installed successfully
+        window.addEventListener('appinstalled', () => {
+            localStorage.setItem(INSTALLED_KEY, '1');
+            hideBanner();
+            if (typeof window.showToast === 'function') {
+                window.showToast('MedSched installed successfully!', 'success');
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
+

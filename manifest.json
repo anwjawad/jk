@@ -38,17 +38,17 @@
   ],
   "shortcuts": [
     {
-      "name": "Clinical Calendar",
-      "short_name": "Calendar",
-      "description": "Open the clinical scheduling calendar",
-      "url": "./index.html#dashboard",
+      "name": "Port Cath",
+      "short_name": "Port Cath",
+      "description": "Port cath sessions, outcomes and waiting list",
+      "url": "./index.html#/portcath",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     },
     {
       "name": "Planned Admissions",
       "short_name": "Admissions",
       "description": "View planned admissions",
-      "url": "./index.html#admissions",
+      "url": "./index.html#/admissions",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     }
   ]

@@ -1,75 +1,36 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository.
 
 ## Running the app
 
-No build step. Open `index.html` directly in a browser, or serve it with any static file server:
+No build step. Serve the folder with any static server and open it:
 
 ```powershell
-# Python (simplest)
-python -m http.server 8080
-
-# Node
-npx serve .
+python -m http.server 8124
 ```
 
-The app is fully functional offline (localStorage) but Google Sheets sync requires an internet connection and a valid GAS URL.
+To try changes without touching the team's Google Sheet, turn on **Settings → Demo mode**
+(data lives in this browser only; demo patients come from `js/demo.js`).
 
 ## Architecture
 
-**Stack:** Vanilla HTML/CSS/JS — no framework, no bundler, no package manager.
+Vanilla ES modules, no framework or bundler. GitHub Pages serves the repo root.
 
-### Files
-
-| File | Role |
+| Path | Role |
 |---|---|
-| `index.html` | Shell: sidebar, all tab `<section>` markup, modal templates, `window.MEDSCHED_CONFIG` inline script |
-| `app.js` | All UI logic: rendering, CRUD, calendar, print/PDF export, Excel import, global search |
-| `sync.js` | Google Sheets sync layer: HTTP to GAS, offline pending queue, per-row sync badges |
-| `style.css` | All styling, CSS custom properties, dark mode, print styles |
-| `mammoth.browser.min.js` | Word document (.docx) parsing for Smart Import tab |
-| `html2pdf.bundle.min.js` | PDF export for print reports |
+| `index.html`, `css/app.css` | App shell and the whole design system (tokens, light/dark) |
+| `js/main.js` | Routing (`#/route?params`), rendering, event delegation, global search, sync status |
+| `js/store.js` | Local-first store: changes apply locally, queue in an outbox, are sent in batches with retry; loading re-applies unsent changes |
+| `js/api.js` | Transport: Apps Script v2 (`applyBatch`) or v1 (`createRecord`/`updateRecord`/`deleteRecord`), or the demo database |
+| `js/model.js` | Domain rules: port cath statuses, session days, “awaiting outcome”, triage, task types, search |
+| `js/ui.js`, `js/print.js` | Dialogs, toasts, menus, icons; printable reports and Word export |
+| `js/views/*.js` | One module per screen, each exports `title`, `render`, optional `onRoute`, `mount`, `focusRecord` |
+| `google-apps-script/Code.gs` | Backend (v2). Same sheets/columns as v1; see `SETUP.md` |
+| `backup/v1/` | The previous version of the app, untouched |
 
-`xlsx@0.18.5` is loaded from the CDN (`cdn.jsdelivr.net`) — the only external dependency at runtime.
-
-### Data model
-
-Four in-memory arrays are the source of truth:
-
-```
-portCathList    – port catheter placement patients
-admissionsList  – daily planned admissions
-followUpList    – WhatsApp/call follow-up tasks
-tumorBoardList  – tumor board follow-up cases
-```
-
-Persistence is two-tier:
-1. **localStorage** — written synchronously on every change via `saveToLocalStorage()` (keys: `medsched_portcath`, `medsched_admissions`, `medsched_followup`, `medsched_tumorboard`)
-2. **Google Sheets** — async via `sync.js`; failed writes are queued in `medsched_pending_queue` and retried
-
-On boot (`DOMContentLoaded`): local storage is loaded first so the UI is immediately usable, then `initGoogleSheetsSync()` fetches from GAS and overwrites the cache with the authoritative remote data.
-
-### Sync layer (`sync.js`)
-
-- Reads `window.MEDSCHED_CONFIG.gasUrl` and `.apiKey` (set in `index.html`)
-- Writes use `fetch` with `mode: 'no-cors'` (opaque response — can't read success/failure from GAS POST)
-- Reads use a regular GET (CORS-enabled GAS deployment required)
-- JSONP fallback for localhost: set `jsonpReads: true` in `MEDSCHED_CONFIG`
-- Every mutation calls `syncAfterChange(action, type, payload)` — this saves locally then fires the async GAS call
-
-### Tabs / navigation
-
-`switchTab(tabId)` toggles `.active` on `#tab-{tabId}` sections and `#menu-{tabId}` sidebar items. Tab IDs: `dashboard`, `portcath`, `admissions`, `followup`, `tumorboard`, `import`.
-
-### Print / PDF export
-
-`generateAndPrintReport(type, dates, mode, preparerName, action)` builds a hidden print DOM then either calls `window.print()` or `html2pdf().save()`. Reports are landscape (admissions) or portrait (port cath, follow-up, tumor board). The "Prepared by" modal (`modal-prepared-by`) gates all exports.
-
-### Google Apps Script backend
-
-The GAS web app (`gasUrl` in `MEDSCHED_CONFIG`) must support:
-- `GET ?action=getAll&key=...` → `{ status:'ok', portcath:[], admissions:[], followup:[], tumorboard:[] }`
-- `POST` body actions: `createRecord`, `updateRecord`, `deleteRecord`, `syncBatch`, `clearType`
-
-`apiKey` is a shared secret passed in every request body and the GET query string.
+Rules of thumb:
+- Views render HTML with the `html` tagged template (auto-escapes); handlers are registered with `registerActions` / `registerChanges` and referenced by `data-action` / `data-change` / `data-input`.
+- Mutations go through `upsert` / `create` / `remove` in `store.js` only. Port cath status changes go through `pc.*` in `model.js`, which also writes the history row.
+- Dates are local `yyyy-mm-dd` strings (`todayISO()`, never `toISOString()` for a calendar day).
+- Port cath: a booked patient whose date has passed is “awaiting outcome” until marked **Port done** (`status: done`, `doneAt`) or **Not done** (carried over, back to waiting list, or cancelled).
