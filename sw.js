@@ -1,5 +1,5 @@
 // Offline shell. App files: network first (so updates show at once), cache as fallback.
-const CACHE = 'medsched-v2-2';
+const CACHE = 'medsched-v2-3';
 const SHELL = [
   './', './index.html', './css/app.css', './manifest.json', './logo.png', './icons/icon.svg', './icons/icon-192.png',
   './js/main.js', './js/util.js', './js/settings.js', './js/api.js', './js/store.js', './js/model.js', './js/registry.js',

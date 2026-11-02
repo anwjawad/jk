@@ -14,6 +14,7 @@ export function render() {
   const st = store.status;
   const local = api.mode() === 'local';
   const version = api.version;
+  const custom = (s.apiUrl && s.apiUrl !== DEFAULT_API_URL) || (s.apiKey && s.apiKey !== DEFAULT_API_KEY);
   return html`
     <div class="settings-grid">
       <section class="panel">
@@ -36,11 +37,19 @@ export function render() {
           ${!local && version === 1 ? html`
             <div class="banner" style="margin:0">${icon('alert', 18)}<span>The sheet still runs the old Apps Script. Everything works, but deploying the new
               <b>google-apps-script/Code.gs</b> makes saving faster and safer (one request per save, locking, dates and file numbers kept as typed). Steps are in <b>google-apps-script/SETUP.md</b>.</span></div>` : ''}
-          <form class="grid-2" data-form="conn">
-            <label class="field span-2"><span>Apps Script web app link</span><input name="apiUrl" class="ltr" value="${s.apiUrl}" placeholder="${DEFAULT_API_URL}" spellcheck="false" autocomplete="off"><small class="hint">Leave empty to use the team’s link that is built into the app.</small></label>
-            <label class="field"><span>Access key</span><input name="apiKey" class="ltr" value="${s.apiKey}" placeholder="${DEFAULT_API_KEY}" spellcheck="false" autocomplete="off"></label>
-            <div class="row span-2"><button type="submit" class="btn btn-primary" data-action="set-save" data-form="conn">Save link</button><button type="button" class="btn" data-action="set-test">${icon('refresh', 16)} Test connection</button></div>
-          </form>
+          ${custom ? html`
+            <div class="banner" style="margin:0">${icon('alert', 18)}<span>This device uses its own link instead of the team’s link built into the app.</span>
+              <button type="button" class="btn btn-sm btn-primary" data-action="set-builtin">Use the built-in link</button></div>`
+            : html`<p class="muted">${icon('checkCircle', 16)} The team’s link is built into the app. Every device connects on its own, with nothing to paste.</p>`}
+          <div class="row"><button type="button" class="btn" data-action="set-test">${icon('refresh', 16)} Test connection</button></div>
+          <details ${custom ? 'open' : ''}>
+            <summary class="muted small">Use a different link (advanced)</summary>
+            <form class="grid-2" data-form="conn" style="margin-top:12px">
+              <label class="field span-2"><span>Apps Script web app link</span><input name="apiUrl" class="ltr" value="${s.apiUrl}" placeholder="${DEFAULT_API_URL}" spellcheck="false" autocomplete="off"><small class="hint">Only for testing another script. Leave empty to use the built-in link.</small></label>
+              <label class="field"><span>Access key</span><input name="apiKey" class="ltr" value="${s.apiKey}" placeholder="${DEFAULT_API_KEY}" spellcheck="false" autocomplete="off"></label>
+              <div class="row span-2"><button type="submit" class="btn btn-primary" data-action="set-save" data-form="conn">Save link</button></div>
+            </form>
+          </details>
         </div>
       </section>
 
@@ -85,6 +94,13 @@ registerActions({
     settings.set(data);
     toast('Saved');
     if (name === 'conn') { api.version = 0; await sync().catch((e) => toast(e.message, { type: 'error' })); }
+    rerender();
+  },
+  'set-builtin': async () => {
+    settings.set({ apiUrl: '', apiKey: '' });
+    toast('Using the built-in link');
+    api.version = 0;
+    await sync().catch((e) => toast(e.message, { type: 'error' }));
     rerender();
   },
   'set-test': async () => {
