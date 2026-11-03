@@ -44,6 +44,9 @@ function zip(files) {
   return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
 }
 
+// A table cell is a string (lines split on \n) or a list of lines: 'text' or { t, b, muted, gap }.
+export const cellLines = (v) => (Array.isArray(v) ? v : String(v ?? '').split('\n')).map((l) => (l && typeof l === 'object' ? { ...l, t: String(l.t ?? '') } : { t: String(l ?? '') }));
+
 // ---------- WordprocessingML ----------
 const TEAL = '0F766E';
 const INK = '0F172A';
@@ -147,7 +150,7 @@ export function buildDocx(doc, { logo = null, hospital = '' } = {}) {
       + s.columns.map((c, i) => cell(para(run(c.label.toUpperCase(), { bold: true, size: 17 }), { align: c.align === 'c' ? 'center' : 'left' }), { width: widths[i + 1], shade: 'E2E8F0' })).join(''), { header: true });
     const rows = s.rows.length
       ? s.rows.map((r, ri) => tr(cell(para(run(ri + 1, { size: 18, color: '475569' }), { align: 'center' }), { width: widths[0], shade: ri % 2 ? 'F8FAFC' : '' })
-        + r.map((v, ci) => cell(para(run(v, { size: 19, bold: ci === 0 }), { align: s.columns[ci]?.align === 'c' ? 'center' : 'left', text: v }), { width: widths[ci + 1], shade: ri % 2 ? 'F8FAFC' : '' })).join('')))
+        + r.map((v, ci) => cell(cellLines(v).map((l) => para(run(l.t, { size: l.muted ? 17 : 19, bold: l.b ?? (ci === 0 && !l.muted), color: l.muted ? '475569' : INK }), { align: s.columns[ci]?.align === 'c' ? 'center' : 'left', text: l.t, spacingAfter: l.gap ? 60 : 0 })).join(''), { width: widths[ci + 1], shade: ri % 2 ? 'F8FAFC' : '' })).join('')))
       : [tr(`<w:tc><w:tcPr><w:tcW w:w="${widths.reduce((a, b) => a + b, 0)}" w:type="dxa"/><w:gridSpan w:val="${widths.length}"/></w:tcPr>${para(run(s.empty || 'No patients.', { italic: true, size: 18, color: '64748B' }), { align: 'center' })}</w:tc>`)];
     body.push(table([head, ...rows], widths));
     body.push(para('', { spacingAfter: 160 }));

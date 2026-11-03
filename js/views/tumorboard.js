@@ -30,9 +30,9 @@ export const focusRecord = (id) => { focusId = id; };
 
 const FILTERS = [['all', 'All'], ['open', 'Open tasks'], ['done', 'All tasks done'], ['none', 'No tasks']];
 
-export function render() {
-  const L = lists();
-  const rows = L.tumorboard
+// The patients the filter pills and search box show right now.
+function visibleRows() {
+  return lists().tumorboard
     .filter((p) => {
       const open = openTasks(p).length;
       const total = (p.tasks || []).length;
@@ -40,11 +40,17 @@ export function render() {
     })
     .filter((p) => matches(ui.tbQuery, p.name, p.fileNumber, p.physician, p.diagnosis, p.notes))
     .sort((a, b) => openTasks(b).length - openTasks(a).length || byText(a.name, b.name));
+}
+
+export function render() {
+  const L = lists();
+  const rows = visibleRows();
   return html`
     <div class="toolbar">
       <div class="pills" role="group" aria-label="Filter">${FILTERS.map(([k, l]) => html`<button type="button" class="pill ${ui.tbFilter === k ? 'active' : ''}" aria-pressed="${String(ui.tbFilter === k)}" data-action="tb-filter" data-f="${k}">${l}</button>`)}</div>
       <span class="spacer"></span>
       <label class="search-box"><span class="sr-only">Search tumor board</span>${icon('search', 16)}<input class="input" type="search" value="${ui.tbQuery}" data-input="tb-query" data-key="tb-q" placeholder="Name, MRN, doctor, diagnosis…" autocomplete="off"></label>
+      <button type="button" class="btn" data-action="tb-print" ${L.tumorboard.length ? '' : 'disabled'}>${icon('print', 17)} Print board</button>
       <button type="button" class="btn" data-action="tb-import">${icon('word', 17)} Import from Word</button>
       <button type="button" class="btn btn-primary" data-action="tb-add">${icon('plus', 17)} Add patient</button>
     </div>
@@ -218,6 +224,73 @@ function printProfile(id) {
   });
 }
 
+// The whole board on one landscape report: a row per patient with history, discussion
+// points and the task checklist, plus an optional to-do list sorted by due date.
+function printBoard() {
+  const all = lists().tumorboard;
+  const shown = visibleRows();
+  const filtered = shown.length !== all.length;
+  return printDialog((r) => {
+    const t = todayISO();
+    const pts = (r.who === 'shown' ? shown : all).slice().sort((a, b) => byText(a.physician, b.physician) || byText(a.name, b.name));
+    const tasksOf = (p) => (r.tasks === 'open' ? openTasks(p) : p.tasks || []);
+    const overdue = (k) => k.status !== 'completed' && k.due && k.due < t;
+    const taskLines = (p) => tasksOf(p).flatMap((k) => {
+      const done = k.status === 'completed';
+      const status = done ? `DONE${k.completedAt ? ' ' + fmtDate(k.completedAt, 'med') : ''}` : overdue(k) ? 'OVERDUE' : 'OPEN';
+      const meta = [status, !done && k.due ? `Due ${fmtDate(k.due, 'med')}` : '', k.details, k.notes].filter(Boolean).join(' · ');
+      return [{ t: taskTitle(k), b: !done }, { t: meta, muted: true, gap: true }];
+    });
+    const row = (p, withDoc) => [
+      [{ t: p.name, b: true }, { t: `MRN ${p.fileNumber || '—'}${p.age ? ` · ${p.age} yrs` : ''}`, muted: true }, ...(withDoc ? [{ t: p.physician || 'Unassigned', muted: true }] : [])],
+      p.diagnosis || '',
+      p.notes || '',
+      tasksOf(p).length ? taskLines(p) : [{ t: r.tasks === 'open' && (p.tasks || []).length ? 'All tasks done' : 'No tasks', muted: true }],
+    ];
+    const columns = [{ label: 'Patient', width: '17%' }, { label: 'Diagnosis / brief history', width: '27%' }, { label: 'Discussion points', width: '24%' }, { label: 'Follow-up tasks' }];
+    let sections;
+    if (r.group) {
+      const groups = new Map();
+      for (const p of pts) { const k = p.physician || 'Unassigned'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
+      sections = [...groups].map(([doc, list]) => ({ heading: doc, badge: `${plural(list.length, 'patient')} · ${list.reduce((n, p) => n + openTasks(p).length, 0)} open tasks`, columns, rows: list.map((p) => row(p, false)) }));
+    } else sections = [{ heading: 'Patients discussed', badge: plural(pts.length, 'patient'), columns, rows: pts.map((p) => row(p, true)), empty: 'No patients.' }];
+    if (r.todo) {
+      const todo = pts.flatMap((p) => openTasks(p).map((k) => ({ p, k })))
+        .sort((a, b) => (a.k.due || '9999').localeCompare(b.k.due || '9999') || byText(a.p.name, b.p.name));
+      sections.push({
+        heading: 'Open tasks by due date', badge: plural(todo.length, 'task'),
+        columns: [{ label: 'Task', width: '30%' }, { label: 'Patient', width: '24%' }, { label: 'Due', width: '13%', align: 'c' }, { label: 'Status', width: '10%', align: 'c' }, { label: 'Notes' }],
+        rows: todo.map(({ p, k }) => [taskTitle(k), [{ t: p.name, b: true }, { t: `MRN ${p.fileNumber || '—'} · ${p.physician || 'Unassigned'}`, muted: true }], k.due ? fmtDate(k.due, 'med') : '—', overdue(k) ? 'OVERDUE' : 'Open', [k.details, k.notes].filter(Boolean).join(' · ')]),
+        empty: 'No open tasks.',
+      });
+    }
+    const tasks = pts.flatMap((p) => p.tasks || []);
+    return {
+      title: 'Tumor Board', subtitle: 'Patients, discussion points & follow-up tasks', fileDate: t, landscape: true,
+      when: fmtDate(t, 'full'),
+      summary: [
+        { value: pts.length, label: 'patients' },
+        { value: tasks.filter((k) => k.status !== 'completed').length, label: 'open tasks' },
+        { value: tasks.filter(overdue).length, label: 'overdue' },
+        { value: tasks.filter((k) => k.status === 'completed').length, label: 'done' },
+      ],
+      sections,
+    };
+  }, {
+    title: 'Print tumor board',
+    extra: html`
+      <div class="field"><span>Patients</span>
+        <label class="check"><input type="radio" name="who" value="all" checked> All ${plural(all.length, 'patient')}</label>
+        ${filtered ? html`<label class="check"><input type="radio" name="who" value="shown"> Only the ${plural(shown.length, 'patient')} shown now</label>` : ''}</div>
+      <div class="field"><span>Tasks</span>
+        <label class="check"><input type="radio" name="tasks" value="all" checked> All tasks, done ones ticked</label>
+        <label class="check"><input type="radio" name="tasks" value="open"> Open tasks only</label></div>
+      <div class="field"><span>Layout</span>
+        <label class="check"><input type="checkbox" name="group" checked> Group patients by physician</label>
+        <label class="check"><input type="checkbox" name="todo" checked> Add a list of open tasks by due date</label></div>`,
+  });
+}
+
 async function importWord() {
   let parsed = [];
   const r = await modal({
@@ -274,6 +347,7 @@ registerActions({
   'tb-add': () => addPatient(),
   'tb-open': (el) => profile(get('tumorboard', el.dataset.id)),
   'tb-import': () => importWord(),
+  'tb-print': () => printBoard(),
   'tb-delete': async (el) => {
     const p = get('tumorboard', el.dataset.id);
     if (!(await confirmBox(`Delete ${p.name} and all their tasks from the tumor board list?`, { title: 'Delete patient?', confirm: 'Delete', danger: true }))) return;

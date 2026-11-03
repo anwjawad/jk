@@ -2,9 +2,11 @@
 import { esc, html, fmtDate, todayISO, downloadFile } from './util.js';
 import { settings } from './settings.js';
 import { modal, toast, icon } from './ui.js';
-import { buildDocx } from './docx.js';
+import { buildDocx, cellLines } from './docx.js';
 
-const cell = (v) => esc(v ?? '').replace(/\n/g, '<br>');
+const cell = (v) => (Array.isArray(v)
+  ? cellLines(v).map((l) => `<div dir="auto" class="${l.b ? 'b' : ''} ${l.muted ? 'mu' : ''} ${l.gap ? 'gap' : ''}">${esc(l.t) || '&nbsp;'}</div>`).join('')
+  : esc(v ?? '').replace(/\n/g, '<br>'));
 
 const CSS = (landscape, word) => `
   @page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 11mm; }
@@ -32,6 +34,9 @@ const CSS = (landscape, word) => `
   tr { page-break-inside: avoid; }
   td.n, th.n { text-align: center; width: 26px; color: #475569; }
   td.c, th.c { text-align: center; }
+  td .b { font-weight: 700; }
+  td .mu { color: #475569; font-size: 8.8pt; }
+  td .gap { margin-bottom: 4px; }
   .muted { color: #64748b; font-style: italic; text-align: center; }
   .sig { margin-top: 36px; width: 220px; text-align: center; font-size: 9.5pt; }
   .sig .name { font-weight: 700; min-height: 18px; }
