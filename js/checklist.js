@@ -1,7 +1,7 @@
 // CVAD insertion coordination checklist: a copy of the hospital form
 // ("CVAD insertion coordination checklist-final.docx"), one page per patient,
 // filled with the patient's details and every item ticked "Yes".
-import { esc, html, fmtDate } from './util.js';
+import { esc, html, fmtDate, todayISO } from './util.js';
 import { settings } from './settings.js';
 import { modal, toast, icon } from './ui.js';
 
@@ -59,9 +59,11 @@ const CSS = `
   .sign { margin-top: 18pt; font-weight: 700; }
   .sign p { margin: 0 0 14pt; }
   .sign .val { font-weight: 700; text-decoration: underline; }
+  .sign .stamp-row { display: flex; align-items: center; margin: -4mm 0 4pt; }
+  .sign .stamp { height: 22mm; margin-left: 2mm; }
 `;
 
-function patientPage(p, coordinator, logo) {
+function patientPage(p, coordinator, logo, stamp) {
   const rows = ROWS.map(([a, b]) => (typeof a === 'string'
     ? `<tr class="sec"><td colspan="2" style="background:${b}">${esc(a)}</td>${'<td></td>'.repeat(4).replace(/<td>/g, `<td style="background:${b}">`)}</tr>`
     : `<tr><td class="n">${a}</td><td>${bold(b)}</td><td class="c">${box(true)}</td><td class="c">${box(false)}</td><td class="c">${box(false)}</td><td></td></tr>`)).join('');
@@ -83,17 +85,19 @@ function patientPage(p, coordinator, logo) {
       </table>
       <div class="sign">
         <p>Case Coordinator: ${coordinator ? `<span class="val">${esc(coordinator)}</span>` : '____________________'}</p>
-        <p>Signature: ____________________</p>
-        <p>Date: ____________________</p>
+        ${stamp ? `<p class="stamp-row">Signature: <img class="stamp" src="${stamp}" alt="Stamp of ${esc(coordinator)}"></p>` : '<p>Signature: ____________________</p>'}
+        <p>Date: <span class="val">${esc(fmtDate(todayISO(), 'full'))}</span></p>
       </div>
     </section>`;
 }
 
 export function checklistHTML(patients, coordinator, { autoPrint = true } = {}) {
   const logo = new URL('icons/cvad-header.png', location.href).href;
+  // Jawad's stamp goes in place of the signature; anyone else signs by hand.
+  const stamp = coordinator === DEFAULT_COORDINATOR ? new URL('icons/stamp-jawad.png', location.href).href : '';
   const title = patients.length === 1 ? `CVAD checklist — ${patients[0].name}` : `CVAD checklists — ${patients.length} patients`;
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${esc(title)}</title><style>${CSS}</style></head>
-    <body>${patients.map((p) => patientPage(p, coordinator, logo)).join('')}
+    <body>${patients.map((p) => patientPage(p, coordinator, logo, stamp)).join('')}
     ${autoPrint ? '<script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script>' : ''}</body></html>`;
 }
 
