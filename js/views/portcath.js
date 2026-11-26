@@ -8,6 +8,7 @@ import { lists, pc, pcStatus, isBooked, patientsOn, isSessionDay, sessionDaysInM
 import { icon, modal, confirmBox, toast, menu, chip, empty, telLinks, datalist } from '../ui.js';
 import { printDialog } from '../print.js';
 import { printChecklists } from '../checklist.js';
+import { settings } from '../settings.js';
 
 export const title = () => 'Port Cath';
 export const sub = () => {
@@ -233,6 +234,7 @@ function ptRow(p, { showDate = false } = {}) {
           ${p.weight ? html`<span><b>${p.weight}</b> kg</span>` : html`<span class="warn-text">No weight</span>`}
           ${p.phone ? telLinks(p.phone) : ''}
           ${p.nextChemoAppt ? html`<span>Next chemo <b>${fmtDate(p.nextChemoAppt, 'med')}</b></span>` : ''}
+          ${p.diagnosis ? html`<span>Dx <b>${p.diagnosis}</b></span>` : ''}
           ${p.source ? html`<span>Source <b>${p.source}</b></span>` : ''}
         </div>
         ${p.notes ? html`<div class="note rtl-text">${p.notes}</div>` : ''}
@@ -262,7 +264,7 @@ function renderAwaiting() {
 function renderWaiting() {
   const L = lists();
   const q = ui.pcQuery;
-  const rows = L.waiting.filter((p) => matches(q, p.name, p.fileNumber, p.phone, p.notes));
+  const rows = L.waiting.filter((p) => matches(q, p.name, p.fileNumber, p.phone, p.diagnosis, p.notes));
   const next = upcomingSessions(todayISO(), 1)[0];
   return html`
     <section class="panel">
@@ -285,7 +287,7 @@ function regRows() {
   const f = ui.pcStatus;
   return L.portcath
     .filter((p) => f === 'all' || (f === 'booked' ? isBooked(p) : f === 'waiting' ? L.waiting.includes(p) : p.status === f))
-    .filter((p) => matches(ui.pcQuery, p.name, p.fileNumber, p.phone, p.notes))
+    .filter((p) => matches(ui.pcQuery, p.name, p.fileNumber, p.phone, p.diagnosis, p.notes))
     .sort((a, b) => String(b.date || '9999').localeCompare(String(a.date || '9999')) || byText(a.name, b.name));
 }
 function renderRegister() {
@@ -302,7 +304,7 @@ function renderRegister() {
       </div>
       ${rows.length ? html`
         <div class="table-wrap"><table class="data">
-          <thead><tr><th>Patient</th><th>Status</th><th>Date</th><th>Weight</th><th>Phone</th><th>Next chemo</th><th>Source</th><th>Notes</th><th><span class="sr-only">Actions</span></th></tr></thead>
+          <thead><tr><th>Patient</th><th>Status</th><th>Date</th><th>Weight</th><th>Phone</th><th>Next chemo</th><th>Source</th><th>Diagnosis</th><th>Notes</th><th><span class="sr-only">Actions</span></th></tr></thead>
           <tbody>${shown.map((p) => { const st = pcStatus(p); return html`<tr data-row="${p.id}">
             <td><button type="button" class="name-btn" data-action="pc-edit" data-id="${p.id}">${p.name}</button><div class="file">${p.fileNumber}</div></td>
             <td>${chip(st.label, st.tone)}</td>
@@ -311,6 +313,7 @@ function renderRegister() {
             <td class="nowrap">${p.phone ? telLinks(p.phone) : '—'}</td>
             <td class="nowrap">${p.nextChemoAppt ? fmtDate(p.nextChemoAppt) : '—'}</td>
             <td>${p.source || '—'}</td>
+            <td>${p.diagnosis || '—'}</td>
             <td class="rtl-text" style="max-width:260px">${p.notes}</td>
             <td><button type="button" class="icon-btn sm" data-action="pc-history" data-id="${p.id}" aria-label="History of ${p.name}">${icon('history', 16)}</button></td>
           </tr>`; })}</tbody>
@@ -370,6 +373,9 @@ async function editPatient(p, preset = '') {
         <label class="field"><span>Weight (kg)</span><input name="weight" type="number" step="0.1" min="1" max="300" value="${p.weight || ''}" inputmode="decimal"></label>
         <label class="field"><span>Phone</span><input name="phone" type="tel" class="ltr" value="${p.phone || ''}" autocomplete="off" placeholder="059…"></label>
         <label class="field"><span>Next chemo appointment</span><input name="nextChemoAppt" type="date" value="${p.nextChemoAppt || ''}"></label>
+        <label class="field span-2"><span>Diagnosis <span class="muted">— printed on the CVAD checklist</span></span><input name="diagnosis" list="pc-diagnoses" value="${p.diagnosis || ''}" autocomplete="off" placeholder="e.g. Ca breast, metastatic">
+          ${diagnosisColumnMissing() ? html`<small class="warn-text">${icon('alert', 14)} The Google Sheet has no “diagnosis” column yet, so this is kept on this device only. Add “diagnosis” as a header in the first empty cell of row 1 on the PortCath sheet.</small>` : ''}</label>
+        ${datalist('pc-diagnoses', diagnoses())}
         <label class="field span-2"><span>Source <span class="muted">— who asked to book this patient</span></span><input name="source" list="pc-sources" value="${isNew ? '' : p.source || ''}" autocomplete="off" placeholder="e.g. Dr. Hanna, clinic nurse, patient called…"></label>
         ${datalist('pc-sources', sources())}
         <div class="span-2" data-dup></div>
@@ -396,7 +402,7 @@ async function editPatient(p, preset = '') {
   if (!r) return;
   // No date chosen → waiting list.
   if ('date' in r && !r.date) r.date = isNew ? 'waiting' : value;
-  const fields = { name: cleanText(r.name), fileNumber: cleanText(r.fileNumber), weight: r.weight, phone: cleanText(r.phone), nextChemoAppt: r.nextChemoAppt, source: cleanText(r.source), notes: r.notes };
+  const fields = { name: cleanText(r.name), fileNumber: cleanText(r.fileNumber), weight: r.weight, phone: cleanText(r.phone), nextChemoAppt: r.nextChemoAppt, source: cleanText(r.source), diagnosis: cleanText(r.diagnosis), notes: r.notes };
   const date = r.date === 'waiting' ? '' : r.date;
   if (isNew) {
     const row = pc.add({ ...fields, date: date || '' });
@@ -535,6 +541,16 @@ function historyDialog(p) {
 const COLS = [{ label: 'Patient name', width: '24%' }, { label: 'File #', width: '10%' }, { label: 'Weight', width: '8%', align: 'c' }, { label: 'Phone', width: '13%' }, { label: 'Next chemo', width: '11%' }, { label: 'Source', width: '13%' }, { label: 'Notes' }];
 const pcRow = (p) => [p.name, p.fileNumber, p.weight ? `${p.weight} kg` : '', p.phone, p.nextChemoAppt ? fmtDate(p.nextChemoAppt, 'full') : '', p.source, p.notes];
 
+// Earlier diagnoses, most used first.
+function diagnoses() {
+  const n = new Map();
+  for (const p of lists().portcath) if (p.diagnosis) n.set(p.diagnosis, (n.get(p.diagnosis) || 0) + 1);
+  return [...n].sort((a, b) => b[1] - a[1]).map(([s]) => s).slice(0, 60);
+}
+// Rows read from the sheet carry every column it has, so a row without the key
+// means the PortCath sheet has no "diagnosis" header (Code.gs only writes existing columns).
+const diagnosisColumnMissing = () => !settings.get('localMode') && lists().portcath.some((p) => !('diagnosis' in p));
+
 // Earlier sources, most used first, to pick from while typing.
 function sources() {
   const n = new Map();
@@ -591,9 +607,9 @@ function waitingDoc() {
 
 function csv() {
   const rows = regRows();
-  const head = ['Name', 'File number', 'Status', 'Date', 'Weight', 'Phone', 'Next chemo', 'Source', 'Done on', 'Notes'];
+  const head = ['Name', 'File number', 'Status', 'Date', 'Weight', 'Phone', 'Next chemo', 'Source', 'Diagnosis', 'Done on', 'Notes'];
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const body = rows.map((p) => [p.name, p.fileNumber, pcStatus(p).label, p.date, p.weight, p.phone, p.nextChemoAppt, p.source, p.doneAt, p.notes].map(q).join(','));
+  const body = rows.map((p) => [p.name, p.fileNumber, pcStatus(p).label, p.date, p.weight, p.phone, p.nextChemoAppt, p.source, p.diagnosis, p.doneAt, p.notes].map(q).join(','));
   downloadFile(`port-cath-${todayISO()}.csv`, '﻿' + [head.join(','), ...body].join('\r\n'), 'text/csv');
 }
 
