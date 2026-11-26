@@ -59,8 +59,8 @@ const CSS = `
   .sign { margin-top: 18pt; font-weight: 700; }
   .sign p { margin: 0 0 14pt; }
   .sign .val { font-weight: 700; text-decoration: underline; }
-  .sign .stamp-row { display: flex; align-items: center; margin: -4mm 0 4pt; }
-  .sign .stamp { height: 22mm; margin-left: 2mm; }
+  .sign .stamp-row { display: flex; align-items: center; margin: -2mm 0 8pt; }
+  .sign .stamp { height: 13mm; margin-left: 2mm; }
 `;
 
 function patientPage(p, coordinator, logo, stamp) {
