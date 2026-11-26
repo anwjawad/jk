@@ -7,6 +7,7 @@ import { get, remove, restore, upsert, batch } from '../store.js';
 import { lists, pc, pcStatus, isBooked, patientsOn, isSessionDay, sessionDaysInMonth, upcomingSessions, setSessionDay, historyOf, HISTORY_LABEL, samePatient } from '../model.js';
 import { icon, modal, confirmBox, toast, menu, chip, empty, telLinks, datalist } from '../ui.js';
 import { printDialog } from '../print.js';
+import { printChecklists } from '../checklist.js';
 
 export const title = () => 'Port Cath';
 export const sub = () => {
@@ -157,6 +158,7 @@ function dayPanel(date) {
       <div class="row">
         ${canConfirm && open.length > 1 ? html`<button type="button" class="btn btn-sm btn-done" data-action="pc-all-done" data-date="${date}">${icon('check', 15)} All ${open.length} done</button>` : ''}
         <button type="button" class="btn btn-sm" data-action="pc-print-day" data-date="${date}">${icon('print', 15)} Print</button>
+        ${active.length ? html`<button type="button" class="btn btn-sm" data-action="pc-checklist-day" data-date="${date}">${icon('print', 15)} Print checklist (${active.length})</button>` : ''}
         <button type="button" class="btn btn-sm btn-primary" data-action="pc-add" data-date="${date}">${icon('plus', 15)} Add</button>
         ${menu(html`
           <button type="button" data-action="pc-toggle-session" data-date="${date}">${icon('calCheck', 16)} ${session ? 'Cancel this session day' : 'Make this a session day'}</button>
@@ -185,6 +187,9 @@ function historyItem(h) {
   return html`<li><span class="when">${fmtTime(h.timestamp)}</span><span><b>${label}</b> · ${h.patientName}${where ? html` · ${where}` : ''}${h.reason ? html` <span class="muted">— ${h.reason}</span>` : ''}</span></li>`;
 }
 
+// Has an appointment (booked or already done) → gets a CVAD checklist.
+const hasAppt = (p) => !!p.date && p.status !== 'cancelled' && p.status !== 'waiting';
+
 const initials = (name) => cleanText(name).split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
 
 // One patient row; `ctx` adds the date when the list spans many days.
@@ -205,6 +210,7 @@ function ptRow(p, { showDate = false } = {}) {
   } else if (isBooked(p)) {
     actions.push(html`<button type="button" class="btn btn-sm btn-ghost" data-action="pc-move" data-id="${p.id}">${icon('forward', 15)} Move</button>`);
   }
+  if (hasAppt(p)) actions.push(html`<button type="button" class="btn btn-sm btn-ghost" data-action="pc-checklist" data-id="${p.id}" title="Print the CVAD checklist for ${p.name}">${icon('print', 15)} Print checklist</button>`);
   const more = [];
   more.push(html`<button type="button" data-action="pc-edit" data-id="${p.id}">${icon('edit', 16)} Edit details</button>`);
   if (isBooked(p)) {
@@ -661,6 +667,8 @@ registerActions({
   'pc-word-day': (el) => printDay(el.dataset.date),
   'pc-print-waiting': () => printDialog(() => waitingDoc(), { title: 'Print waiting list' }),
   'pc-csv': () => csv(),
+  'pc-checklist': (el) => { const p = P(el); printChecklists([p], { subtitle: `${p.name} · ${fmtDate(p.date, 'long')}` }); },
+  'pc-checklist-day': (el) => printChecklists(patientsOn(el.dataset.date).filter(hasAppt), { subtitle: `${fmtDate(el.dataset.date, 'long')} · ${plural(patientsOn(el.dataset.date).filter(hasAppt).length, 'patient')}, one page each` }),
 });
 
 registerChanges({
